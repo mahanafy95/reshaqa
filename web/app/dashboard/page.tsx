@@ -5,6 +5,10 @@ import { api, ApiError } from "@/lib/api";
 import { Bar, Card, Spinner, StatRow } from "@/components/ui";
 
 const MACRO_COLORS: Record<string, string> = { بروتين: "#1B998B", نشويات: "#E08A3C", دهون: "#3C7DD9" };
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 export default function DashboardHome() {
   const router = useRouter();
@@ -22,7 +26,7 @@ export default function DashboardHome() {
           router.replace("/dashboard/profile");
           return;
         }
-        const [s, t, w, b] = await Promise.all([api.summary(), api.targets(), api.water(), api.bodyMetrics()]);
+        const [s, t, w, b] = await Promise.all([api.summary(today()), api.targets(), api.water(today()), api.bodyMetrics()]);
         setSummary(s);
         setTargets(t);
         setWater(w);

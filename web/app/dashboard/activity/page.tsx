@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Button, Card, Field, Spinner } from "@/components/ui";
 
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 export default function ActivityPage() {
   const [list, setList] = useState<any[]>([]);

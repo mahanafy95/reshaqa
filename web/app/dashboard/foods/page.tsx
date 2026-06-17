@@ -6,7 +6,10 @@ import { UNITS, toGrams, unitText, SUGAR_TYPES, sugarType, SUGAR_UNITS, sugarUni
 import MealChat from "@/components/MealChat";
 
 const MEALS: Record<string, string> = { breakfast: "فطار", lunch: "غدا", dinner: "عشا", snack: "سناك" };
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 type Per100 = { cal: number; p: number; c: number; f: number };
 
 export default function FoodsPage() {

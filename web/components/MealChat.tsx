@@ -4,7 +4,10 @@ import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui";
 
 const MEALS: Record<string, string> = { breakfast: "فطار", lunch: "غدا", dinner: "عشا", snack: "سناك" };
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 type Item = {
   name_ar: string; qty: number; unit: string | null; grams: number; meal: string;

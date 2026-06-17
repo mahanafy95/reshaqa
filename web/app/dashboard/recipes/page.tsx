@@ -5,7 +5,10 @@ import { Button, Card, Field, Select, Spinner } from "@/components/ui";
 import { UNITS, toGrams, MILK_TYPES, milkType } from "@/lib/units";
 
 const MEALS: Record<string, string> = { breakfast: "فطار", lunch: "غدا", dinner: "عشا", snack: "سناك" };
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 type Per100 = { cal: number; p: number; c: number; f: number };
 type Ing = { name: string; qty: string; unit: string; per100: Per100; is_oil: boolean; lastEst: string; est: boolean };

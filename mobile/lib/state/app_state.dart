@@ -58,15 +58,16 @@ class AppState extends ChangeNotifier {
 
   Future<void> refreshHome() async {
     try {
+      final today = DateTime.now().toIso8601String().split('T').first;
       final results = await Future.wait([
-        Api.summary(),
+        Api.summary(today),
         Api.targets(),
-        Api.water(),
+        Api.water(today),
       ]);
       summary = results[0];
       targets = results[1];
       water = results[2];
-      todayFoods = await Api.foods(DateTime.now().toIso8601String().split('T').first);
+      todayFoods = await Api.foods(today);
       _syncWidget();
     } catch (_) {
       // نتجاهل أخطاء التحديث الخفيفة
