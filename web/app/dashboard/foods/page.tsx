@@ -1,19 +1,35 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { Button, Card, Field, Select, Spinner } from "@/components/ui";
+import { UNITS, toGrams, unitText } from "@/lib/units";
 
 const MEALS: Record<string, string> = { breakfast: "فطار", lunch: "غدا", dinner: "عشا", snack: "سناك" };
 const today = () => new Date().toISOString().split("T")[0];
+type Per100 = { cal: number; p: number; c: number; f: number };
 
 export default function FoodsPage() {
   const [meal, setMeal] = useState("lunch");
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
   const [results, setResults] = useState<any[]>([]);
-  const [form, setForm] = useState({ name_ar: "", amount: "100", calories: "", protein: "", carbs: "", fat: "" });
+
+  const [name, setName] = useState("");
+  const [unit, setUnit] = useState("g");
+  const [qty, setQty] = useState("100");
+  const [cal, setCal] = useState("");
+  const [protein, setProtein] = useState("");
+  const [carbs, setCarbs] = useState("");
+  const [fat, setFat] = useState("");
+
+  const [per100, setPer100] = useState<Per100 | null>(null);
+  const [manual, setManual] = useState(false); // المستخدم عدّل الأرقام بإيده
+  const [estimating, setEstimating] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const lastEstimated = useRef("");
+
+  const grams = toGrams(Number(qty) || 0, unit);
 
   async function load() {
     setLogs(await api.foods(today()));
@@ -23,61 +39,91 @@ export default function FoodsPage() {
     load();
   }, []);
 
+  // بحث المكتبة + جلب السعرات تلقائياً أول ما تكتب الصنف
   useEffect(() => {
+    const term = name.trim();
     const t = setTimeout(async () => {
-      if (q.trim().length < 2) return setResults([]);
+      if (term.length < 2) {
+        setResults([]);
+        return;
+      }
       try {
-        setResults(await api.librarySearch(q.trim()));
+        setResults(await api.librarySearch(term));
       } catch {}
-    }, 300);
+      if (term !== lastEstimated.current) {
+        lastEstimated.current = term;
+        setEstimating(true);
+        try {
+          const r = await api.estimate(term, 100); // قيم لكل 100
+          setPer100({ cal: r.calories, p: r.protein, c: r.carbs, f: r.fat });
+          setManual(false);
+          setNote(r.note_ar || null);
+        } catch {
+        } finally {
+          setEstimating(false);
+        }
+      }
+    }, 450);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [name]);
 
-  const set = (k: string, v: string) => setForm({ ...form, [k]: v });
+  // اشتقاق السعرات من قيم الـ100 حسب الكمية والوحدة (طالما المستخدم ما عدّلش بإيده)
+  useEffect(() => {
+    if (per100 && !manual) {
+      const f = grams / 100;
+      setCal(String(Math.round(per100.cal * f)));
+      setProtein((per100.p * f).toFixed(1));
+      setCarbs((per100.c * f).toFixed(1));
+      setFat((per100.f * f).toFixed(1));
+    }
+  }, [per100, grams, manual]);
 
   function pickLibrary(item: any) {
-    const grams = item.household_grams || 100;
-    const f = grams / 100;
-    setForm({
-      name_ar: item.name_ar,
-      amount: String(grams),
-      calories: String(Math.round(item.calories_per_100 * f)),
-      protein: (item.protein * f).toFixed(1),
-      carbs: (item.carbs * f).toFixed(1),
-      fat: (item.fat * f).toFixed(1),
-    });
+    setName(item.name_ar);
+    lastEstimated.current = item.name_ar; // ما نعيدش التقدير
+    setUnit("g");
+    setQty(String(item.household_grams || 100));
+    setPer100({ cal: item.calories_per_100, p: item.protein, c: item.carbs, f: item.fat });
+    setManual(false);
+    setNote("من مكتبة الأكلات.");
     setResults([]);
-    setQ("");
   }
 
-  async function estimate() {
-    if (!form.name_ar.trim()) return;
-    const r = await api.estimate(form.name_ar.trim(), Number(form.amount) || 100);
-    setForm({
-      ...form,
-      calories: String(Math.round(r.calories)),
-      protein: String(r.protein),
-      carbs: String(r.carbs),
-      fat: String(r.fat),
-    });
-    setMsg(r.note_ar);
+  function editMacro(setter: (v: string) => void, v: string) {
+    setManual(true); // وقف الاشتقاق التلقائي — المستخدم بيعدّل
+    setter(v);
+  }
+
+  function reset() {
+    setName("");
+    setUnit("g");
+    setQty("100");
+    setCal("");
+    setProtein("");
+    setCarbs("");
+    setFat("");
+    setPer100(null);
+    setManual(false);
+    setNote(null);
+    lastEstimated.current = "";
   }
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name_ar.trim()) return;
+    if (!name.trim()) return;
+    const displayName = unit === "g" ? name.trim() : `${name.trim()} (${unitText(Number(qty) || 0, unit)})`;
     await api.addFood({
       date: today(),
       meal,
-      name_ar: form.name_ar.trim(),
-      amount: Number(form.amount) || 100,
-      calories: Number(form.calories) || 0,
-      protein: Number(form.protein) || 0,
-      carbs: Number(form.carbs) || 0,
-      fat: Number(form.fat) || 0,
+      name_ar: displayName,
+      amount: Math.round(grams * 10) / 10 || 1,
+      calories: Number(cal) || 0,
+      protein: Number(protein) || 0,
+      carbs: Number(carbs) || 0,
+      fat: Number(fat) || 0,
       source: "manual",
     });
-    setForm({ name_ar: "", amount: "100", calories: "", protein: "", carbs: "", fat: "" });
+    reset();
     setMsg("اتسجّل 👍");
     load();
   }
@@ -91,7 +137,7 @@ export default function FoodsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">تسجيل الأكل</h1>
+      <h1 className="text-2xl font-extrabold">تسجيل الأكل والمشروبات</h1>
 
       <Card>
         <div className="flex gap-2 flex-wrap mb-4">
@@ -106,36 +152,65 @@ export default function FoodsPage() {
           ))}
         </div>
 
-        <Field label="ابحث في المكتبة أو اكتب اسم الأكلة" value={q} onChange={(e) => setQ(e.target.value)} />
-        {results.length > 0 && (
-          <div className="border border-gray-100 rounded-xl max-h-52 overflow-auto mb-3">
-            {results.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => pickLibrary(r)}
-                className="w-full text-right px-4 py-2 hover:bg-gray-50 flex justify-between"
-              >
-                <span>{r.name_ar}</span>
-                <span className="text-muted text-sm">{r.calories_per_100} سعرة/100جم</span>
-              </button>
-            ))}
-          </div>
-        )}
-
         <form onSubmit={add}>
-          <Field label="اسم الأكلة" value={form.name_ar} onChange={(e) => set("name_ar", e.target.value)} />
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3">
-            <Field label="الكمية (جم)" type="number" value={form.amount} onChange={(e) => set("amount", e.target.value)} />
-            <Field label="سعرات" type="number" value={form.calories} onChange={(e) => set("calories", e.target.value)} />
-            <Field label="بروتين" type="number" value={form.protein} onChange={(e) => set("protein", e.target.value)} />
-            <Field label="نشويات" type="number" value={form.carbs} onChange={(e) => set("carbs", e.target.value)} />
-            <Field label="دهون" type="number" value={form.fat} onChange={(e) => set("fat", e.target.value)} />
+          <div className="relative">
+            <Field
+              label="اسم الصنف (اكتبه والسعرات تتجاب لوحدها)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="مثلاً: قهوة بلبن، رز، تفاح…"
+              autoComplete="off"
+            />
+            {estimating && <span className="absolute left-3 top-9 text-xs text-muted">بنحسب…</span>}
+            {results.length > 0 && (
+              <div className="absolute z-10 left-0 right-0 bg-white border border-gray-100 rounded-xl max-h-52 overflow-auto shadow-lg">
+                {results.map((r) => (
+                  <button
+                    type="button"
+                    key={r.id}
+                    onClick={() => pickLibrary(r)}
+                    className="w-full text-right px-4 py-2 hover:bg-gray-50 flex justify-between"
+                  >
+                    <span>{r.name_ar}</span>
+                    <span className="text-muted text-sm">{r.calories_per_100} /100</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          <div className="grid grid-cols-2 gap-x-3">
+            <Field label="الكمية" type="number" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} />
+            <Select label="الوحدة" value={unit} onChange={(e) => setUnit(e.target.value)}>
+              {UNITS.map((u) => (
+                <option key={u.key} value={u.key}>
+                  {u.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="rounded-xl bg-teal/5 p-3 mb-3 text-center">
+            <div className="text-3xl font-extrabold text-teal">{cal || 0}</div>
+            <div className="text-muted text-sm">
+              سعرة لـ {unitText(Number(qty) || 0, unit)}
+              {unit !== "g" && grams ? ` (≈ ${Math.round(grams)} جم)` : ""}
+            </div>
+          </div>
+
+          <details className="mb-3">
+            <summary className="text-sm text-teal cursor-pointer">تعديل التفاصيل يدوياً (سعرات وماكروز)</summary>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 mt-2">
+              <Field label="سعرات" type="number" value={cal} onChange={(e) => editMacro(setCal, e.target.value)} />
+              <Field label="بروتين" type="number" value={protein} onChange={(e) => editMacro(setProtein, e.target.value)} />
+              <Field label="نشويات" type="number" value={carbs} onChange={(e) => editMacro(setCarbs, e.target.value)} />
+              <Field label="دهون" type="number" value={fat} onChange={(e) => editMacro(setFat, e.target.value)} />
+            </div>
+          </details>
+
+          {note && <p className="text-muted text-xs mb-2">{note}</p>}
           {msg && <p className="text-teal text-sm mb-2">{msg}</p>}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={estimate} className="flex-1">قدّر تلقائياً</Button>
-            <Button type="submit" className="flex-1">أضف للوجبة</Button>
-          </div>
+          <Button type="submit" className="w-full">أضف للوجبة</Button>
         </form>
       </Card>
 
@@ -155,7 +230,8 @@ export default function FoodsPage() {
                 <div>
                   <div className="font-semibold">{l.name_ar}</div>
                   <div className="text-muted text-sm">
-                    {MEALS[l.meal]} • {Math.round(l.amount)}جم • {Math.round(l.calories)} سعرة
+                    {MEALS[l.meal]} • {Math.round(l.calories)} سعرة
+                    {l.protein ? ` • ب${Math.round(l.protein)} ك${Math.round(l.carbs)} د${Math.round(l.fat)}` : ""}
                   </div>
                 </div>
                 <button onClick={() => remove(l.id)} className="text-red-500 text-sm">حذف</button>

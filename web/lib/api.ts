@@ -99,6 +99,7 @@ export const api = {
   // الوصفات والمفضلة
   recipes: () => get<any[]>("/recipes"),
   createRecipe: (b: any) => post<any>("/recipes", b),
+  updateRecipe: (id: number, b: any) => put<any>(`/recipes/${id}`, b),
   logRecipe: (id: number, b: any) => post<any>(`/recipes/${id}/log`, b),
   deleteRecipe: (id: number) => del(`/recipes/${id}`),
   favorites: () => get<any[]>("/favorites"),

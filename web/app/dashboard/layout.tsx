@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 const NAV = [
   { href: "/dashboard", label: "الرئيسية", icon: "🏠" },
   { href: "/dashboard/foods", label: "تسجيل الأكل", icon: "🍽️" },
+  { href: "/dashboard/recipes", label: "الوصفات", icon: "📖" },
   { href: "/dashboard/weight", label: "الوزن", icon: "⚖️" },
   { href: "/dashboard/water", label: "المياه", icon: "💧" },
   { href: "/dashboard/activity", label: "النشاط", icon: "🏃" },
