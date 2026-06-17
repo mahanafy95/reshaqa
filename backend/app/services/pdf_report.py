@@ -129,9 +129,14 @@ def weekly_pdf(report: WeeklyReport) -> bytes:
     _header(p, "تقرير أسبوعي", f"من {report.start} إلى {report.end}")
 
     p.kv("أيام الالتزام (ضمن الهدف):", f"{report.adherent_days} من 7")
+    p.kv("توزيع الأيام:", f"ضمن {report.days_within} • فوق {report.days_over} • تحت {report.days_under}")
     p.kv("أيام فيها تسجيل:", f"{report.logged_days} أيام")
-    p.kv("متوسط المتناول:", f"{report.avg_eaten} سعرة")
-    p.kv("متوسط الهدف:", f"{report.avg_target} سعرة")
+    p.kv("متوسط المتناول:", f"{report.avg_eaten} سعرة (الهدف {report.avg_target})")
+    p.kv("متوسط الماكروز:", f"بروتين {report.avg_protein:g} • نشويات {report.avg_carbs:g} • دهون {report.avg_fat:g} جم")
+    if report.water_avg_ml:
+        p.kv("متوسط المياه:", f"{report.water_avg_ml} مل/يوم")
+    if report.activity_total_min or report.activity_total_calories:
+        p.kv("إجمالي النشاط:", f"{report.activity_total_min} دقيقة • {report.activity_total_calories} سعرة محروقة")
     phrase = _weight_phrase(report.weight_change_kg)
     if phrase:
         p.kv("تغيّر الوزن خلال الأسبوع:", phrase)
@@ -145,7 +150,8 @@ def weekly_pdf(report: WeeklyReport) -> bytes:
         p.c.setFillColor(colors.black)
         p.c.drawRightString(p.right, p.y, ar(f"{name} ({d.day})"))
         p.c.setFillColor(color)
-        p.c.drawString(p.left, p.y, ar(f"{d.status} — {d.eaten_calories}/{int(d.target_calories)} سعرة"))
+        macro = f"  (بروتين {d.protein:g} نشويات {d.carbs:g} دهون {d.fat:g})" if d.status != "لا يوجد تسجيل" else ""
+        p.c.drawString(p.left, p.y, ar(f"{d.status} — {d.eaten_calories}/{int(d.target_calories)} سعرة{macro}"))
         p.y -= 6.5 * mm
 
     p.hr()
@@ -170,6 +176,11 @@ def monthly_pdf(report: MonthlyReport) -> bytes:
     p.kv("إجمالي أيام الالتزام:", f"{report.total_adherent_days} يوم")
     p.kv("إجمالي أيام التسجيل:", f"{report.total_logged_days} يوم")
     p.kv("متوسط المتناول اليومي:", f"{report.avg_eaten} سعرة")
+    p.kv("متوسط الماكروز:", f"بروتين {report.avg_protein:g} • نشويات {report.avg_carbs:g} • دهون {report.avg_fat:g} جم")
+    if report.water_avg_ml:
+        p.kv("متوسط المياه:", f"{report.water_avg_ml} مل/يوم")
+    if report.activity_total_min or report.activity_total_calories:
+        p.kv("إجمالي النشاط:", f"{report.activity_total_min} دقيقة • {report.activity_total_calories} سعرة محروقة")
     phrase = _weight_phrase(report.weight_change_kg)
     if phrase:
         p.kv("تغيّر الوزن خلال الشهر:", phrase)

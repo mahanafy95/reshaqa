@@ -49,6 +49,12 @@ def test_weekly_report_adherence(client):
     assert body["adherent_days"] >= 1
     assert body["logged_days"] == 3
     assert body["summary_ar"]
+    # تفاصيل إضافية
+    assert body["days_within"] + body["days_over"] + body["days_under"] == 3
+    assert "avg_protein" in body and "avg_carbs" in body and "avg_fat" in body
+    assert "water_avg_ml" in body and "activity_total_min" in body
+    # ماكروز كل يوم متاحة
+    assert all("protein" in d for d in body["days"])
 
 
 def test_monthly_report_shape(client):
