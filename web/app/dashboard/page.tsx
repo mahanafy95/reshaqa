@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { Bar, Card, Spinner } from "@/components/ui";
+import { Bar, Card, Spinner, StatRow } from "@/components/ui";
 
 const MACRO_COLORS: Record<string, string> = { بروتين: "#1B998B", نشويات: "#E08A3C", دهون: "#3C7DD9" };
 
@@ -11,6 +11,7 @@ export default function DashboardHome() {
   const [summary, setSummary] = useState<any>(null);
   const [targets, setTargets] = useState<any>(null);
   const [water, setWater] = useState<any>(null);
+  const [body, setBody] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +22,11 @@ export default function DashboardHome() {
           router.replace("/dashboard/profile");
           return;
         }
-        const [s, t, w] = await Promise.all([api.summary(), api.targets(), api.water()]);
+        const [s, t, w, b] = await Promise.all([api.summary(), api.targets(), api.water(), api.bodyMetrics()]);
         setSummary(s);
         setTargets(t);
         setWater(w);
+        setBody(b);
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) router.replace("/login");
       } finally {
@@ -98,6 +100,17 @@ export default function DashboardHome() {
               </div>
             </div>
           </div>
+        </Card>
+      )}
+
+      {body && (
+        <Card>
+          <h2 className="font-bold text-lg mb-2">مؤشرات الجسم</h2>
+          <StatRow k="مؤشر الكتلة (BMI)" v={`${body.bmi} — ${body.bmi_category_ar}`} />
+          <StatRow k="النطاق الصحي لوزنك" v={`${body.healthy_min_kg} - ${body.healthy_max_kg} كجم`} />
+          {body.body_fat_pct != null && <StatRow k="نسبة الدهون (تقديرية)" v={`${body.body_fat_pct}%`} />}
+          {body.lean_mass_kg != null && <StatRow k="الكتلة الصافية / الدهون" v={`${body.lean_mass_kg} / ${body.fat_mass_kg} كجم`} />}
+          <p className="text-muted text-xs mt-2">{body.note_ar}</p>
         </Card>
       )}
 

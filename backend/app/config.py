@@ -1,7 +1,10 @@
 """إعدادات التطبيق — تُقرأ من متغيّرات البيئة أو ملف .env."""
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_SECRETS = {"", "dev-insecure-secret-change-me", "change-me-to-a-long-random-secret"}
 
 
 class Settings(BaseSettings):
@@ -46,9 +49,29 @@ class Settings(BaseSettings):
     HUAWEI_HEALTH_CLIENT_SECRET: str = ""
     HUAWEI_HEALTH_REDIRECT_URI: str = ""
 
+    @model_validator(mode="after")
+    def _enforce_secure_secret(self):
+        # في الإنتاج: ارفض التشغيل بمفتاح JWT افتراضي/فارغ (يمنع تزوير التوكنات)
+        if self.APP_ENV != "development" and self.JWT_SECRET_KEY in _INSECURE_SECRETS:
+            raise ValueError(
+                "JWT_SECRET_KEY لازم يكون مفتاح قوي وسرّي في الإنتاج "
+                "(عيّن متغيّر البيئة JWT_SECRET_KEY)."
+            )
+        return self
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        """عنوان متوافق مع psycopg3 — يطبّع صيغة Railway (postgresql://) تلقائياً."""
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://"):]
+        elif url.startswith("postgres://"):  # صيغة قديمة من بعض المزوّدين
+            url = "postgresql+psycopg://" + url[len("postgres://"):]
+        return url
 
 
 @lru_cache

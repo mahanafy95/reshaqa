@@ -13,12 +13,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# اضبط العنوان من إعدادات التطبيق (متغيّر البيئة DATABASE_URL)
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# اضبط العنوان من إعدادات التطبيق (متغيّر البيئة DATABASE_URL، مطبّع لـ psycopg3)
+config.set_main_option("sqlalchemy.url", settings.sqlalchemy_url)
 
 target_metadata = Base.metadata
 
-_is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+_is_sqlite = settings.sqlalchemy_url.startswith("sqlite")
 
 
 def run_migrations_offline() -> None:

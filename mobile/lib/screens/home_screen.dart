@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
+import '../services/api.dart';
 import '../services/update_service.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
@@ -52,6 +53,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               if (app.water != null) _WaterMini(water: app.water!),
               const SizedBox(height: 12),
+              const _BodyMetricsCard(),
               _PlateauBanner(),
               const Text('إجراءات سريعة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
@@ -274,6 +276,55 @@ class _UpdateBannerState extends State<_UpdateBanner> {
             child: const Text('حدّث الآن'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BodyMetricsCard extends StatefulWidget {
+  const _BodyMetricsCard();
+  @override
+  State<_BodyMetricsCard> createState() => _BodyMetricsCardState();
+}
+
+class _BodyMetricsCardState extends State<_BodyMetricsCard> {
+  Map<String, dynamic>? _m;
+
+  @override
+  void initState() {
+    super.initState();
+    Api.bodyMetrics().then((v) {
+      if (mounted) setState(() => _m = v);
+    }).catchError((_) {});
+  }
+
+  Widget _row(String k, String v) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(k, style: const TextStyle(color: AppColors.textMuted)),
+          Text(v, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final m = _m;
+    if (m == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SectionCard(
+        title: 'مؤشرات الجسم',
+        child: Column(
+          children: [
+            _row('مؤشر الكتلة (BMI)', '${m['bmi']} — ${m['bmi_category_ar']}'),
+            _row('النطاق الصحي لوزنك', '${m['healthy_min_kg']} - ${m['healthy_max_kg']} كجم'),
+            if (m['body_fat_pct'] != null) _row('نسبة الدهون (تقديرية)', '${m['body_fat_pct']}%'),
+            if (m['lean_mass_kg'] != null)
+              _row('الكتلة الصافية / الدهون', '${m['lean_mass_kg']} / ${m['fat_mass_kg']} كجم'),
+            const SizedBox(height: 4),
+            Text(m['note_ar'] ?? '', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+          ],
+        ),
       ),
     );
   }

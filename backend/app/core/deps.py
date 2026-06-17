@@ -30,10 +30,11 @@ def get_current_user(
         user_id = payload.get("sub")
         if user_id is None:
             raise _CREDENTIALS_EXC
-    except jwt.PyJWTError:
+        uid = int(user_id)
+    except (jwt.PyJWTError, ValueError, TypeError):
         raise _CREDENTIALS_EXC
 
-    user = db.get(User, int(user_id))
+    user = db.get(User, uid)
     if user is None:
         raise _CREDENTIALS_EXC
     return user

@@ -141,6 +141,8 @@ async def parse_label(
     raw = text
     if not raw and image is not None:
         content = await image.read()
+        if len(content) > 8 * 1024 * 1024:  # حد أقصى 8 ميجا للصورة
+            raise HTTPException(status_code=413, detail="الصورة كبيرة جداً (الحد 8 ميجا).")
         raw = ocr_svc.ocr_image_to_text(content)
         if not raw:
             return LabelParseOut(
