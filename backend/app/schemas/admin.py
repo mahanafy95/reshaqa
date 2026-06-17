@@ -2,7 +2,16 @@
 from datetime import date as date_type
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _clean_username(v: str) -> str:
+    v = v.strip()
+    if " " in v:
+        raise ValueError("اسم المستخدم لا يحتوي على مسافات")
+    if not v:
+        raise ValueError("اسم المستخدم مطلوب")
+    return v
 
 
 class AdminProfileOut(BaseModel):
@@ -58,6 +67,20 @@ class AdminUserDetail(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=128)
+
+
+class AdminCreateUser(BaseModel):
+    username: str = Field(..., min_length=3, max_length=30)
+    password: str = Field(..., min_length=6, max_length=128)
+    is_admin: bool = False
+
+    _v_username = field_validator("username")(_clean_username)
+
+
+class ChangeUsernameRequest(BaseModel):
+    new_username: str = Field(..., min_length=3, max_length=30)
+
+    _v_username = field_validator("new_username")(_clean_username)
 
 
 class SetAdminRequest(BaseModel):

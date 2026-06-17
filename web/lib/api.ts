@@ -124,6 +124,10 @@ export const api = {
   adminUsers: (q?: string) =>
     get<any[]>(`/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   adminUser: (id: number) => get<any>(`/admin/users/${id}`),
+  adminCreateUser: (b: { username: string; password: string; is_admin?: boolean }) =>
+    post<any>("/admin/users", b),
+  adminRenameUser: (id: number, newUsername: string) =>
+    post<any>(`/admin/users/${id}/username`, { new_username: newUsername }),
   adminResetPassword: (id: number, newPassword: string) =>
     post<any>(`/admin/users/${id}/reset-password`, { new_password: newPassword }),
   adminSetAdmin: (id: number, isAdmin: boolean) =>

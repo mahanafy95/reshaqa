@@ -68,6 +68,57 @@ def test_admin_cannot_delete_or_demote_self(client, db_session):
     assert client.post(f"/admin/users/{bid}/admin", json={"is_admin": False}, headers=ah).status_code == 400
 
 
+def test_admin_can_create_user(client, db_session):
+    ah = auth_headers(client, "boss4", "bosspass1")
+    _promote(db_session, "boss4")
+    # إنشاء مستخدم جديد
+    r = client.post("/admin/users", json={"username": "newbie", "password": "newbiepass"}, headers=ah)
+    assert r.status_code == 201, r.text
+    assert r.json()["username"] == "newbie"
+    # المستخدم الجديد يقدر يسجّل دخول بكلمة السر المحددة
+    assert client.post("/auth/login", json={"username": "newbie", "password": "newbiepass"}).status_code == 200
+    # تكرار الاسم -> 409
+    r = client.post("/admin/users", json={"username": "newbie", "password": "another"}, headers=ah)
+    assert r.status_code == 409
+
+
+def test_create_user_can_be_admin(client, db_session):
+    ah = auth_headers(client, "boss5", "bosspass1")
+    _promote(db_session, "boss5")
+    r = client.post("/admin/users", json={"username": "subadmin", "password": "subpass1", "is_admin": True}, headers=ah)
+    assert r.status_code == 201
+    tok = client.post("/auth/login", json={"username": "subadmin", "password": "subpass1"}).json()["access_token"]
+    # المستخدم الجديد مشرف فعلاً
+    assert client.get("/admin/users", headers={"Authorization": f"Bearer {tok}"}).status_code == 200
+
+
+def test_non_admin_cannot_create_user(client):
+    h = auth_headers(client, "plainuser", "pass1234")
+    assert client.post("/admin/users", json={"username": "x123", "password": "y12345"}, headers=h).status_code == 403
+
+
+def test_admin_can_change_username(client, db_session):
+    auth_headers(client, "oldname", "pass1234")
+    ah = auth_headers(client, "boss6", "bosspass1")
+    _promote(db_session, "boss6")
+    tid = next(u["id"] for u in client.get("/admin/users", headers=ah).json() if u["username"] == "oldname")
+    r = client.post(f"/admin/users/{tid}/username", json={"new_username": "newname"}, headers=ah)
+    assert r.status_code == 200, r.text
+    # الدخول بالاسم الجديد يشتغل، والقديم لأ
+    assert client.post("/auth/login", json={"username": "newname", "password": "pass1234"}).status_code == 200
+    assert client.post("/auth/login", json={"username": "oldname", "password": "pass1234"}).status_code == 401
+
+
+def test_change_username_conflict(client, db_session):
+    auth_headers(client, "taken", "pass1234")
+    auth_headers(client, "mover", "pass1234")
+    ah = auth_headers(client, "boss7", "bosspass1")
+    _promote(db_session, "boss7")
+    mid = next(u["id"] for u in client.get("/admin/users", headers=ah).json() if u["username"] == "mover")
+    r = client.post(f"/admin/users/{mid}/username", json={"new_username": "taken"}, headers=ah)
+    assert r.status_code == 409
+
+
 def test_me_reports_is_admin(client, db_session):
     ah = auth_headers(client, "boss3", "bosspass1")
     # قبل الترقية

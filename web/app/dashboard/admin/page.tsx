@@ -35,6 +35,9 @@ export default function AdminPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [msg, setMsg] = useState<string>("");
   const [meId, setMeId] = useState<number | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ username: "", password: "", is_admin: false });
+  const [adding, setAdding] = useState(false);
 
   async function load(query = "") {
     setLoading(true);
@@ -69,6 +72,40 @@ export default function AdminPage() {
   function flash(m: string) {
     setMsg(m);
     setTimeout(() => setMsg(""), 4000);
+  }
+
+  async function createUser() {
+    if (addForm.username.trim().length < 3) return flash("اسم المستخدم لازم ٣ أحرف على الأقل.");
+    if (addForm.password.length < 6) return flash("كلمة السر لازم ٦ أحرف على الأقل.");
+    setAdding(true);
+    try {
+      await api.adminCreateUser({
+        username: addForm.username.trim(),
+        password: addForm.password,
+        is_admin: addForm.is_admin,
+      });
+      flash(`تم إضافة المستخدم ${addForm.username.trim()}.`);
+      setAddForm({ username: "", password: "", is_admin: false });
+      setShowAdd(false);
+      await load(q);
+    } catch (e) {
+      flash(e instanceof ApiError ? e.message : "فشل إضافة المستخدم.");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function renameUser(u: { id: number; username: string }) {
+    const name = window.prompt(`اسم جديد للمستخدم "${u.username}" (٣ أحرف على الأقل، بدون مسافات):`, u.username);
+    if (!name || name.trim() === u.username) return;
+    try {
+      const r = await api.adminRenameUser(u.id, name.trim());
+      flash(r?.message || "تم تغيير الاسم.");
+      await load(q);
+      if (selected?.id === u.id) await openDetail(u.id);
+    } catch (e) {
+      flash(e instanceof ApiError ? e.message : "فشل تغيير الاسم.");
+    }
   }
 
   async function resetPassword(u: { id: number; username: string }) {
@@ -125,10 +162,43 @@ export default function AdminPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-extrabold">🛡️ الإشراف — المستخدمون ({users.length})</h1>
+        <Button onClick={() => setShowAdd((s) => !s)}>{showAdd ? "✕ إلغاء" : "➕ إضافة مستخدم"}</Button>
       </div>
 
       {msg && (
         <div className="rounded-xl bg-teal/10 text-teal px-4 py-2.5 text-sm font-semibold">{msg}</div>
+      )}
+
+      {showAdd && (
+        <Card>
+          <h2 className="font-bold text-lg mb-3">➕ إضافة مستخدم جديد</h2>
+          <div className="grid md:grid-cols-2 gap-3">
+            <Field
+              label="اسم المستخدم"
+              value={addForm.username}
+              onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
+              placeholder="بدون مسافات، ٣ أحرف على الأقل"
+            />
+            <Field
+              label="كلمة السر"
+              type="text"
+              value={addForm.password}
+              onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+              placeholder="٦ أحرف على الأقل"
+            />
+          </div>
+          <label className="flex items-center gap-2 mb-3 text-sm">
+            <input
+              type="checkbox"
+              checked={addForm.is_admin}
+              onChange={(e) => setAddForm({ ...addForm, is_admin: e.target.checked })}
+            />
+            <span>يكون مشرفاً (صلاحية كاملة)</span>
+          </label>
+          <Button onClick={createUser} disabled={adding}>
+            {adding ? "جارٍ الإضافة…" : "حفظ المستخدم"}
+          </Button>
+        </Card>
       )}
 
       <Card>
@@ -175,6 +245,12 @@ export default function AdminPage() {
                   <td className="py-2 px-2">{fmtDate(u.last_food_date)}</td>
                   <td className="py-2 px-2">
                     <div className="flex gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => renameUser(u)}
+                        className="text-xs rounded-lg border border-gray-300 text-ink px-2 py-1 hover:bg-gray-100"
+                      >
+                        الاسم
+                      </button>
                       <button
                         onClick={() => resetPassword(u)}
                         className="text-xs rounded-lg border border-teal text-teal px-2 py-1 hover:bg-teal/5"
@@ -276,6 +352,9 @@ export default function AdminPage() {
           </div>
 
           <div className="flex gap-2 mt-5 flex-wrap border-t border-gray-100 pt-4">
+            <Button variant="outline" onClick={() => renameUser(selected)}>
+              ✏️ تغيير الاسم
+            </Button>
             <Button variant="outline" onClick={() => resetPassword(selected)}>
               🔑 تغيير كلمة السر
             </Button>

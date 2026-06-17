@@ -15,11 +15,13 @@ from ..models.tracking import WeightLog
 from ..models.user import User
 from ..schemas.admin import (
     AdminActionResult,
+    AdminCreateUser,
     AdminFoodOut,
     AdminProfileOut,
     AdminUserDetail,
     AdminUserSummary,
     AdminWeightOut,
+    ChangeUsernameRequest,
     ResetPasswordRequest,
     SetAdminRequest,
 )
@@ -99,6 +101,38 @@ def list_users(
     return out
 
 
+@router.post("/users", response_model=AdminUserSummary, status_code=status.HTTP_201_CREATED)
+def create_user(
+    payload: AdminCreateUser, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)
+):
+    """إضافة مستخدم جديد باسم وكلمة سر (مع إمكانية جعله مشرفاً)."""
+    exists = db.scalar(
+        select(User).where(func.lower(User.username) == payload.username.lower())
+    )
+    if exists is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="اسم المستخدم ده موجود بالفعل. جرّب اسم تاني.",
+        )
+    user = User(
+        username=payload.username,
+        password_hash=hash_password(payload.password),
+        is_admin=payload.is_admin,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return AdminUserSummary(
+        id=user.id,
+        username=user.username,
+        is_admin=is_user_admin(user),
+        created_at=user.created_at,
+        has_profile=False,
+        foods_count=0,
+        weights_count=0,
+    )
+
+
 @router.get("/users/{user_id}", response_model=AdminUserDetail)
 def user_detail(
     user_id: int, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)
@@ -176,6 +210,31 @@ def reset_password(
     user.password_hash = hash_password(payload.new_password)
     db.commit()
     return AdminActionResult(message=f"تم تعيين كلمة سر جديدة للمستخدم {user.username}.")
+
+
+@router.post("/users/{user_id}/username", response_model=AdminActionResult)
+def change_username(
+    user_id: int,
+    payload: ChangeUsernameRequest,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """تغيير اسم مستخدم (مع فحص عدم التكرار)."""
+    user = _get_user_or_404(db, user_id)
+    clash = db.scalar(
+        select(User).where(
+            func.lower(User.username) == payload.new_username.lower(), User.id != user_id
+        )
+    )
+    if clash is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="اسم المستخدم ده موجود بالفعل. جرّب اسم تاني.",
+        )
+    old = user.username
+    user.username = payload.new_username
+    db.commit()
+    return AdminActionResult(message=f"تم تغيير الاسم من {old} إلى {payload.new_username}.")
 
 
 @router.post("/users/{user_id}/admin", response_model=AdminActionResult)
