@@ -47,6 +47,10 @@ mobile/ios/Pods/
 mobile/*.iml
 mobile/*.jks
 mobile/key.properties
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/release/
+mobile/.metadata
 
 # ===== أدوات/نظام =====
 .DS_Store
@@ -62,3 +66,6 @@ desktop.ini
 *.db
 /tmp/
 reports_output/
+
+# ملف APK المستضاف للتحديث الذاتي (كبير — يُنشر على الخادم لا git)
+backend/app/static/*.apk

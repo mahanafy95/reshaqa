@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__
 from .config import settings
 from .routers import (
+    app_update,
     auth,
     favorites,
     foods,
@@ -41,6 +42,7 @@ app.include_router(tracking.router)
 app.include_router(summary.router)
 app.include_router(health.router)
 app.include_router(reports.router)
+app.include_router(app_update.router)
 
 
 @app.get("/", tags=["النظام"])
