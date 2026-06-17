@@ -1,0 +1,37 @@
+# يُبقي خادم Render المجاني صاحياً لتفادي بطء الإقلاع البارد (cold start).
+# مجاني تماماً: GitHub Actions على مستودع عام = دقائق غير محدودة.
+# ملاحظة: GitHub قد يعطّل المهام المجدولة بعد 60 يوماً من خمول المستودع؛
+# أي دفعة (push) جديدة تعيد تفعيلها.
+name: keep-backend-awake
+
+on:
+  schedule:
+    # كل 10 دقائق (التوقيت بـ UTC). GitHub قد يؤخر التنفيذ قليلاً وقت الذروة.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # يسمح بالتشغيل اليدوي من تبويب Actions
+
+# يلغي أي تشغيل سابق لم ينتهِ كي لا تتراكم المهام.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health (with retries)
+        run: |
+          URL="https://reshaqa-backend.onrender.com/health"
+          # حتى 6 محاولات على مدى ~5 دقائق: تكفي لإيقاظ خادم نائم.
+          for i in $(seq 1 6); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "$URL" || echo "000")
+            echo "Attempt $i -> HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "Backend is awake ✅"
+              exit 0
+            fi
+            sleep 45
+          done
+          echo "Backend did not respond with 200 after retries ❌"
+          exit 1
