@@ -43,6 +43,37 @@ flutter build apk --release --dart-define=API_BASE_URL=https://your-backend.up.r
 - صلاحيات: الإنترنت، الكاميرا، الإشعارات، SCHEDULE_EXACT_ALARM، USE_FULL_SCREEN_INTENT، USE_BIOMETRIC.
 - `usesCleartextTraffic` مفعّل للسماح بالاتصال بخادم محلي عبر http أثناء التطوير (استخدم https في الإنتاج).
 
+## التحديث التلقائي (مهم)
+
+كل تعديل يوصل للموبايلات **بدون إرسال يدوي**، على 3 مستويات:
+
+1. **الباك إند** (تلقائي فوراً): منطق السعرات، مكتبة الأكلات، التقارير، الرسائل — على السيرفر، فأي تعديل فيها بيظهر فوراً على كل الموبايلات.
+2. **Shorebird (تحديث صامت لتعديلات Dart):** بعد أي تعديل في الشاشات/المنطق:
+<div dir="ltr">
+
+```bash
+cd mobile
+C:\Users\mahmo\.shorebird\bin\shorebird.bat patch --platforms=android --release-version=1.2.0+3
+```
+</div>
+   يوصل صامت لكل موبايل عند فتح التطبيق (auto_update مفعّل). app_id في `shorebird.yaml`.
+3. **تحديث ذاتي للنسخ الكبيرة (native/إضافات):** ابنِ release جديد ثم انشره:
+<div dir="ltr">
+
+```bash
+cd mobile
+C:\Users\mahmo\.shorebird\bin\shorebird.bat release android --artifact=apk --flutter-version=3.44.2
+cd ..\backend
+.venv\Scripts\python -m scripts.publish_apk C:\reshaqa_build\app\outputs\flutter-apk\app-release.apk <code> <name> "<notes>"
+```
+</div>
+   التطبيق يعرض بانر "تحديث جديد" تلقائياً (عبر `/app/version`).
+
+> ⚠️ **بناء الـ APK على OneDrive:** المشروع داخل OneDrive اللي بيقفل ملفات البناء.
+> الحل المطبّق: `mobile/build` عبارة عن **junction** لـ `C:\reshaqa_build` (برّه OneDrive).
+> لو البناء فشل بـ AccessDenied أو الـ junction اختفى، أعد إنشاءه:
+> `cmd /c rmdir /s /q "\\?\...\mobile\build"` ثم `cmd /c mklink /J "...\mobile\build" "C:\reshaqa_build"`.
+
 ## البنية
 <div dir="ltr">
 
