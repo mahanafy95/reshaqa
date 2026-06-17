@@ -18,3 +18,6 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      # أسماء المستخدمين اللي ليهم صلاحية سوبر أدمن (مفصولة بفواصل)
+      - key: ADMIN_USERNAMES
+        value: admin
