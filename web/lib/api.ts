@@ -1,6 +1,10 @@
 import { clearToken, getToken, setToken } from "./auth";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+// نزيل أي BOM أو مسافات صفرية قد تتسرّب لقيمة متغيّر البيئة (مثلاً عند ضبطه عبر أنبوب PowerShell)،
+// وإلا يصبح الرابط غير صالح ويُعامَل كمسار نسبي فتفشل كل نداءات الـ API.
+const BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000")
+  .replace(/[﻿​]/g, "")
+  .trim();
 
 export class ApiError extends Error {
   status: number;
