@@ -20,14 +20,14 @@ def bmi(weight_kg: float, height_cm: float) -> float:
 
 
 def bmi_category_ar(bmi_value: float) -> str:
-    """تصنيف BMI بالعربي."""
+    """تصنيف BMI بنبرة داعمة وغير حاكمة (يُعرض دائماً بجانب النطاق الصحي)."""
     if bmi_value < 18.5:
-        return "أقل من الطبيعي"
+        return "تحت النطاق الصحي"
     if bmi_value < 25:
-        return "وزن طبيعي"
+        return "ضمن الوزن الصحي 👍"
     if bmi_value < 30:
-        return "زيادة في الوزن"
-    return "سمنة"
+        return "فوق النطاق الصحي شوية"
+    return "فوق النطاق الصحي"
 
 
 def healthy_weight_range(height_cm: float) -> tuple[float, float]:
