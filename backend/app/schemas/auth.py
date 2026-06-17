@@ -36,3 +36,4 @@ class UserOut(BaseModel):
     username: str
     created_at: datetime
     has_profile: bool = False
+    is_admin: bool = False

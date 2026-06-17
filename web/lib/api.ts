@@ -116,6 +116,17 @@ export const api = {
   saveMood: (b: any) => put<any>("/mood", b),
   mood: (on?: string) => get<any>(`/mood${on ? `?on=${on}` : ""}`),
 
+  // الإشراف (سوبر أدمن)
+  adminUsers: (q?: string) =>
+    get<any[]>(`/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  adminUser: (id: number) => get<any>(`/admin/users/${id}`),
+  adminResetPassword: (id: number, newPassword: string) =>
+    post<any>(`/admin/users/${id}/reset-password`, { new_password: newPassword }),
+  adminSetAdmin: (id: number, isAdmin: boolean) =>
+    post<any>(`/admin/users/${id}/admin`, { is_admin: isAdmin }),
+  adminDeleteUser: (id: number) =>
+    req<{ ok: boolean; message: string }>(`/admin/users/${id}`, { method: "DELETE" }),
+
   // التقارير
   weekly: (weekOf?: string) => get<any>(`/reports/weekly${weekOf ? `?week_of=${weekOf}` : ""}`),
   monthly: (year: number, month: number) => get<any>(`/reports/monthly?year=${year}&month=${month}`),

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken, isAuthed } from "@/lib/auth";
+import { api } from "@/lib/api";
 
 const NAV = [
   { href: "/dashboard", label: "الرئيسية", icon: "🏠" },
@@ -15,15 +16,24 @@ const NAV = [
   { href: "/dashboard/profile", label: "بياناتي", icon: "👤" },
 ];
 
+const ADMIN_NAV = { href: "/dashboard/admin", label: "الإشراف", icon: "🛡️" };
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-    else setReady(true);
+    if (!isAuthed()) {
+      router.replace("/login");
+      return;
+    }
+    setReady(true);
+    api.me().then((u) => setIsAdmin(!!u?.is_admin)).catch(() => {});
   }, [router]);
+
+  const nav = isAdmin ? [...NAV, ADMIN_NAV] : NAV;
 
   if (!ready) return <div className="min-h-screen grid place-items-center text-muted">جارٍ التحميل…</div>;
 
@@ -40,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="font-extrabold text-teal text-xl">رشاقة</div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
-          {NAV.map((n) => {
+          {nav.map((n) => {
             const active = pathname === n.href;
             return (
               <Link
@@ -68,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button onClick={logout} className="text-sm">خروج</button>
         </header>
         <nav className="md:hidden flex overflow-x-auto bg-white border-b border-gray-100 px-2 py-2 gap-1">
-          {NAV.map((n) => {
+          {nav.map((n) => {
             const active = pathname === n.href;
             return (
               <Link

@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..core.admin import is_user_admin
 from ..core.deps import get_current_user
 from ..core.ratelimit import limiter
 from ..core.security import create_access_token, hash_password, verify_password
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/auth", tags=["المصادقة"])
 def _user_out(user: User) -> UserOut:
     data = UserOut.model_validate(user)
     data.has_profile = user.profile is not None
+    data.is_admin = is_user_admin(user)
     return data
 
 

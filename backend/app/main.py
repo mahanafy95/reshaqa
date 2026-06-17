@@ -13,6 +13,7 @@ from . import __version__
 from .config import settings
 from .core.ratelimit import limiter
 from .routers import (
+    admin,
     app_update,
     auth,
     favorites,
@@ -86,6 +87,7 @@ app.include_router(summary.router)
 app.include_router(health.router)
 app.include_router(reports.router)
 app.include_router(app_update.router)
+app.include_router(admin.router)
 
 
 @app.get("/", tags=["النظام"])

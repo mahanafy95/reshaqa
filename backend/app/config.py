@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # CORS — قائمة مفصولة بفواصل
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
 
+    # المشرفون (سوبر أدمن) — أسماء مستخدمين مفصولة بفواصل تُمنح صلاحية الإشراف تلقائياً
+    ADMIN_USERNAMES: str = ""
+
     # خدمة تقدير السعرات (Phase 3) — قابلة للتبديل
     CALORIE_ESTIMATOR_PROVIDER: str = "none"  # none | openai | nutrition_api
     OPENAI_API_KEY: str = ""
@@ -62,6 +65,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def admin_usernames_set(self) -> set[str]:
+        return {u.strip().lower() for u in self.ADMIN_USERNAMES.split(",") if u.strip()}
 
     @property
     def sqlalchemy_url(self) -> str:
