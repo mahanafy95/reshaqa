@@ -95,26 +95,41 @@ export default function AdminPage() {
     }
   }
 
-  const TEST_RE = /^(test_|qa_|hc_|deploychk|deploycheck|verifychk|finalchk|guardchk|envtest|zz_qa|paneltest|healthchk)/i;
+  const TEST_RE =
+    /^(test_|qa_|hc_|deploychk|deploycheck|verifychk|finalchk|guardchk|envtest|zz_qa|paneltest|healthchk|spam|brute|ratelimit|abuse|rl_)/i;
 
-  async function cleanupTestUsers() {
-    const targets = users.filter((u) => TEST_RE.test(u.username) && !u.is_admin && u.id !== meId);
-    if (!targets.length) return flash("مفيش حسابات تجريبية للحذف.");
+  async function bulkDeleteTargets(targets: UserRow[], label: string) {
+    if (!targets.length) return flash(`مفيش حسابات ${label} للحذف.`);
     const sample = targets.slice(0, 6).map((u) => u.username).join("، ");
     if (
       !window.confirm(
-        `حذف ${targets.length} حساب تجريبي نهائياً؟\nأمثلة: ${sample}${targets.length > 6 ? " …" : ""}\n(حساباتك الحقيقية والمشرفين مش هيتمسحوا)`
+        `حذف ${targets.length} حساب نهائياً؟\nأمثلة: ${sample}${targets.length > 6 ? " …" : ""}\n(حساباتك والمشرفين مش هيتمسحوا)`
       )
     )
       return;
     try {
       const r = await api.adminBulkDelete(targets.map((u) => u.id));
-      flash(`تم حذف ${r.deleted} حساب تجريبي${r.skipped ? ` (تم تخطّي ${r.skipped})` : ""}.`);
+      flash(`تم حذف ${r.deleted} حساب${r.skipped ? ` (تم تخطّي ${r.skipped})` : ""}.`);
       setSelected(null);
       await load(q);
     } catch (e) {
-      flash(e instanceof ApiError ? e.message : "فشل حذف الحسابات التجريبية.");
+      flash(e instanceof ApiError ? e.message : "فشل الحذف.");
     }
+  }
+
+  async function cleanupTestUsers() {
+    const targets = users.filter((u) => TEST_RE.test(u.username) && !u.is_admin && u.id !== meId);
+    await bulkDeleteTargets(targets, "تجريبية");
+  }
+
+  async function cleanupByPrefix() {
+    const prefix = window.prompt("اكتب بداية اسم الحسابات اللي تحب تمسحها (مثلاً Spam):", "Spam");
+    if (!prefix || !prefix.trim()) return;
+    const p = prefix.trim().toLowerCase();
+    const targets = users.filter(
+      (u) => u.username.toLowerCase().startsWith(p) && !u.is_admin && u.id !== meId
+    );
+    await bulkDeleteTargets(targets, `تبدأ بـ "${prefix.trim()}"`);
   }
 
   async function renameUser(u: { id: number; username: string }) {
@@ -186,6 +201,7 @@ export default function AdminPage() {
         <h1 className="text-2xl font-extrabold">🛡️ الإشراف — المستخدمون ({users.length})</h1>
         <div className="flex gap-2 flex-wrap">
           <Button variant="danger" onClick={cleanupTestUsers}>🧹 حذف الحسابات التجريبية</Button>
+          <Button variant="outline" onClick={cleanupByPrefix}>✂️ حذف بادئة…</Button>
           <Button onClick={() => setShowAdd((s) => !s)}>{showAdd ? "✕ إلغاء" : "➕ إضافة مستخدم"}</Button>
         </div>
       </div>
