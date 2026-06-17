@@ -1,25 +1,27 @@
 {
   "project": "رشاقة - تطبيق حساب السعرات والتغذية للتخسيس الصحي",
-  "current_phase": 0,
+  "mode": "autonomous_full_build (المستخدم طلب المنتج النهائي كامل بدون وقوف عند كل مرحلة)",
+  "current_phase": 1,
   "current_step": 1,
   "completed_steps": [
-    "p0_s1"
+    "p0_s1",
+    "p1_s1"
   ],
   "status": "phase_done",
-  "notes": "تم تأسيس المشروع: هيكل /backend /mobile /web + git init + README عربي + .env.example + .gitignore. الخطوة الجاية: Phase 1 (قاعدة البيانات + المصادقة) بعد كلمة continue.",
+  "notes": "Phase 1 خلصت واتحققت: 13 جدول + migration مطبّقة على Postgres + مصادقة (register/login/me) JWT/bcrypt + عزل المستخدمين. 8/8 اختبارات نجحت + smoke test على Postgres الحقيقي نجح. الجاي: Phase 2 محرك حساب السعرات والماكروز.",
   "toolchain": {
     "git": "متاح",
-    "python": "غير مثبّت على الجهاز",
-    "node_npm": "غير مثبّت على الجهاز",
-    "flutter": "غير مثبّت على الجهاز",
-    "postgresql": "غير مثبّت على الجهاز",
-    "docker": "غير مثبّت على الجهاز",
-    "ملاحظة": "الكود يُبنى كاملاً؛ التشغيل/الاختبار الفعلي يتطلب تثبيت هذه الأدوات. اختبارات منطق الحساب الحساس ستُكتب وتُشغّل عند توفر Python."
+    "python": "3.12.10 مثبّت + venv في backend/.venv",
+    "node_npm": "Node 24.16.0 + npm 11.13.0 مثبّت",
+    "flutter": "غير مثبّت بعد (هيتثبّت قبل Phase 7)",
+    "android_studio": "مثبّت (للـ APK في Phase 7)",
+    "postgresql": "16.14 محمول يعمل على 5432، قاعدة reshaqa، كلمة سر postgres. bin: C:\\Users\\mahmo\\pg16\\pgsql\\bin، data: C:\\Users\\mahmo\\pgdata16",
+    "docker": "غير مثبّت (غير مطلوب)"
   },
   "phases": {
-    "0": "تأسيس المشروع - phase_done",
-    "1": "Backend: قاعدة البيانات + المصادقة - pending",
-    "2": "محرك حساب السعرات والماكروز - pending",
+    "0": "تأسيس المشروع - DONE",
+    "1": "Backend: قاعدة البيانات + المصادقة - DONE",
+    "2": "محرك حساب السعرات والماكروز - NEXT",
     "3": "APIs تسجيل الأكل - pending",
     "4": "APIs المتابعة والمؤشرات - pending",
     "5": "ربط هواوي الصحة - pending",
@@ -29,5 +31,5 @@
     "9": "النبرة والرسائل - pending",
     "10": "التدقيق النهائي - pending"
   },
-  "last_updated": "2026-06-17T10:13:59Z"
+  "last_updated": "2026-06-17T10:58:28Z"
 }
