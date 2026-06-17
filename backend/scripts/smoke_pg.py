@@ -100,6 +100,22 @@ def main() -> int:
         assert r.status_code == 201, r.text
         print("favorite create + quick log OK")
 
+        # --- Phase 4: متابعة ومؤشرات ---
+        r = c.post("/weight", json={"date": today, "weight_kg": 89.5}, headers=h)
+        assert r.status_code == 201, r.text
+        r = c.post("/water", json={"date": today, "ml": 600}, headers=h)
+        assert r.status_code == 201 and r.json()["total_ml"] == 600, r.text
+        r = c.post("/activity", json={"date": today, "type_ar": "مشي", "duration_min": 30,
+                                      "calories_burned": 150, "source": "manual"}, headers=h)
+        assert r.status_code == 201, r.text  # enum ActivitySource على Postgres
+        r = c.put("/mood", json={"date": today, "energy": 4, "sleep_hours": 7, "hunger": 2}, headers=h)
+        assert r.status_code == 200, r.text
+        r = c.get(f"/summary?on={today}", headers=h)
+        assert r.status_code == 200 and "activity_note_ar" in r.json(), r.text
+        r = c.get("/metrics/body", headers=h)
+        assert r.status_code == 200 and r.json()["bmi"] > 0, r.text
+        print("tracking + summary + body metrics OK")
+
     # تنظيف: حذف مستخدم الاختبار
     db = SessionLocal()
     try:
