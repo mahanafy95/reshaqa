@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// عنوان الـ backend — يُمرَّر عبر --dart-define=API_BASE_URL=...
-/// الافتراضي 10.0.2.2 = localhost من محاكي أندرويد.
+/// عنوان الـ backend — الافتراضي هو السيرفر السحابي (الإنتاج).
+/// للتطوير المحلي مرّر: --dart-define=API_BASE_URL=http://10.0.2.2:8000
 const String kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://10.0.2.2:8000',
+  defaultValue: 'https://reshaqa-backend.onrender.com',
 );
 
 /// عميل HTTP مع حقن توكن JWT تلقائياً وتخزينه بأمان.

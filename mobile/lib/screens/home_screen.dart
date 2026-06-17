@@ -271,7 +271,7 @@ class _UpdateBannerState extends State<_UpdateBanner> {
             ),
           ),
           TextButton(
-            onPressed: UpdateService.openDownload,
+            onPressed: () => UpdateService.openDownload(info.downloadUrl),
             style: TextButton.styleFrom(backgroundColor: Colors.white),
             child: const Text('حدّث الآن'),
           ),
