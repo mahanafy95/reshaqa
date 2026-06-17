@@ -9,6 +9,7 @@ import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../services/api.dart';
 import '../widgets/common.dart';
+import 'meal_chat_tab.dart';
 import 'recipe_builder_screen.dart';
 
 class LogFoodScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class LogFoodScreen extends StatefulWidget {
 }
 
 class _LogFoodScreenState extends State<LogFoodScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 6, vsync: this);
+  late final TabController _tabs = TabController(length: 7, vsync: this);
   String _meal = 'lunch';
 
   static const _meals = {'breakfast': 'فطار', 'lunch': 'غدا', 'dinner': 'عشا', 'snack': 'سناك'};
@@ -73,7 +74,7 @@ class _LogFoodScreenState extends State<LogFoodScreen> with SingleTickerProvider
                 isScrollable: true,
                 tabAlignment: TabAlignment.center,
                 tabs: const [
-                  Tab(text: 'يدوي'), Tab(text: 'المكتبة'), Tab(text: 'باركود'),
+                  Tab(text: '🤖 مساعد'), Tab(text: 'يدوي'), Tab(text: 'المكتبة'), Tab(text: 'باركود'),
                   Tab(text: 'كاميرا'), Tab(text: 'المفضلة'), Tab(text: 'وصفات'),
                 ],
               ),
@@ -84,6 +85,7 @@ class _LogFoodScreenState extends State<LogFoodScreen> with SingleTickerProvider
       body: TabBarView(
         controller: _tabs,
         children: [
+          MealChatTab(meal: _meal, date: today, onLogged: () => showSnack(context, 'اتسجّل في يومك 👍')),
           _ManualTab(onAdd: confirmAndAdd),
           _LibraryTab(onAdd: confirmAndAdd),
           _BarcodeTab(onAdd: confirmAndAdd),

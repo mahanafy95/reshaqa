@@ -65,6 +65,14 @@ class Api {
   }
   static Future<List<dynamic>> suggest(String q) async =>
       (await _d.get('/foods/suggest', queryParameters: {'q': q})).data;
+  static Future<Map<String, dynamic>> parseMeal(String text,
+      {String? date, String defaultMeal = 'snack', bool confirm = false}) async =>
+      (await _d.post('/foods/parse', data: {
+        'text': text,
+        if (date != null) 'date': date,
+        'default_meal': defaultMeal,
+        'confirm': confirm,
+      })).data;
 
   // ---------- الوصفات ----------
   static Future<List<dynamic>> recipes() async => (await _d.get('/recipes')).data;

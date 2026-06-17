@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../services/api.dart';
+import '../services/notifications_service.dart';
 import '../widgets/common.dart';
 
 class WaterScreen extends StatefulWidget {
@@ -78,6 +79,29 @@ class _WaterScreenState extends State<WaterScreen> {
                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue, minimumSize: const Size(90, 48)),
                             onPressed: () => _add(ml), child: Text('+$ml مل')),
                       ]),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SectionCard(
+                  title: '🔔 تذكير شرب المياه',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('هدفك اليومي $goal مل (محسوب من وزنك تلقائياً). خلّينا نفكّرك تشرب على مدار اليوم.',
+                          style: const TextStyle(color: AppColors.textMuted)),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue),
+                        child: const Text('🔔 فعّل تذكيرات شرب المياه'),
+                        onPressed: () async {
+                          await NotificationsService.requestPermissions();
+                          await NotificationsService.scheduleWaterReminders();
+                          if (mounted) {
+                            showSnack(context, 'تمام ✅ هتوصلك تنبيهات شرب المياه على مدار اليوم (بصوت حتى لو صامت)');
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
