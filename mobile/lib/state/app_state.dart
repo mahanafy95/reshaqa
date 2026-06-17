@@ -13,6 +13,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? summary;
   Map<String, dynamic>? targets;
   Map<String, dynamic>? water;
+  List<dynamic> todayFoods = [];
   bool busy = false;
 
   Future<void> bootstrap() async {
@@ -65,6 +66,7 @@ class AppState extends ChangeNotifier {
       summary = results[0];
       targets = results[1];
       water = results[2];
+      todayFoods = await Api.foods(DateTime.now().toIso8601String().split('T').first);
       _syncWidget();
     } catch (_) {
       // نتجاهل أخطاء التحديث الخفيفة

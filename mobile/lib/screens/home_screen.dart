@@ -51,6 +51,10 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _MacrosCard(summary: s),
               const SizedBox(height: 12),
+              if (app.todayFoods.isNotEmpty) ...[
+                _TodayLogCard(foods: app.todayFoods),
+                const SizedBox(height: 12),
+              ],
               if (app.water != null) _WaterMini(water: app.water!),
               const SizedBox(height: 12),
               const _BodyMetricsCard(),
@@ -189,6 +193,46 @@ class _MacrosCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(cal['message_ar'] ?? '', style: const TextStyle(color: AppColors.textMuted), textAlign: TextAlign.center),
         ],
+      ),
+    );
+  }
+}
+
+class _TodayLogCard extends StatelessWidget {
+  const _TodayLogCard({required this.foods});
+  final List<dynamic> foods;
+  static const _meals = {'breakfast': 'فطار', 'lunch': 'غدا', 'dinner': 'عشا', 'snack': 'سناك'};
+
+  List<Widget> _section(String mk) {
+    final items = foods.where((f) => f['meal'] == mk).toList();
+    if (items.isEmpty) return const [];
+    final sub = items.fold<double>(0, (s, x) => s + ((x['calories'] as num?)?.toDouble() ?? 0));
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 2),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(_meals[mk]!, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.teal)),
+          Text('${sub.round()} سعرة', style: const TextStyle(color: AppColors.teal, fontSize: 12)),
+        ]),
+      ),
+      for (final f in items)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Expanded(child: Text('${f['name_ar']}', overflow: TextOverflow.ellipsis)),
+            Text('${(f['calories'] as num?)?.round() ?? 0} سعرة', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          ]),
+        ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      title: 'سجل أكل النهاردة',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [for (final mk in _meals.keys) ..._section(mk)],
       ),
     );
   }
