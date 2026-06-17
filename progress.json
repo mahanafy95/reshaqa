@@ -4,10 +4,19 @@
   "current_phase": 10,
   "current_step": 1,
   "completed_steps": [
-    "p0_s1", "p1_s1", "p2_s1", "p3_s1", "p4_s1", "p5_s1", "p6_s1", "p7_s1", "p8_s1", "p9_s1", "p10_audit"
+    "p0_s1", "p1_s1", "p2_s1", "p3_s1", "p4_s1", "p5_s1", "p6_s1", "p7_s1", "p8_s1", "p9_s1", "p10_audit", "p10_deploy"
   ],
-  "status": "in_progress",
-  "notes_phase10": "تدقيق Phase 10: مراجعة أمان عدائية (عزل المستخدمين سليم 100% صفر IDOR) + إصلاح C1 (مفتاح JWT)/L1/L4. اختبارات حساسة مكتوبة (96 اختبار، تشمل العزل والحدود الآمنة والأمان). README نهائي شامل. إعداد نشر Railway/Vercel جاهز. مؤشرات الجسم اتعرضت في الويب والموبايل. متبقّي فقط: النشر الفعلي على Railway+Vercel + إعادة بناء APK بالرابط الإنتاجي — محتاج تسجيل دخول المستخدم.",
+  "status": "all_done",
+  "deployment": {
+    "backend": "https://reshaqa-backend.onrender.com (Render free tier)",
+    "database": "Neon Postgres (free tier) — migrated + seeded",
+    "web": "https://web-nine-ochre-83.vercel.app (Vercel)",
+    "apk_release": "https://github.com/mahanafy95/reshaqa/releases/download/v1.3.0/reshaqa.apk (v1.3.0+4, cloud-connected)",
+    "self_update": "backend /app/version returns version_code 4 + GitHub download_url; app shows update banner",
+    "ota": "Shorebird release 1.3.0+4 published (app_id 6b66e036-0912-4df9-a71f-753c4b2a9f81) — silent code-push patches",
+    "cost": "100% free — zero payment required"
+  },
+  "notes_phase10": "Phase 10 خلصت بالكامل: تدقيق أمني عدائي (عزل مستخدمين 100% صفر IDOR) + إصلاح C1/L1/L4 + 96 اختبار. نُشر فعليًا ومجانًا بالكامل: Backend على Render + قاعدة Neon Postgres (هاجرت واتزرعت)، Web على Vercel، APK سحابي v1.3.0+4 على GitHub Releases. التحديث الذاتي شغّال (الباك إند يرجّع version_code 4 + رابط التنزيل). Shorebird OTA منشور (تحديث صامت). تم التحقق end-to-end: تسجيل + حساب هدف سعرات + لوحة تحكم. المشروع نهائي مكتمل بدون أي تكلفة.",
   "notes": "Phase 7 خلصت: تطبيق Flutter كامل عربي RTL (11 شاشة + قفل بيومتري + إشعارات بصوت + widget + باركود + OCR + مشاركة PDF). APK اتبنى بنجاح واتسلّم (v1.1.0+2، 105MB). + تحسينات بطلب المستخدم: حساب بالجرامات (مش 100 ثابت)، تقارير مفصّلة. + التحديث الذاتي شغّال (الباك إند يستضيف /app/version و /app/download، التطبيق يعرض بانر تحديث). الجاي: Shorebird (تحديث صامت - مطلوب من المستخدم) ثم Phase 8 (Next.js web).",
   "build_notes": "بناء APK: flutter build apk بيخرج exit 1 لأن مجلد البناء محوّل لـ C:/reshaqa_build (تفادي قفل OneDrive)، لكن الـ APK بيتعمل فعلاً هناك. للحصول عليه: C:/reshaqa_build/app/outputs/flutter-apk/app-release.apk. الأفضل مستقبلاً نقل المشروع خارج OneDrive لبناء نظيف.",
   "toolchain": {
@@ -30,8 +39,8 @@
     "7": "تطبيق Flutter - DONE (APK اتسلّم + تحديث ذاتي)",
     "8": "لوحة تحكم Next.js - DONE (build ناجح + متحقق محلياً)",
     "9": "النبرة والرسائل - DONE (مراجعة عدائية: متوافق + تخفيف تصنيف BMI)",
-    "10": "التدقيق النهائي + النشر - NEXT"
+    "10": "التدقيق النهائي + النشر - DONE (نُشر مجانًا: Render+Neon+Vercel+GitHub Releases+Shorebird)"
   },
   "notes_phase8": "Phase 8 خلصت: لوحة تحكم Next.js 14 (App Router + Tailwind) عربي RTL بالكامل. صفحات: دخول/تسجيل، رئيسية (ملخص+ماكروز+plateau)، تسجيل أكل (بحث مكتبة+تقدير+يدوي)، وزن (رسم اتجاه recharts)، مياه، نشاط، مزاج، تقارير (مفصّلة+رسم التزام+تنزيل PDF)، بياناتي. next build نجح (13 route)، متحقق محلياً (RTL+backend+CORS). الجاي: Phase 9 النبرة ثم Phase 10 النشر (Railway+Vercel محتاجين تسجيل دخول).",
-  "last_updated": "2026-06-17T13:26:25Z"
+  "last_updated": "2026-06-17T18:00:00Z"
 }
