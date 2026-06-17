@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background: #f6f8f7;
+  color: #1f2933;
+}
+
+/* تمرير ناعم وخط عربي */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
