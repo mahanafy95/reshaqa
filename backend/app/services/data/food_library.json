@@ -1,0 +1,3302 @@
+[
+  {
+    "name_ar": "كشري",
+    "calories_per_100": 165,
+    "protein": 5.5,
+    "carbs": 30.0,
+    "fat": 2.5,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "ملوخية بالدجاج",
+    "calories_per_100": 75,
+    "protein": 5.0,
+    "carbs": 4.0,
+    "fat": 4.5,
+    "region": "eg",
+    "household_unit_ar": "طبق شوربة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "ملوخية خضراء (بدون لحم)",
+    "calories_per_100": 55,
+    "protein": 3.0,
+    "carbs": 5.0,
+    "fat": 3.0,
+    "region": "eg",
+    "household_unit_ar": "طبق شوربة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "محشي ورق عنب",
+    "calories_per_100": 175,
+    "protein": 3.5,
+    "carbs": 24.0,
+    "fat": 7.5,
+    "region": "eg",
+    "household_unit_ar": "حبة وسط",
+    "household_grams": 25
+  },
+  {
+    "name_ar": "محشي كرنب",
+    "calories_per_100": 150,
+    "protein": 3.0,
+    "carbs": 22.0,
+    "fat": 5.5,
+    "region": "eg",
+    "household_unit_ar": "حبة وسط",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "فول مدمس",
+    "calories_per_100": 110,
+    "protein": 7.0,
+    "carbs": 15.0,
+    "fat": 2.5,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "طعمية / فلافل مقلية",
+    "calories_per_100": 320,
+    "protein": 12.0,
+    "carbs": 30.0,
+    "fat": 17.0,
+    "region": "eg",
+    "household_unit_ar": "قرص",
+    "household_grams": 25
+  },
+  {
+    "name_ar": "رز بالشعرية",
+    "calories_per_100": 185,
+    "protein": 3.5,
+    "carbs": 34.0,
+    "fat": 4.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "مكرونة بشاميل",
+    "calories_per_100": 215,
+    "protein": 9.0,
+    "carbs": 22.0,
+    "fat": 10.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "فتة باللحمة",
+    "calories_per_100": 230,
+    "protein": 9.0,
+    "carbs": 24.0,
+    "fat": 11.0,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "بامية باللحمة",
+    "calories_per_100": 120,
+    "protein": 7.0,
+    "carbs": 8.0,
+    "fat": 7.0,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "رقاق باللحمة المفرومة",
+    "calories_per_100": 255,
+    "protein": 10.0,
+    "carbs": 26.0,
+    "fat": 12.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "كوارع",
+    "calories_per_100": 195,
+    "protein": 19.0,
+    "carbs": 1.0,
+    "fat": 13.0,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "ممبار محشي مقلي",
+    "calories_per_100": 290,
+    "protein": 11.0,
+    "carbs": 18.0,
+    "fat": 19.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "حمام محشي بالفريك",
+    "calories_per_100": 215,
+    "protein": 15.0,
+    "carbs": 14.0,
+    "fat": 11.0,
+    "region": "eg",
+    "household_unit_ar": "حمامة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "حمام محشي بالرز",
+    "calories_per_100": 205,
+    "protein": 14.0,
+    "carbs": 16.0,
+    "fat": 9.5,
+    "region": "eg",
+    "household_unit_ar": "حمامة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "سمك بلطي مقلي",
+    "calories_per_100": 200,
+    "protein": 22.0,
+    "carbs": 5.0,
+    "fat": 10.0,
+    "region": "eg",
+    "household_unit_ar": "سمكة وسط",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "صيادية (رز بالسمك)",
+    "calories_per_100": 175,
+    "protein": 9.0,
+    "carbs": 23.0,
+    "fat": 5.0,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "حمام محشي بلدي مشوي",
+    "calories_per_100": 190,
+    "protein": 17.0,
+    "carbs": 8.0,
+    "fat": 10.0,
+    "region": "eg",
+    "household_unit_ar": "حمامة",
+    "household_grams": 230
+  },
+  {
+    "name_ar": "فتة بالخل والثوم (بدون لحم)",
+    "calories_per_100": 180,
+    "protein": 5.0,
+    "carbs": 27.0,
+    "fat": 5.5,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "كشري عدس وأرز",
+    "calories_per_100": 150,
+    "protein": 6.0,
+    "carbs": 27.0,
+    "fat": 2.0,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "بامية ويك (بدون لحم)",
+    "calories_per_100": 75,
+    "protein": 2.5,
+    "carbs": 9.0,
+    "fat": 3.5,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "صينية بطاطس باللحمة",
+    "calories_per_100": 145,
+    "protein": 7.0,
+    "carbs": 13.0,
+    "fat": 7.0,
+    "region": "eg",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "ملوخية باللحمة الضاني",
+    "calories_per_100": 95,
+    "protein": 6.0,
+    "carbs": 4.0,
+    "fat": 6.0,
+    "region": "eg",
+    "household_unit_ar": "طبق شوربة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "سمك بلطي مشوي",
+    "calories_per_100": 130,
+    "protein": 23.0,
+    "carbs": 1.0,
+    "fat": 4.0,
+    "region": "eg",
+    "household_unit_ar": "سمكة وسط",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "كبد إسكندراني",
+    "calories_per_100": 180,
+    "protein": 19.0,
+    "carbs": 6.0,
+    "fat": 9.0,
+    "region": "eg",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "ساندويتش طعمية (فلافل) بالعيش البلدي",
+    "calories_per_100": 230,
+    "protein": 7.5,
+    "carbs": 28.0,
+    "fat": 9.5,
+    "region": "eg",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 130
+  },
+  {
+    "name_ar": "أقراص الطعمية المقلية (بدون عيش)",
+    "calories_per_100": 275,
+    "protein": 9.0,
+    "carbs": 24.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "قرص",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "ساندويتش فول مدمس بالعيش البلدي",
+    "calories_per_100": 190,
+    "protein": 7.5,
+    "carbs": 30.0,
+    "fat": 4.5,
+    "region": "eg",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "فول مدمس بالزيت (بدون عيش)",
+    "calories_per_100": 135,
+    "protein": 7.0,
+    "carbs": 17.0,
+    "fat": 4.5,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "حواوشي لحمة بالعيش",
+    "calories_per_100": 280,
+    "protein": 14.0,
+    "carbs": 24.0,
+    "fat": 14.0,
+    "region": "eg",
+    "household_unit_ar": "رغيف حواوشي",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "كبدة إسكندراني",
+    "calories_per_100": 215,
+    "protein": 20.0,
+    "carbs": 5.0,
+    "fat": 12.5,
+    "region": "eg",
+    "household_unit_ar": "طبق",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "ساندويتش كبدة إسكندراني",
+    "calories_per_100": 230,
+    "protein": 14.0,
+    "carbs": 22.0,
+    "fat": 9.5,
+    "region": "eg",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 160
+  },
+  {
+    "name_ar": "سجق مصري مطبوخ بالصلصة",
+    "calories_per_100": 290,
+    "protein": 15.0,
+    "carbs": 4.0,
+    "fat": 24.0,
+    "region": "eg",
+    "household_unit_ar": "طبق",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "شاورما فراخ بالعيش",
+    "calories_per_100": 215,
+    "protein": 14.0,
+    "carbs": 20.0,
+    "fat": 8.5,
+    "region": "generic",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "شاورما لحمة بالعيش",
+    "calories_per_100": 245,
+    "protein": 14.0,
+    "carbs": 19.0,
+    "fat": 12.0,
+    "region": "generic",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "بيض مقلي بالسمن",
+    "calories_per_100": 200,
+    "protein": 13.0,
+    "carbs": 1.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "بيضتان",
+    "household_grams": 110
+  },
+  {
+    "name_ar": "بيض مسلوق",
+    "calories_per_100": 155,
+    "protein": 13.0,
+    "carbs": 1.1,
+    "fat": 11.0,
+    "region": "generic",
+    "household_unit_ar": "بيضة",
+    "household_grams": 50
+  },
+  {
+    "name_ar": "جبنة بيضاء (دمياطي)",
+    "calories_per_100": 255,
+    "protein": 13.0,
+    "carbs": 3.5,
+    "fat": 21.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "جبنة قريش",
+    "calories_per_100": 98,
+    "protein": 11.0,
+    "carbs": 3.5,
+    "fat": 4.3,
+    "region": "eg",
+    "household_unit_ar": "ملعقتان كبيرتان",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "مش (جبنة مش مصرية)",
+    "calories_per_100": 270,
+    "protein": 15.0,
+    "carbs": 4.0,
+    "fat": 22.0,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "بطاطس محمرة (مقلية)",
+    "calories_per_100": 310,
+    "protein": 3.5,
+    "carbs": 38.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "ساندويتش بطاطس محمرة",
+    "calories_per_100": 260,
+    "protein": 4.0,
+    "carbs": 42.0,
+    "fat": 8.5,
+    "region": "eg",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 160
+  },
+  {
+    "name_ar": "عيش بلدي (خبز بلدي)",
+    "calories_per_100": 250,
+    "protein": 9.0,
+    "carbs": 50.0,
+    "fat": 1.2,
+    "region": "eg",
+    "household_unit_ar": "رغيف",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "عيش فينو (صامولي)",
+    "calories_per_100": 270,
+    "protein": 8.5,
+    "carbs": 52.0,
+    "fat": 3.0,
+    "region": "eg",
+    "household_unit_ar": "رغيف",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "بيض بالبسطرمة",
+    "calories_per_100": 215,
+    "protein": 17.0,
+    "carbs": 2.0,
+    "fat": 15.5,
+    "region": "eg",
+    "household_unit_ar": "طبق",
+    "household_grams": 130
+  },
+  {
+    "name_ar": "فول بالطحينة",
+    "calories_per_100": 175,
+    "protein": 7.5,
+    "carbs": 15.0,
+    "fat": 9.5,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "باذنجان مقلي",
+    "calories_per_100": 235,
+    "protein": 1.5,
+    "carbs": 14.0,
+    "fat": 19.0,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "طحينة (صلصة)",
+    "calories_per_100": 300,
+    "protein": 8.0,
+    "carbs": 13.0,
+    "fat": 25.0,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "ساندويتش سجق بالعيش",
+    "calories_per_100": 265,
+    "protein": 13.0,
+    "carbs": 22.0,
+    "fat": 14.0,
+    "region": "eg",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 170
+  },
+  {
+    "name_ar": "شكشوكة (بيض بالطماطم)",
+    "calories_per_100": 120,
+    "protein": 7.0,
+    "carbs": 5.0,
+    "fat": 8.0,
+    "region": "eg",
+    "household_unit_ar": "طاجن صغير",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "جبنة رومي",
+    "calories_per_100": 380,
+    "protein": 26.0,
+    "carbs": 2.0,
+    "fat": 30.0,
+    "region": "eg",
+    "household_unit_ar": "شريحة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "كبسة دجاج",
+    "calories_per_100": 165,
+    "protein": 9.0,
+    "carbs": 18.0,
+    "fat": 6.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "كبسة لحم",
+    "calories_per_100": 190,
+    "protein": 9.5,
+    "carbs": 17.0,
+    "fat": 9.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "كبسة ضأن (لحم غنم)",
+    "calories_per_100": 205,
+    "protein": 9.5,
+    "carbs": 16.5,
+    "fat": 11.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مندي دجاج",
+    "calories_per_100": 170,
+    "protein": 9.5,
+    "carbs": 19.0,
+    "fat": 6.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مندي لحم",
+    "calories_per_100": 195,
+    "protein": 10.0,
+    "carbs": 17.5,
+    "fat": 9.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مظبي دجاج",
+    "calories_per_100": 180,
+    "protein": 11.0,
+    "carbs": 16.0,
+    "fat": 8.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مظبي لحم",
+    "calories_per_100": 200,
+    "protein": 11.5,
+    "carbs": 15.0,
+    "fat": 11.0,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "جريش باللحم",
+    "calories_per_100": 130,
+    "protein": 6.0,
+    "carbs": 16.0,
+    "fat": 4.8,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "مرقوق",
+    "calories_per_100": 120,
+    "protein": 5.5,
+    "carbs": 15.5,
+    "fat": 4.0,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "مطازيز",
+    "calories_per_100": 125,
+    "protein": 5.8,
+    "carbs": 16.0,
+    "fat": 4.2,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "قرصان",
+    "calories_per_100": 135,
+    "protein": 6.0,
+    "carbs": 18.0,
+    "fat": 4.5,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "صاليونة (صالونة لحم)",
+    "calories_per_100": 95,
+    "protein": 6.5,
+    "carbs": 7.0,
+    "fat": 4.5,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "صاليونة دجاج",
+    "calories_per_100": 85,
+    "protein": 7.0,
+    "carbs": 6.5,
+    "fat": 3.5,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "مفطح (خروف كامل مع الأرز)",
+    "calories_per_100": 230,
+    "protein": 12.0,
+    "carbs": 14.0,
+    "fat": 14.0,
+    "region": "sa",
+    "household_unit_ar": "طبق",
+    "household_grams": 400
+  },
+  {
+    "name_ar": "مقلقل لحم",
+    "calories_per_100": 175,
+    "protein": 15.0,
+    "carbs": 5.0,
+    "fat": 10.5,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "كبدة غنم مقلية",
+    "calories_per_100": 195,
+    "protein": 21.0,
+    "carbs": 4.0,
+    "fat": 10.5,
+    "region": "sa",
+    "household_unit_ar": "صحن صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "برياني دجاج",
+    "calories_per_100": 180,
+    "protein": 9.5,
+    "carbs": 21.0,
+    "fat": 6.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "برياني لحم",
+    "calories_per_100": 200,
+    "protein": 10.0,
+    "carbs": 20.0,
+    "fat": 9.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "برياني روبيان (جمبري)",
+    "calories_per_100": 165,
+    "protein": 9.0,
+    "carbs": 21.0,
+    "fat": 5.0,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مدفون دجaج",
+    "calories_per_100": 175,
+    "protein": 10.0,
+    "carbs": 18.5,
+    "fat": 7.0,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مدفون لحم",
+    "calories_per_100": 195,
+    "protein": 10.5,
+    "carbs": 17.0,
+    "fat": 9.5,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "رز بخاري بالدجاج",
+    "calories_per_100": 185,
+    "protein": 9.0,
+    "carbs": 22.0,
+    "fat": 6.8,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "هريس باللحم",
+    "calories_per_100": 140,
+    "protein": 7.5,
+    "carbs": 17.0,
+    "fat": 4.8,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "مرقوق بالخضار",
+    "calories_per_100": 110,
+    "protein": 4.5,
+    "carbs": 15.0,
+    "fat": 3.5,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "كبسة روبيان (جمبري)",
+    "calories_per_100": 155,
+    "protein": 8.5,
+    "carbs": 19.0,
+    "fat": 4.8,
+    "region": "sa",
+    "household_unit_ar": "طبق متوسط",
+    "household_grams": 350
+  },
+  {
+    "name_ar": "مفطح لحم مع الجريش",
+    "calories_per_100": 175,
+    "protein": 9.5,
+    "carbs": 15.0,
+    "fat": 8.5,
+    "region": "sa",
+    "household_unit_ar": "طبق",
+    "household_grams": 380
+  },
+  {
+    "name_ar": "فول سعودي بالزيت والكمون",
+    "calories_per_100": 120,
+    "protein": 7.0,
+    "carbs": 13.0,
+    "fat": 4.5,
+    "region": "sa",
+    "household_unit_ar": "صحن صغير",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "شكشوكة بالبيض والطماطم",
+    "calories_per_100": 118,
+    "protein": 6.5,
+    "carbs": 5.0,
+    "fat": 8.0,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "معصوب بالموز والعسل",
+    "calories_per_100": 265,
+    "protein": 4.5,
+    "carbs": 42.0,
+    "fat": 9.0,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "مراصيع (مرصوع) بالتمر والسمن",
+    "calories_per_100": 340,
+    "protein": 5.0,
+    "carbs": 48.0,
+    "fat": 14.0,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "عريكة بالتمر والعسل",
+    "calories_per_100": 300,
+    "protein": 5.0,
+    "carbs": 50.0,
+    "fat": 9.0,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "خبز التميس",
+    "calories_per_100": 290,
+    "protein": 9.0,
+    "carbs": 52.0,
+    "fat": 5.0,
+    "region": "sa",
+    "household_unit_ar": "رغيف",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "فطائر بالجبن",
+    "calories_per_100": 280,
+    "protein": 10.0,
+    "carbs": 33.0,
+    "fat": 12.0,
+    "region": "sa",
+    "household_unit_ar": "فطيرة",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "فطائر بالزعتر",
+    "calories_per_100": 300,
+    "protein": 7.0,
+    "carbs": 38.0,
+    "fat": 13.0,
+    "region": "sa",
+    "household_unit_ar": "فطيرة",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "مطبق باللحم",
+    "calories_per_100": 265,
+    "protein": 11.0,
+    "carbs": 26.0,
+    "fat": 13.0,
+    "region": "sa",
+    "household_unit_ar": "قطعة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "مطبق بالموز",
+    "calories_per_100": 290,
+    "protein": 5.0,
+    "carbs": 42.0,
+    "fat": 12.0,
+    "region": "sa",
+    "household_unit_ar": "قطعة",
+    "household_grams": 140
+  },
+  {
+    "name_ar": "سمبوسة باللحم مقلية",
+    "calories_per_100": 310,
+    "protein": 10.0,
+    "carbs": 28.0,
+    "fat": 18.0,
+    "region": "sa",
+    "household_unit_ar": "حبة",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "سمبوسة بالجبن مقلية",
+    "calories_per_100": 320,
+    "protein": 11.0,
+    "carbs": 27.0,
+    "fat": 19.0,
+    "region": "sa",
+    "household_unit_ar": "حبة",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "سمبوسة بالخضار",
+    "calories_per_100": 270,
+    "protein": 6.0,
+    "carbs": 32.0,
+    "fat": 13.0,
+    "region": "sa",
+    "household_unit_ar": "حبة",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "لقيمات بالقطر (العسل)",
+    "calories_per_100": 360,
+    "protein": 4.0,
+    "carbs": 52.0,
+    "fat": 15.0,
+    "region": "sa",
+    "household_unit_ar": "حبة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "كليجا بالتمر",
+    "calories_per_100": 380,
+    "protein": 6.0,
+    "carbs": 58.0,
+    "fat": 14.0,
+    "region": "sa",
+    "household_unit_ar": "قرص",
+    "household_grams": 35
+  },
+  {
+    "name_ar": "كليجا بالهيل والقرفة",
+    "calories_per_100": 400,
+    "protein": 6.0,
+    "carbs": 56.0,
+    "fat": 17.0,
+    "region": "sa",
+    "household_unit_ar": "قرص",
+    "household_grams": 35
+  },
+  {
+    "name_ar": "دبيازة (حلوى المشمش والفواكه المجففة)",
+    "calories_per_100": 285,
+    "protein": 3.0,
+    "carbs": 52.0,
+    "fat": 8.0,
+    "region": "sa",
+    "household_unit_ar": "صحن صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "فول سعودي بالطحينة",
+    "calories_per_100": 150,
+    "protein": 7.5,
+    "carbs": 12.0,
+    "fat": 8.0,
+    "region": "sa",
+    "household_unit_ar": "صحن صغير",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "بيض مقلي بالسمن البلدي",
+    "calories_per_100": 210,
+    "protein": 13.0,
+    "carbs": 1.0,
+    "fat": 17.0,
+    "region": "sa",
+    "household_unit_ar": "بيضتان",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "خبز التميس بالجبن",
+    "calories_per_100": 310,
+    "protein": 11.0,
+    "carbs": 42.0,
+    "fat": 11.0,
+    "region": "sa",
+    "household_unit_ar": "رغيف",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "معصوب بالقشطة والعسل",
+    "calories_per_100": 310,
+    "protein": 5.0,
+    "carbs": 40.0,
+    "fat": 15.0,
+    "region": "sa",
+    "household_unit_ar": "صحن",
+    "household_grams": 300
+  },
+  {
+    "name_ar": "فطائر بالبيض والجبن",
+    "calories_per_100": 290,
+    "protein": 11.0,
+    "carbs": 30.0,
+    "fat": 14.0,
+    "region": "sa",
+    "household_unit_ar": "فطيرة",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "مطبق بالبيض والخضار",
+    "calories_per_100": 240,
+    "protein": 9.0,
+    "carbs": 27.0,
+    "fat": 11.0,
+    "region": "sa",
+    "household_unit_ar": "قطعة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "رغيف معجنات بالسمسم",
+    "calories_per_100": 300,
+    "protein": 9.0,
+    "carbs": 50.0,
+    "fat": 7.0,
+    "region": "sa",
+    "household_unit_ar": "رغيف",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "رز أبيض مطبوخ",
+    "calories_per_100": 130,
+    "protein": 2.7,
+    "carbs": 28.0,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 158
+  },
+  {
+    "name_ar": "رز بسمتي مطبوخ",
+    "calories_per_100": 121,
+    "protein": 3.5,
+    "carbs": 25.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 160
+  },
+  {
+    "name_ar": "رز بني مطبوخ",
+    "calories_per_100": 123,
+    "protein": 2.7,
+    "carbs": 25.6,
+    "fat": 1.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 195
+  },
+  {
+    "name_ar": "خبز أبيض",
+    "calories_per_100": 265,
+    "protein": 9.0,
+    "carbs": 49.0,
+    "fat": 3.2,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "خبز أسمر (قمح كامل)",
+    "calories_per_100": 247,
+    "protein": 13.0,
+    "carbs": 41.0,
+    "fat": 3.4,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 32
+  },
+  {
+    "name_ar": "خبز صامولي سعودي",
+    "calories_per_100": 280,
+    "protein": 9.0,
+    "carbs": 53.0,
+    "fat": 3.0,
+    "region": "sa",
+    "household_unit_ar": "رغيف",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "خبز تميس",
+    "calories_per_100": 290,
+    "protein": 8.0,
+    "carbs": 55.0,
+    "fat": 4.0,
+    "region": "sa",
+    "household_unit_ar": "رغيف",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "شوفان (جاف)",
+    "calories_per_100": 389,
+    "protein": 16.9,
+    "carbs": 66.0,
+    "fat": 6.9,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "شوفان مطبوخ بالماء",
+    "calories_per_100": 71,
+    "protein": 2.5,
+    "carbs": 12.0,
+    "fat": 1.5,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 234
+  },
+  {
+    "name_ar": "عدس أصفر مطبوخ",
+    "calories_per_100": 116,
+    "protein": 9.0,
+    "carbs": 20.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 198
+  },
+  {
+    "name_ar": "عدس بني مطبوخ",
+    "calories_per_100": 116,
+    "protein": 9.0,
+    "carbs": 20.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 198
+  },
+  {
+    "name_ar": "حمص مسلوق",
+    "calories_per_100": 164,
+    "protein": 8.9,
+    "carbs": 27.0,
+    "fat": 2.6,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 164
+  },
+  {
+    "name_ar": "فاصوليا بيضاء مطبوخة",
+    "calories_per_100": 139,
+    "protein": 9.7,
+    "carbs": 25.0,
+    "fat": 0.5,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 179
+  },
+  {
+    "name_ar": "فاصوليا حمراء مطبوخة",
+    "calories_per_100": 127,
+    "protein": 8.7,
+    "carbs": 22.8,
+    "fat": 0.5,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 177
+  },
+  {
+    "name_ar": "مكرونة مسلوقة",
+    "calories_per_100": 158,
+    "protein": 5.8,
+    "carbs": 31.0,
+    "fat": 0.9,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 140
+  },
+  {
+    "name_ar": "مكرونة قمح كامل مسلوقة",
+    "calories_per_100": 124,
+    "protein": 5.3,
+    "carbs": 26.5,
+    "fat": 0.5,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 140
+  },
+  {
+    "name_ar": "برغل مطبوخ",
+    "calories_per_100": 83,
+    "protein": 3.0,
+    "carbs": 18.6,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 182
+  },
+  {
+    "name_ar": "فريك مطبوخ",
+    "calories_per_100": 120,
+    "protein": 4.5,
+    "carbs": 24.0,
+    "fat": 0.7,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "كسكسي مطبوخ",
+    "calories_per_100": 112,
+    "protein": 3.8,
+    "carbs": 23.2,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 157
+  },
+  {
+    "name_ar": "كينوا مطبوخة",
+    "calories_per_100": 120,
+    "protein": 4.4,
+    "carbs": 21.3,
+    "fat": 1.9,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 185
+  },
+  {
+    "name_ar": "شعير مطبوخ",
+    "calories_per_100": 123,
+    "protein": 2.3,
+    "carbs": 28.2,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 157
+  },
+  {
+    "name_ar": "بليلة قمح (قمح مسلوق)",
+    "calories_per_100": 130,
+    "protein": 4.5,
+    "carbs": 27.0,
+    "fat": 0.8,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "خبز شراك (رقاق)",
+    "calories_per_100": 297,
+    "protein": 8.5,
+    "carbs": 58.0,
+    "fat": 3.0,
+    "region": "sa",
+    "household_unit_ar": "رغيف",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "لوبيا مطبوخة",
+    "calories_per_100": 116,
+    "protein": 7.7,
+    "carbs": 20.8,
+    "fat": 0.5,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 171
+  },
+  {
+    "name_ar": "ذرة مسلوقة",
+    "calories_per_100": 96,
+    "protein": 3.4,
+    "carbs": 21.0,
+    "fat": 1.5,
+    "region": "generic",
+    "household_unit_ar": "كوز",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "رز مع شعرية (رز معمر)",
+    "calories_per_100": 175,
+    "protein": 3.5,
+    "carbs": 30.0,
+    "fat": 4.5,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 160
+  },
+  {
+    "name_ar": "صدر دجاج مشوي",
+    "calories_per_100": 165,
+    "protein": 31.0,
+    "carbs": 0.0,
+    "fat": 3.6,
+    "region": "generic",
+    "household_unit_ar": "نصف صدرة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "صدر دجاج مسلوق",
+    "calories_per_100": 150,
+    "protein": 30.0,
+    "carbs": 0.0,
+    "fat": 3.2,
+    "region": "generic",
+    "household_unit_ar": "نصف صدرة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "دجاج مقلي (بانيه)",
+    "calories_per_100": 290,
+    "protein": 22.0,
+    "carbs": 14.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "فخدة دجاج مشوية",
+    "calories_per_100": 184,
+    "protein": 25.0,
+    "carbs": 0.0,
+    "fat": 9.0,
+    "region": "generic",
+    "household_unit_ar": "فخدة",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "ورك دجاج مشوي",
+    "calories_per_100": 209,
+    "protein": 26.0,
+    "carbs": 0.0,
+    "fat": 11.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 110
+  },
+  {
+    "name_ar": "دجاج مشوي بالجلد",
+    "calories_per_100": 239,
+    "protein": 27.0,
+    "carbs": 0.0,
+    "fat": 14.0,
+    "region": "generic",
+    "household_unit_ar": "ربع دجاجة",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "لحم بقري مشوي",
+    "calories_per_100": 217,
+    "protein": 26.0,
+    "carbs": 0.0,
+    "fat": 12.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "لحم بقري مسلوق",
+    "calories_per_100": 200,
+    "protein": 27.0,
+    "carbs": 0.0,
+    "fat": 10.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "لحم مفروم مطبوخ",
+    "calories_per_100": 241,
+    "protein": 24.0,
+    "carbs": 0.0,
+    "fat": 16.0,
+    "region": "generic",
+    "household_unit_ar": "ملء كف اليد",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "كفتة مشوية",
+    "calories_per_100": 235,
+    "protein": 18.0,
+    "carbs": 4.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "سيخ",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "كفتة بالصينية",
+    "calories_per_100": 250,
+    "protein": 17.0,
+    "carbs": 5.0,
+    "fat": 18.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "سمك مشوي (بلطي)",
+    "calories_per_100": 128,
+    "protein": 26.0,
+    "carbs": 0.0,
+    "fat": 2.7,
+    "region": "eg",
+    "household_unit_ar": "سمكة متوسطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "سمك فيليه مشوي",
+    "calories_per_100": 140,
+    "protein": 24.0,
+    "carbs": 0.0,
+    "fat": 4.5,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 130
+  },
+  {
+    "name_ar": "سمك مقلي",
+    "calories_per_100": 210,
+    "protein": 22.0,
+    "carbs": 6.0,
+    "fat": 11.0,
+    "region": "eg",
+    "household_unit_ar": "سمكة متوسطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "سلمون مشوي",
+    "calories_per_100": 208,
+    "protein": 22.0,
+    "carbs": 0.0,
+    "fat": 13.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 130
+  },
+  {
+    "name_ar": "تونة بالزيت",
+    "calories_per_100": 198,
+    "protein": 25.0,
+    "carbs": 0.0,
+    "fat": 10.0,
+    "region": "generic",
+    "household_unit_ar": "علبة",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "تونة بالماء",
+    "calories_per_100": 116,
+    "protein": 26.0,
+    "carbs": 0.0,
+    "fat": 1.0,
+    "region": "generic",
+    "household_unit_ar": "علبة",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "جمبري مسلوق",
+    "calories_per_100": 99,
+    "protein": 24.0,
+    "carbs": 0.0,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 85
+  },
+  {
+    "name_ar": "جمبري مشوي",
+    "calories_per_100": 119,
+    "protein": 23.0,
+    "carbs": 1.0,
+    "fat": 2.0,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 85
+  },
+  {
+    "name_ar": "بياض بيض مسلوق",
+    "calories_per_100": 52,
+    "protein": 11.0,
+    "carbs": 0.7,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "بياض بيضة",
+    "household_grams": 33
+  },
+  {
+    "name_ar": "بيض مقلي",
+    "calories_per_100": 196,
+    "protein": 14.0,
+    "carbs": 0.8,
+    "fat": 15.0,
+    "region": "generic",
+    "household_unit_ar": "بيضة",
+    "household_grams": 55
+  },
+  {
+    "name_ar": "بيض أومليت",
+    "calories_per_100": 154,
+    "protein": 11.0,
+    "carbs": 1.0,
+    "fat": 12.0,
+    "region": "eg",
+    "household_unit_ar": "بيضتان",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "ديك رومي مشوي",
+    "calories_per_100": 135,
+    "protein": 30.0,
+    "carbs": 0.0,
+    "fat": 1.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "كبد دجاج مطبوخ",
+    "calories_per_100": 167,
+    "protein": 24.0,
+    "carbs": 1.0,
+    "fat": 6.5,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "لحم ضأن مشوي",
+    "calories_per_100": 258,
+    "protein": 25.0,
+    "carbs": 0.0,
+    "fat": 17.0,
+    "region": "sa",
+    "household_unit_ar": "قطعة",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "لبن كامل الدسم",
+    "calories_per_100": 61,
+    "protein": 3.2,
+    "carbs": 4.8,
+    "fat": 3.3,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 240
+  },
+  {
+    "name_ar": "لبن نصف دسم",
+    "calories_per_100": 50,
+    "protein": 3.4,
+    "carbs": 4.9,
+    "fat": 1.8,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 240
+  },
+  {
+    "name_ar": "لبن خالي الدسم",
+    "calories_per_100": 35,
+    "protein": 3.4,
+    "carbs": 5.0,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 240
+  },
+  {
+    "name_ar": "زبادي كامل الدسم",
+    "calories_per_100": 61,
+    "protein": 3.5,
+    "carbs": 4.7,
+    "fat": 3.3,
+    "region": "eg",
+    "household_unit_ar": "علبة",
+    "household_grams": 105
+  },
+  {
+    "name_ar": "زبادي خالي الدسم",
+    "calories_per_100": 38,
+    "protein": 4.0,
+    "carbs": 5.0,
+    "fat": 0.2,
+    "region": "eg",
+    "household_unit_ar": "علبة",
+    "household_grams": 105
+  },
+  {
+    "name_ar": "زبادي يوناني كامل الدسم",
+    "calories_per_100": 97,
+    "protein": 9.0,
+    "carbs": 4.0,
+    "fat": 5.0,
+    "region": "generic",
+    "household_unit_ar": "علبة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "زبادي يوناني خالي الدسم",
+    "calories_per_100": 59,
+    "protein": 10.0,
+    "carbs": 3.6,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "علبة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "جبنة بيضاء كاملة الدسم",
+    "calories_per_100": 260,
+    "protein": 14.0,
+    "carbs": 3.0,
+    "fat": 21.0,
+    "region": "eg",
+    "household_unit_ar": "شريحة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "جبنة بيضاء قليلة الدسم",
+    "calories_per_100": 150,
+    "protein": 17.0,
+    "carbs": 3.0,
+    "fat": 8.0,
+    "region": "eg",
+    "household_unit_ar": "شريحة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "جبنة فيتا",
+    "calories_per_100": 264,
+    "protein": 14.0,
+    "carbs": 4.0,
+    "fat": 21.0,
+    "region": "generic",
+    "household_unit_ar": "مكعب",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "جبنة قريش خالية الدسم",
+    "calories_per_100": 72,
+    "protein": 12.0,
+    "carbs": 3.5,
+    "fat": 0.5,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "جبنة شيدر",
+    "calories_per_100": 403,
+    "protein": 25.0,
+    "carbs": 1.3,
+    "fat": 33.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "جبنة شيدر مبشورة",
+    "calories_per_100": 403,
+    "protein": 25.0,
+    "carbs": 1.3,
+    "fat": 33.0,
+    "region": "generic",
+    "household_unit_ar": "ربع كوب",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "جبنة موتزاريلا",
+    "calories_per_100": 280,
+    "protein": 22.0,
+    "carbs": 2.2,
+    "fat": 17.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "جبنة كريمي (قابلة للدهن)",
+    "calories_per_100": 250,
+    "protein": 6.0,
+    "carbs": 4.0,
+    "fat": 24.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "جبنة مثلثات",
+    "calories_per_100": 230,
+    "protein": 9.0,
+    "carbs": 7.0,
+    "fat": 18.0,
+    "region": "generic",
+    "household_unit_ar": "مثلث",
+    "household_grams": 18
+  },
+  {
+    "name_ar": "قشطة",
+    "calories_per_100": 340,
+    "protein": 2.5,
+    "carbs": 4.0,
+    "fat": 35.0,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "لبنة",
+    "calories_per_100": 160,
+    "protein": 6.0,
+    "carbs": 5.0,
+    "fat": 13.0,
+    "region": "sa",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "لبنة قليلة الدسم",
+    "calories_per_100": 100,
+    "protein": 8.0,
+    "carbs": 6.0,
+    "fat": 5.0,
+    "region": "sa",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "حليب مبخر (غير محلى)",
+    "calories_per_100": 135,
+    "protein": 7.0,
+    "carbs": 10.0,
+    "fat": 7.5,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "حليب مكثف محلى",
+    "calories_per_100": 321,
+    "protein": 8.0,
+    "carbs": 54.0,
+    "fat": 9.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "حليب بودرة كامل الدسم",
+    "calories_per_100": 496,
+    "protein": 26.0,
+    "carbs": 38.0,
+    "fat": 27.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 8
+  },
+  {
+    "name_ar": "حليب بودرة خالي الدسم",
+    "calories_per_100": 358,
+    "protein": 36.0,
+    "carbs": 52.0,
+    "fat": 0.8,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 8
+  },
+  {
+    "name_ar": "كريمة خفق (للطبخ)",
+    "calories_per_100": 340,
+    "protein": 2.8,
+    "carbs": 3.0,
+    "fat": 36.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "سلطة خضراء (خس وخيار وطماطم)",
+    "calories_per_100": 35,
+    "protein": 1.4,
+    "carbs": 5.5,
+    "fat": 0.8,
+    "region": "generic",
+    "household_unit_ar": "طبق سلطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "طماطم طازجة",
+    "calories_per_100": 18,
+    "protein": 0.9,
+    "carbs": 3.9,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "حبة متوسطة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "خيار طازج",
+    "calories_per_100": 15,
+    "protein": 0.7,
+    "carbs": 3.6,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "حبة متوسطة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "جزر طازج",
+    "calories_per_100": 41,
+    "protein": 0.9,
+    "carbs": 9.6,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "حبة متوسطة",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "خس",
+    "calories_per_100": 15,
+    "protein": 1.4,
+    "carbs": 2.9,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب مقطع",
+    "household_grams": 50
+  },
+  {
+    "name_ar": "خضار سوتيه بالزيت",
+    "calories_per_100": 95,
+    "protein": 2.5,
+    "carbs": 9.0,
+    "fat": 6.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 160
+  },
+  {
+    "name_ar": "تبولة",
+    "calories_per_100": 135,
+    "protein": 2.8,
+    "carbs": 16.0,
+    "fat": 6.8,
+    "region": "generic",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "فتوش",
+    "calories_per_100": 120,
+    "protein": 2.5,
+    "carbs": 14.0,
+    "fat": 6.3,
+    "region": "generic",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "بطاطس مسلوقة",
+    "calories_per_100": 87,
+    "protein": 1.9,
+    "carbs": 20.0,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "حبة متوسطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "باذنجان مشوي",
+    "calories_per_100": 35,
+    "protein": 0.9,
+    "carbs": 8.5,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "حبة متوسطة",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "ملفوف (كرنب) نيء",
+    "calories_per_100": 25,
+    "protein": 1.3,
+    "carbs": 5.8,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "كوب مبشور",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "بروكلي مسلوق",
+    "calories_per_100": 35,
+    "protein": 2.4,
+    "carbs": 7.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "سلطة طماطم وخيار",
+    "calories_per_100": 25,
+    "protein": 1.0,
+    "carbs": 4.5,
+    "fat": 0.5,
+    "region": "eg",
+    "household_unit_ar": "طبق سلطة",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "سلطة بلدي بالطحينة",
+    "calories_per_100": 90,
+    "protein": 2.2,
+    "carbs": 7.0,
+    "fat": 6.0,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "باذنجان مخلل (طرشي)",
+    "calories_per_100": 40,
+    "protein": 1.2,
+    "carbs": 7.0,
+    "fat": 0.8,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "سلطة كول سلو",
+    "calories_per_100": 150,
+    "protein": 1.3,
+    "carbs": 14.0,
+    "fat": 10.0,
+    "region": "sa",
+    "household_unit_ar": "كوب",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "سلطة جرجير",
+    "calories_per_100": 30,
+    "protein": 2.0,
+    "carbs": 3.5,
+    "fat": 1.2,
+    "region": "generic",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "سلطة رومانية بالليمون",
+    "calories_per_100": 45,
+    "protein": 1.2,
+    "carbs": 4.0,
+    "fat": 2.8,
+    "region": "generic",
+    "household_unit_ar": "طبق سلطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "بامية بالطماطم",
+    "calories_per_100": 75,
+    "protein": 2.0,
+    "carbs": 8.0,
+    "fat": 4.0,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "كوسة سوتيه",
+    "calories_per_100": 60,
+    "protein": 1.6,
+    "carbs": 5.0,
+    "fat": 4.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "فلفل ألوان مشوي",
+    "calories_per_100": 50,
+    "protein": 1.2,
+    "carbs": 7.0,
+    "fat": 2.0,
+    "region": "generic",
+    "household_unit_ar": "حبة متوسطة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "سبانخ مطبوخة",
+    "calories_per_100": 55,
+    "protein": 3.0,
+    "carbs": 4.0,
+    "fat": 3.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "فول أخضر مطبوخ",
+    "calories_per_100": 80,
+    "protein": 4.5,
+    "carbs": 11.0,
+    "fat": 2.0,
+    "region": "eg",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "سلطة شمندر (بنجر) مسلوق",
+    "calories_per_100": 50,
+    "protein": 1.6,
+    "carbs": 10.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "طبق صغير",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "موز",
+    "calories_per_100": 89,
+    "protein": 1.1,
+    "carbs": 22.8,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "موزة متوسطة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "تفاح",
+    "calories_per_100": 52,
+    "protein": 0.3,
+    "carbs": 13.8,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "تفاحة متوسطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "برتقال",
+    "calories_per_100": 47,
+    "protein": 0.9,
+    "carbs": 11.8,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "برتقالة متوسطة",
+    "household_grams": 140
+  },
+  {
+    "name_ar": "بطيخ",
+    "calories_per_100": 30,
+    "protein": 0.6,
+    "carbs": 7.6,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 280
+  },
+  {
+    "name_ar": "شمام (كنتالوب)",
+    "calories_per_100": 34,
+    "protein": 0.8,
+    "carbs": 8.2,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 160
+  },
+  {
+    "name_ar": "عنب",
+    "calories_per_100": 69,
+    "protein": 0.7,
+    "carbs": 18.1,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "تمر",
+    "calories_per_100": 282,
+    "protein": 2.5,
+    "carbs": 75.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "حبة",
+    "household_grams": 24
+  },
+  {
+    "name_ar": "مانجو",
+    "calories_per_100": 60,
+    "protein": 0.8,
+    "carbs": 15.0,
+    "fat": 0.4,
+    "region": "eg",
+    "household_unit_ar": "ثمرة متوسطة",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "فراولة",
+    "calories_per_100": 32,
+    "protein": 0.7,
+    "carbs": 7.7,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "رمان",
+    "calories_per_100": 83,
+    "protein": 1.7,
+    "carbs": 18.7,
+    "fat": 1.2,
+    "region": "generic",
+    "household_unit_ar": "ثمرة متوسطة",
+    "household_grams": 280
+  },
+  {
+    "name_ar": "خوخ",
+    "calories_per_100": 39,
+    "protein": 0.9,
+    "carbs": 9.5,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "ثمرة متوسطة",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "تين طازج",
+    "calories_per_100": 74,
+    "protein": 0.8,
+    "carbs": 19.2,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "ثمرة متوسطة",
+    "household_grams": 50
+  },
+  {
+    "name_ar": "تين مجفف",
+    "calories_per_100": 249,
+    "protein": 3.3,
+    "carbs": 63.9,
+    "fat": 0.9,
+    "region": "generic",
+    "household_unit_ar": "حبة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "بلح أصفر (رطب)",
+    "calories_per_100": 142,
+    "protein": 1.8,
+    "carbs": 33.0,
+    "fat": 0.2,
+    "region": "eg",
+    "household_unit_ar": "حبة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "جوافة",
+    "calories_per_100": 68,
+    "protein": 2.6,
+    "carbs": 14.3,
+    "fat": 1.0,
+    "region": "eg",
+    "household_unit_ar": "ثمرة متوسطة",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "مشمش",
+    "calories_per_100": 48,
+    "protein": 1.4,
+    "carbs": 11.0,
+    "fat": 0.4,
+    "region": "generic",
+    "household_unit_ar": "ثمرة",
+    "household_grams": 35
+  },
+  {
+    "name_ar": "كمثرى",
+    "calories_per_100": 57,
+    "protein": 0.4,
+    "carbs": 15.2,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "ثمرة متوسطة",
+    "household_grams": 170
+  },
+  {
+    "name_ar": "كيوي",
+    "calories_per_100": 61,
+    "protein": 1.1,
+    "carbs": 14.7,
+    "fat": 0.5,
+    "region": "generic",
+    "household_unit_ar": "ثمرة",
+    "household_grams": 75
+  },
+  {
+    "name_ar": "أناناس",
+    "calories_per_100": 50,
+    "protein": 0.5,
+    "carbs": 13.1,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "يوسفي (مندرين)",
+    "calories_per_100": 53,
+    "protein": 0.8,
+    "carbs": 13.3,
+    "fat": 0.3,
+    "region": "eg",
+    "household_unit_ar": "ثمرة",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "جريب فروت",
+    "calories_per_100": 42,
+    "protein": 0.8,
+    "carbs": 10.7,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "نصف ثمرة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "ليمون",
+    "calories_per_100": 29,
+    "protein": 1.1,
+    "carbs": 9.3,
+    "fat": 0.3,
+    "region": "generic",
+    "household_unit_ar": "ثمرة",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "توت أحمر",
+    "calories_per_100": 43,
+    "protein": 1.4,
+    "carbs": 9.6,
+    "fat": 0.7,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 125
+  },
+  {
+    "name_ar": "كرز",
+    "calories_per_100": 63,
+    "protein": 1.1,
+    "carbs": 16.0,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "زبيب",
+    "calories_per_100": 299,
+    "protein": 3.1,
+    "carbs": 79.2,
+    "fat": 0.5,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "بلح أحمر بلدي",
+    "calories_per_100": 120,
+    "protein": 1.5,
+    "carbs": 29.0,
+    "fat": 0.2,
+    "region": "eg",
+    "household_unit_ar": "حبة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "شاي بسكر",
+    "calories_per_100": 30,
+    "protein": 0.0,
+    "carbs": 7.5,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "شاي بدون سكر",
+    "calories_per_100": 1,
+    "protein": 0.0,
+    "carbs": 0.2,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "شاي بسكر وحليب",
+    "calories_per_100": 45,
+    "protein": 1.2,
+    "carbs": 8.0,
+    "fat": 1.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "قهوة سادة (بدون سكر)",
+    "calories_per_100": 2,
+    "protein": 0.1,
+    "carbs": 0.0,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "فنجان",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "قهوة بسكر",
+    "calories_per_100": 28,
+    "protein": 0.1,
+    "carbs": 7.0,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "فنجان",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "قهوة عربية (سادة)",
+    "calories_per_100": 5,
+    "protein": 0.2,
+    "carbs": 1.0,
+    "fat": 0.0,
+    "region": "sa",
+    "household_unit_ar": "فنجان",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "قهوة تركي بسكر",
+    "calories_per_100": 35,
+    "protein": 0.3,
+    "carbs": 8.0,
+    "fat": 0.1,
+    "region": "eg",
+    "household_unit_ar": "فنجان",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "نسكافيه بلبن",
+    "calories_per_100": 55,
+    "protein": 1.8,
+    "carbs": 8.0,
+    "fat": 1.7,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "نسكافيه ثري إن ون",
+    "calories_per_100": 60,
+    "protein": 0.8,
+    "carbs": 11.0,
+    "fat": 1.5,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "كابتشينو",
+    "calories_per_100": 40,
+    "protein": 2.0,
+    "carbs": 3.5,
+    "fat": 1.8,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "عصير برتقال طازج",
+    "calories_per_100": 45,
+    "protein": 0.7,
+    "carbs": 10.0,
+    "fat": 0.2,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "عصير مانجو",
+    "calories_per_100": 60,
+    "protein": 0.4,
+    "carbs": 14.5,
+    "fat": 0.2,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "عصير قصب",
+    "calories_per_100": 70,
+    "protein": 0.2,
+    "carbs": 17.0,
+    "fat": 0.1,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "عصير ليمون بالنعناع",
+    "calories_per_100": 38,
+    "protein": 0.2,
+    "carbs": 9.3,
+    "fat": 0.1,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "مشروب غازي (كولا)",
+    "calories_per_100": 42,
+    "protein": 0.0,
+    "carbs": 10.6,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "علبة",
+    "household_grams": 330
+  },
+  {
+    "name_ar": "مشروب غازي دايت",
+    "calories_per_100": 1,
+    "protein": 0.0,
+    "carbs": 0.2,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "علبة",
+    "household_grams": 330
+  },
+  {
+    "name_ar": "سوبيا",
+    "calories_per_100": 75,
+    "protein": 1.5,
+    "carbs": 14.0,
+    "fat": 1.4,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "تمر هندي",
+    "calories_per_100": 55,
+    "protein": 0.3,
+    "carbs": 13.5,
+    "fat": 0.1,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "كركديه بسكر",
+    "calories_per_100": 40,
+    "protein": 0.1,
+    "carbs": 10.0,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "كركديه بدون سكر",
+    "calories_per_100": 3,
+    "protein": 0.1,
+    "carbs": 0.6,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "عرقسوس",
+    "calories_per_100": 35,
+    "protein": 0.1,
+    "carbs": 8.6,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "خروب",
+    "calories_per_100": 48,
+    "protein": 0.4,
+    "carbs": 11.5,
+    "fat": 0.1,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "ماء",
+    "calories_per_100": 0,
+    "protein": 0.0,
+    "carbs": 0.0,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "ماء بالليمون (بدون سكر)",
+    "calories_per_100": 4,
+    "protein": 0.1,
+    "carbs": 1.0,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 250
+  },
+  {
+    "name_ar": "حليب بالشوكولاتة",
+    "calories_per_100": 83,
+    "protein": 3.2,
+    "carbs": 10.5,
+    "fat": 3.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "ينسون بسكر",
+    "calories_per_100": 25,
+    "protein": 0.1,
+    "carbs": 6.2,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "كنافة بالقشطة",
+    "calories_per_100": 320,
+    "protein": 6.0,
+    "carbs": 38.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة متوسطة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "كنافة بالمكسرات",
+    "calories_per_100": 410,
+    "protein": 7.0,
+    "carbs": 45.0,
+    "fat": 22.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 110
+  },
+  {
+    "name_ar": "كنافة بالجبن (نابلسية)",
+    "calories_per_100": 330,
+    "protein": 9.0,
+    "carbs": 32.0,
+    "fat": 18.0,
+    "region": "sa",
+    "household_unit_ar": "قطعة",
+    "household_grams": 120
+  },
+  {
+    "name_ar": "كنافة مبرومة",
+    "calories_per_100": 420,
+    "protein": 7.0,
+    "carbs": 46.0,
+    "fat": 23.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 90
+  },
+  {
+    "name_ar": "بسبوسة بالقشطة",
+    "calories_per_100": 350,
+    "protein": 5.0,
+    "carbs": 50.0,
+    "fat": 15.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "بسبوسة سادة",
+    "calories_per_100": 380,
+    "protein": 5.0,
+    "carbs": 55.0,
+    "fat": 16.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "بسبوسة بجوز الهند",
+    "calories_per_100": 400,
+    "protein": 5.0,
+    "carbs": 52.0,
+    "fat": 19.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 75
+  },
+  {
+    "name_ar": "أم علي",
+    "calories_per_100": 280,
+    "protein": 6.0,
+    "carbs": 35.0,
+    "fat": 13.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 200
+  },
+  {
+    "name_ar": "بقلاوة",
+    "calories_per_100": 430,
+    "protein": 7.0,
+    "carbs": 48.0,
+    "fat": 23.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "مهلبية",
+    "calories_per_100": 130,
+    "protein": 3.0,
+    "carbs": 20.0,
+    "fat": 4.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "مهلبية بالفستق",
+    "calories_per_100": 175,
+    "protein": 4.0,
+    "carbs": 22.0,
+    "fat": 7.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 150
+  },
+  {
+    "name_ar": "رز بلبن",
+    "calories_per_100": 150,
+    "protein": 4.0,
+    "carbs": 26.0,
+    "fat": 3.0,
+    "region": "eg",
+    "household_unit_ar": "كوب",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "رز بلبن بالمكسرات",
+    "calories_per_100": 195,
+    "protein": 5.0,
+    "carbs": 28.0,
+    "fat": 7.0,
+    "region": "generic",
+    "household_unit_ar": "كوب",
+    "household_grams": 180
+  },
+  {
+    "name_ar": "لقيمات",
+    "calories_per_100": 360,
+    "protein": 5.0,
+    "carbs": 50.0,
+    "fat": 16.0,
+    "region": "sa",
+    "household_unit_ar": "حبة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "زلابية",
+    "calories_per_100": 350,
+    "protein": 5.0,
+    "carbs": 52.0,
+    "fat": 14.0,
+    "region": "generic",
+    "household_unit_ar": "حبة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "عوامة",
+    "calories_per_100": 360,
+    "protein": 5.0,
+    "carbs": 50.0,
+    "fat": 16.0,
+    "region": "generic",
+    "household_unit_ar": "حبة",
+    "household_grams": 18
+  },
+  {
+    "name_ar": "قطايف بالمكسرات",
+    "calories_per_100": 360,
+    "protein": 7.0,
+    "carbs": 42.0,
+    "fat": 18.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 50
+  },
+  {
+    "name_ar": "قطايف بالقشطة",
+    "calories_per_100": 270,
+    "protein": 6.0,
+    "carbs": 33.0,
+    "fat": 12.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 55
+  },
+  {
+    "name_ar": "قطايف عصافيري",
+    "calories_per_100": 290,
+    "protein": 6.0,
+    "carbs": 38.0,
+    "fat": 12.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة صغيرة",
+    "household_grams": 25
+  },
+  {
+    "name_ar": "بلح الشام",
+    "calories_per_100": 400,
+    "protein": 5.0,
+    "carbs": 50.0,
+    "fat": 20.0,
+    "region": "eg",
+    "household_unit_ar": "قطعة",
+    "household_grams": 35
+  },
+  {
+    "name_ar": "غريبة",
+    "calories_per_100": 480,
+    "protein": 6.0,
+    "carbs": 55.0,
+    "fat": 26.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 25
+  },
+  {
+    "name_ar": "بيتي فور",
+    "calories_per_100": 470,
+    "protein": 6.0,
+    "carbs": 58.0,
+    "fat": 24.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "معمول بالتمر",
+    "calories_per_100": 410,
+    "protein": 6.0,
+    "carbs": 60.0,
+    "fat": 16.0,
+    "region": "sa",
+    "household_unit_ar": "قطعة",
+    "household_grams": 30
+  },
+  {
+    "name_ar": "هريسة بالجوز",
+    "calories_per_100": 400,
+    "protein": 6.0,
+    "carbs": 52.0,
+    "fat": 19.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "برجر لحم (ساندويتش كامل)",
+    "calories_per_100": 250,
+    "protein": 13.0,
+    "carbs": 20.0,
+    "fat": 13.0,
+    "region": "generic",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 170
+  },
+  {
+    "name_ar": "قطعة لحم البرجر (مشوية)",
+    "calories_per_100": 254,
+    "protein": 17.0,
+    "carbs": 0.0,
+    "fat": 20.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 80
+  },
+  {
+    "name_ar": "تشيز برجر",
+    "calories_per_100": 268,
+    "protein": 14.0,
+    "carbs": 19.0,
+    "fat": 15.0,
+    "region": "generic",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 115
+  },
+  {
+    "name_ar": "بيتزا مارجريتا",
+    "calories_per_100": 266,
+    "protein": 11.0,
+    "carbs": 33.0,
+    "fat": 10.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 107
+  },
+  {
+    "name_ar": "بيتزا بيبروني",
+    "calories_per_100": 298,
+    "protein": 13.0,
+    "carbs": 28.0,
+    "fat": 15.0,
+    "region": "generic",
+    "household_unit_ar": "شريحة",
+    "household_grams": 110
+  },
+  {
+    "name_ar": "بطاطس مقلية (فرايز)",
+    "calories_per_100": 312,
+    "protein": 3.4,
+    "carbs": 41.0,
+    "fat": 15.0,
+    "region": "generic",
+    "household_unit_ar": "وسط",
+    "household_grams": 117
+  },
+  {
+    "name_ar": "شيبسي بطاطس",
+    "calories_per_100": 536,
+    "protein": 7.0,
+    "carbs": 53.0,
+    "fat": 33.0,
+    "region": "eg",
+    "household_unit_ar": "كيس صغير",
+    "household_grams": 35
+  },
+  {
+    "name_ar": "بسكويت سادة",
+    "calories_per_100": 460,
+    "protein": 7.0,
+    "carbs": 70.0,
+    "fat": 16.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 12
+  },
+  {
+    "name_ar": "بسكويت محشو كريمة",
+    "calories_per_100": 480,
+    "protein": 5.0,
+    "carbs": 69.0,
+    "fat": 20.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 13
+  },
+  {
+    "name_ar": "شوكولاتة بالحليب",
+    "calories_per_100": 535,
+    "protein": 7.5,
+    "carbs": 59.0,
+    "fat": 30.0,
+    "region": "generic",
+    "household_unit_ar": "لوح صغير",
+    "household_grams": 40
+  },
+  {
+    "name_ar": "نودلز إندومي (مطبوخة)",
+    "calories_per_100": 138,
+    "protein": 3.0,
+    "carbs": 19.0,
+    "fat": 5.5,
+    "region": "generic",
+    "household_unit_ar": "كيس",
+    "household_grams": 230
+  },
+  {
+    "name_ar": "إندومي (جاف قبل الطبخ)",
+    "calories_per_100": 450,
+    "protein": 9.0,
+    "carbs": 60.0,
+    "fat": 19.0,
+    "region": "generic",
+    "household_unit_ar": "كيس",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "كرواسون سادة",
+    "calories_per_100": 406,
+    "protein": 8.0,
+    "carbs": 46.0,
+    "fat": 21.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "كرواسون بالشوكولاتة",
+    "calories_per_100": 430,
+    "protein": 7.0,
+    "carbs": 48.0,
+    "fat": 23.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "دونات بالسكر",
+    "calories_per_100": 420,
+    "protein": 5.0,
+    "carbs": 51.0,
+    "fat": 22.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 60
+  },
+  {
+    "name_ar": "دونات بالشوكولاتة (مغطى)",
+    "calories_per_100": 452,
+    "protein": 5.0,
+    "carbs": 53.0,
+    "fat": 25.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 65
+  },
+  {
+    "name_ar": "آيس كريم فانيليا",
+    "calories_per_100": 207,
+    "protein": 3.5,
+    "carbs": 24.0,
+    "fat": 11.0,
+    "region": "generic",
+    "household_unit_ar": "كرة (سكوب)",
+    "household_grams": 65
+  },
+  {
+    "name_ar": "آيس كريم شوكولاتة",
+    "calories_per_100": 216,
+    "protein": 3.8,
+    "carbs": 28.0,
+    "fat": 11.0,
+    "region": "generic",
+    "household_unit_ar": "كرة (سكوب)",
+    "household_grams": 66
+  },
+  {
+    "name_ar": "ناجتس دجاج",
+    "calories_per_100": 296,
+    "protein": 15.0,
+    "carbs": 16.0,
+    "fat": 19.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 18
+  },
+  {
+    "name_ar": "ساندويتش فراخ كرسبي (فيليه)",
+    "calories_per_100": 280,
+    "protein": 16.0,
+    "carbs": 24.0,
+    "fat": 13.0,
+    "region": "generic",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 190
+  },
+  {
+    "name_ar": "هوت دوج (ساندويتش)",
+    "calories_per_100": 290,
+    "protein": 11.0,
+    "carbs": 22.0,
+    "fat": 17.0,
+    "region": "generic",
+    "household_unit_ar": "ساندويتش",
+    "household_grams": 100
+  },
+  {
+    "name_ar": "حلقات بصل مقلية (أونيون رينجز)",
+    "calories_per_100": 410,
+    "protein": 5.5,
+    "carbs": 47.0,
+    "fat": 22.0,
+    "region": "generic",
+    "household_unit_ar": "حلقة",
+    "household_grams": 10
+  },
+  {
+    "name_ar": "كيك بالشوكولاتة (جاهز)",
+    "calories_per_100": 371,
+    "protein": 4.5,
+    "carbs": 50.0,
+    "fat": 17.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 70
+  },
+  {
+    "name_ar": "وافل بلجيكي",
+    "calories_per_100": 291,
+    "protein": 6.5,
+    "carbs": 33.0,
+    "fat": 14.0,
+    "region": "generic",
+    "household_unit_ar": "قطعة",
+    "household_grams": 75
+  },
+  {
+    "name_ar": "بسكويت ويفر بالشوكولاتة",
+    "calories_per_100": 515,
+    "protein": 5.5,
+    "carbs": 63.0,
+    "fat": 27.0,
+    "region": "generic",
+    "household_unit_ar": "إصبع",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "زيت زيتون",
+    "calories_per_100": 884,
+    "protein": 0.0,
+    "carbs": 0.0,
+    "fat": 100.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 13.5
+  },
+  {
+    "name_ar": "زيت ذرة",
+    "calories_per_100": 884,
+    "protein": 0.0,
+    "carbs": 0.0,
+    "fat": 100.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 13.5
+  },
+  {
+    "name_ar": "زيت عباد الشمس",
+    "calories_per_100": 884,
+    "protein": 0.0,
+    "carbs": 0.0,
+    "fat": 100.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 13.5
+  },
+  {
+    "name_ar": "سمن بلدي",
+    "calories_per_100": 900,
+    "protein": 0.0,
+    "carbs": 0.0,
+    "fat": 100.0,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 14
+  },
+  {
+    "name_ar": "زبدة",
+    "calories_per_100": 717,
+    "protein": 0.9,
+    "carbs": 0.1,
+    "fat": 81.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 14
+  },
+  {
+    "name_ar": "طحينة",
+    "calories_per_100": 595,
+    "protein": 17.0,
+    "carbs": 21.0,
+    "fat": 50.0,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "عسل نحل",
+    "calories_per_100": 304,
+    "protein": 0.3,
+    "carbs": 82.0,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 21
+  },
+  {
+    "name_ar": "عسل أسود",
+    "calories_per_100": 290,
+    "protein": 0.0,
+    "carbs": 75.0,
+    "fat": 0.0,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 20
+  },
+  {
+    "name_ar": "سكر أبيض",
+    "calories_per_100": 387,
+    "protein": 0.0,
+    "carbs": 100.0,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة صغيرة",
+    "household_grams": 4
+  },
+  {
+    "name_ar": "سكر بني",
+    "calories_per_100": 380,
+    "protein": 0.0,
+    "carbs": 98.0,
+    "fat": 0.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة صغيرة",
+    "household_grams": 4.5
+  },
+  {
+    "name_ar": "لوز",
+    "calories_per_100": 579,
+    "protein": 21.0,
+    "carbs": 22.0,
+    "fat": 50.0,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "عين جمل",
+    "calories_per_100": 654,
+    "protein": 15.0,
+    "carbs": 14.0,
+    "fat": 65.0,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "فول سوداني",
+    "calories_per_100": 567,
+    "protein": 26.0,
+    "carbs": 16.0,
+    "fat": 49.0,
+    "region": "eg",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "كاجو",
+    "calories_per_100": 553,
+    "protein": 18.0,
+    "carbs": 30.0,
+    "fat": 44.0,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "بندق",
+    "calories_per_100": 628,
+    "protein": 15.0,
+    "carbs": 17.0,
+    "fat": 61.0,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "فستق حلبي",
+    "calories_per_100": 560,
+    "protein": 20.0,
+    "carbs": 28.0,
+    "fat": 45.0,
+    "region": "sa",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "جوز برازيلي",
+    "calories_per_100": 659,
+    "protein": 14.0,
+    "carbs": 12.0,
+    "fat": 67.0,
+    "region": "generic",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "بذور عباد الشمس (لب)",
+    "calories_per_100": 584,
+    "protein": 21.0,
+    "carbs": 20.0,
+    "fat": 51.0,
+    "region": "eg",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "بذور اليقطين (لب أبيض)",
+    "calories_per_100": 559,
+    "protein": 30.0,
+    "carbs": 11.0,
+    "fat": 49.0,
+    "region": "eg",
+    "household_unit_ar": "حفنة",
+    "household_grams": 28
+  },
+  {
+    "name_ar": "زبدة الفول السوداني",
+    "calories_per_100": 588,
+    "protein": 25.0,
+    "carbs": 20.0,
+    "fat": 50.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 16
+  },
+  {
+    "name_ar": "مايونيز",
+    "calories_per_100": 680,
+    "protein": 1.0,
+    "carbs": 2.0,
+    "fat": 75.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 14
+  },
+  {
+    "name_ar": "كاتشب",
+    "calories_per_100": 101,
+    "protein": 1.2,
+    "carbs": 25.0,
+    "fat": 0.1,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 17
+  },
+  {
+    "name_ar": "خردل",
+    "calories_per_100": 66,
+    "protein": 4.0,
+    "carbs": 5.0,
+    "fat": 4.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة صغيرة",
+    "household_grams": 5
+  },
+  {
+    "name_ar": "صلصة طماطم مركزة",
+    "calories_per_100": 82,
+    "protein": 4.3,
+    "carbs": 18.9,
+    "fat": 0.5,
+    "region": "eg",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 15
+  },
+  {
+    "name_ar": "جوز الهند المبشور",
+    "calories_per_100": 660,
+    "protein": 7.0,
+    "carbs": 24.0,
+    "fat": 64.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 8
+  },
+  {
+    "name_ar": "دبس التمر",
+    "calories_per_100": 290,
+    "protein": 1.5,
+    "carbs": 71.0,
+    "fat": 0.2,
+    "region": "sa",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 21
+  },
+  {
+    "name_ar": "زيت السمسم",
+    "calories_per_100": 884,
+    "protein": 0.0,
+    "carbs": 0.0,
+    "fat": 100.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 13.5
+  },
+  {
+    "name_ar": "سمن نباتي (مارجرين)",
+    "calories_per_100": 717,
+    "protein": 0.2,
+    "carbs": 0.7,
+    "fat": 80.0,
+    "region": "generic",
+    "household_unit_ar": "ملعقة كبيرة",
+    "household_grams": 14
+  }
+]

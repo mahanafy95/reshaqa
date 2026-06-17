@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
 from .config import settings
-from .routers import auth, profile, targets
+from .routers import auth, favorites, foods, profile, recipes, targets
 
 app = FastAPI(
     title="رشاقة API",
@@ -23,6 +23,9 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(targets.router)
+app.include_router(foods.router)
+app.include_router(recipes.router)
+app.include_router(favorites.router)
 
 
 @app.get("/", tags=["النظام"])

@@ -1,6 +1,13 @@
 """Smoke test ضد قاعدة Postgres الحقيقية (يستخدم get_db الفعلي بدون تبديل)."""
 import sys
 import uuid
+from datetime import date
+
+# اطبع عربي بأمان على console ويندوز
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except (AttributeError, ValueError):
+    pass
 
 from fastapi.testclient import TestClient
 
@@ -55,6 +62,43 @@ def main() -> int:
         r = c.post("/targets/today", headers=h)
         assert r.status_code == 200 and r.json()["calories"] >= 1500, r.text
         print("targets compute + save OK")
+
+        # --- Phase 3: مكتبة + تقدير + تسجيل ---
+        r = c.get("/foods/library/search?q=كشري", headers=h)
+        assert r.status_code == 200 and len(r.json()) >= 1, r.text
+        print(f"library search OK ({len(r.json())} نتيجة)")
+
+        r = c.get("/foods/estimate?name=كشري&amount=350", headers=h)
+        assert r.status_code == 200 and r.json()["source"] == "library", r.text
+        print("estimate (library) OK")
+
+        today = date.today().isoformat()
+        r = c.post("/foods", json={"date": today, "meal": "lunch", "name_ar": "تجربة",
+                                   "amount": 100, "calories": 200}, headers=h)
+        assert r.status_code == 201, r.text
+        r = c.get(f"/foods?on={today}", headers=h)
+        assert len(r.json()) == 1
+        print("food log OK")
+
+        # وصفة + تسجيل نصيب
+        recipe = {"name_ar": "أرز بالزيت", "servings": 2, "ingredients": [
+            {"name_ar": "رز", "amount_g": 200, "per100_calories": 130, "per100_protein": 2.7, "per100_carbs": 28, "per100_fat": 0.3},
+            {"name_ar": "زيت", "amount_g": 14, "is_oil": True, "per100_calories": 884, "per100_protein": 0, "per100_carbs": 0, "per100_fat": 100},
+        ]}
+        r = c.post("/recipes", json=recipe, headers=h)
+        assert r.status_code == 201, r.text
+        rid = r.json()["id"]
+        r = c.post(f"/recipes/{rid}/log", json={"date": today, "meal": "dinner", "servings": 1}, headers=h)
+        assert r.status_code == 201 and r.json()["source"] == "recipe", r.text
+        print("recipe build + portion log OK")
+
+        # مفضّلة
+        r = c.post("/favorites", json={"ref_type": "custom", "name_ar": "قهوة", "default_amount": 200, "calories": 5}, headers=h)
+        assert r.status_code == 201, r.text
+        fid = r.json()["id"]
+        r = c.post(f"/favorites/{fid}/log", json={"date": today, "meal": "snack"}, headers=h)
+        assert r.status_code == 201, r.text
+        print("favorite create + quick log OK")
 
     # تنظيف: حذف مستخدم الاختبار
     db = SessionLocal()
