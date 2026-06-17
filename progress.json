@@ -1,7 +1,7 @@
 {
   "project": "رشاقة - تطبيق حساب السعرات والتغذية للتخسيس الصحي",
   "mode": "autonomous_full_build (المستخدم طلب المنتج النهائي كامل بدون وقوف عند كل مرحلة)",
-  "current_phase": 5,
+  "current_phase": 6,
   "current_step": 1,
   "completed_steps": [
     "p0_s1",
@@ -9,10 +9,11 @@
     "p2_s1",
     "p3_s1",
     "p4_s1",
-    "p5_s1"
+    "p5_s1",
+    "p6_s1"
   ],
   "status": "phase_done",
-  "notes": "Phase 5 خلصت واتحققت: مزامنة صحة بأولوية هواوي ثم Health Connect ثم يدوي. مسار ingest (POST /health/sync) شغّال ومختبَر يخزّن النشاط+النوم؛ السعرات المحروقة للعرض فقط ولا تُخصم. OAuth هواوي مُجهّز هيكلياً (authorize/callback) ويرجّع 503 لو غير مهيّأ. جدول health_tokens + migration. توثيق خطوات هواوي في README. 84/84 اختبار + smoke على Postgres نجحوا. الجاي: Phase 6 التقارير.",
+  "notes": "Phase 6 خلصت واتحققت: تقرير أسبوعي (سبت→جمعة، التزام كل يوم ضمن/فوق/تحت + متوسط + اتجاه) + تقرير شهري (مقارنة أسابيع + اتجاه وزن) + تصدير PDF عربي RTL (Amiri + reshaping + bidi) قابل للمشاركة. تم التحقق البصري من الـ PDF وإصلاح bidi النِسب/الإشارة وإزالة الإيموجي. 90/90 اختبار + smoke نجحوا. الجاي: Phase 7 تطبيق Flutter (موبايل + APK).",
   "toolchain": {
     "git": "متاح",
     "python": "3.12.10 مثبّت + venv في backend/.venv",
@@ -29,11 +30,11 @@
     "3": "APIs تسجيل الأكل - DONE",
     "4": "APIs المتابعة والمؤشرات - DONE",
     "5": "ربط هواوي الصحة - DONE",
-    "6": "التقارير - NEXT",
-    "7": "تطبيق Flutter - pending",
+    "6": "التقارير - DONE",
+    "7": "تطبيق Flutter - NEXT",
     "8": "لوحة تحكم Next.js - pending",
     "9": "النبرة والرسائل - pending",
     "10": "التدقيق النهائي - pending"
   },
-  "last_updated": "2026-06-17T11:41:31Z"
+  "last_updated": "2026-06-17T11:48:49Z"
 }
