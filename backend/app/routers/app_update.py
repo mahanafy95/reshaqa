@@ -26,13 +26,15 @@ def app_version() -> dict:
             data = {}
     else:
         data = {}
+    # رابط التنزيل: خارجي (مثل GitHub Release) إن وُجد في المانيفست، وإلا الملف المحلي
+    external_url = data.get("download_url")
     return {
         "version_code": int(data.get("version_code", 0)),
         "version_name": data.get("version_name", "0"),
         "notes_ar": data.get("notes_ar", ""),
         "mandatory": bool(data.get("mandatory", False)),
-        "apk_available": _APK.exists(),
-        "download_url": "/app/download",
+        "apk_available": bool(external_url) or _APK.exists(),
+        "download_url": external_url or "/app/download",
     }
 
 
