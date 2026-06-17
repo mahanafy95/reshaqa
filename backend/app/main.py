@@ -1,9 +1,17 @@
 """نقطة دخول تطبيق FastAPI — رشاقة Backend."""
+import math
+
 from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from . import __version__
 from .config import settings
+from .core.ratelimit import limiter
 from .routers import (
     app_update,
     auth,
@@ -23,6 +31,39 @@ app = FastAPI(
     description="واجهة برمجية لتطبيق حساب السعرات والتغذية للتخسيس الصحي.",
     version=__version__,
 )
+
+# تحديد معدّل الطلبات (يُفعَّل في الإنتاج فقط) — يحمي نقاط المصادقة من التخمين والإغراق.
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "محاولات كتير في وقت قصير. استنى شوية وحاول تاني."},
+    )
+
+
+def _strip_non_finite(obj):
+    """يستبدل NaN/Infinity بـ None تكرارياً (غير متوافقة مع JSON القياسي)."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _strip_non_finite(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_strip_non_finite(v) for v in obj]
+    return obj
+
+
+@app.exception_handler(RequestValidationError)
+def _validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """يرجّع 422 نظيفاً حتى لو احتوى الإدخال على NaN/Infinity.
+
+    المعالج الافتراضي يفشل (500) لأنه يحاول تهيئة قيمة NaN المُدخلة داخل تفاصيل الخطأ.
+    """
+    detail = _strip_non_finite(jsonable_encoder(exc.errors()))
+    return JSONResponse(status_code=422, content={"detail": detail})
+
 
 app.add_middleware(
     CORSMiddleware,

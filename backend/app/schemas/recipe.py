@@ -1,23 +1,24 @@
 """سكيمات الوصفات — البناء بمكونات (مع خانة الزيت) وحساب نصيب الفرد."""
 from datetime import date as date_type
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..models.enums import Meal
+from ._common import validate_log_date
 
 
 class RecipeIngredientIn(BaseModel):
     """مكوّن — إما بقيم لكل 100جم أو بمرجع من المكتبة (library_id)."""
 
     name_ar: str | None = Field(None, max_length=160)
-    amount_g: float = Field(..., gt=0)
+    amount_g: float = Field(..., gt=0, allow_inf_nan=False)
     is_oil: bool = False
     library_id: int | None = None
     # قيم لكل 100 جرام (إن لم يُستخدم library_id)
-    per100_calories: float | None = Field(None, ge=0)
-    per100_protein: float | None = Field(None, ge=0)
-    per100_carbs: float | None = Field(None, ge=0)
-    per100_fat: float | None = Field(None, ge=0)
+    per100_calories: float | None = Field(None, ge=0, allow_inf_nan=False)
+    per100_protein: float | None = Field(None, ge=0, allow_inf_nan=False)
+    per100_carbs: float | None = Field(None, ge=0, allow_inf_nan=False)
+    per100_fat: float | None = Field(None, ge=0, allow_inf_nan=False)
 
     @model_validator(mode="after")
     def _check_source(self):
@@ -31,8 +32,8 @@ class RecipeIngredientIn(BaseModel):
 
 class RecipeIn(BaseModel):
     name_ar: str = Field(..., min_length=1, max_length=160)
-    servings: float = Field(1, gt=0, description="عدد الأنفار/الحصص")
-    ingredients: list[RecipeIngredientIn] = Field(..., min_length=1)
+    servings: float = Field(1, gt=0, allow_inf_nan=False, description="عدد الأنفار/الحصص")
+    ingredients: list[RecipeIngredientIn] = Field(..., min_length=1, max_length=50)
 
 
 class RecipeIngredientOut(BaseModel):
@@ -71,4 +72,6 @@ class RecipeLogIn(BaseModel):
 
     date: date_type
     meal: Meal
-    servings: float = Field(1, gt=0, description="عدد الأنفار المتناوَلة")
+    servings: float = Field(1, gt=0, allow_inf_nan=False, description="عدد الأنفار المتناوَلة")
+
+    _v_date = field_validator("date")(validate_log_date)

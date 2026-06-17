@@ -10,12 +10,19 @@ _db_url = settings.sqlalchemy_url
 _is_sqlite = _db_url.startswith("sqlite")
 _connect_args = {"check_same_thread": False} if _is_sqlite else {}
 
-engine = create_engine(
-    _db_url,
-    connect_args=_connect_args,
-    pool_pre_ping=not _is_sqlite,
-    future=True,
-)
+_engine_kwargs: dict = {"connect_args": _connect_args, "future": True}
+if not _is_sqlite:
+    # ضبط تجمّع الاتصالات لحدود Neon المجانية:
+    # pool_recycle أقل من مهلة تعليق Neon (5 دقائق) لإسقاط الاتصالات قبل أن تتعطّل،
+    # وحجم تجمّع محدود حتى لا نتخطّى سقف اتصالات الطبقة المجانية.
+    _engine_kwargs.update(
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=5,
+        pool_recycle=280,
+    )
+
+engine = create_engine(_db_url, **_engine_kwargs)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 

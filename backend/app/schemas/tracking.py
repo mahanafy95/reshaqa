@@ -2,15 +2,18 @@
 from datetime import date as date_type
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..models.enums import ActivitySource
+from ._common import validate_log_date
 
 
 # ---------- الوزن ----------
 class WeightIn(BaseModel):
     date: date_type | None = None  # افتراضياً اليوم
-    weight_kg: float = Field(..., ge=20, le=400)
+    weight_kg: float = Field(..., ge=20, le=400, allow_inf_nan=False)
+
+    _v_date = field_validator("date")(validate_log_date)
 
 
 class WeightOut(BaseModel):
@@ -48,7 +51,9 @@ class WeightTrendOut(BaseModel):
 # ---------- الوسط (اختياري ومنفصل) ----------
 class WaistIn(BaseModel):
     date: date_type | None = None
-    waist_cm: float = Field(..., ge=30, le=250)
+    waist_cm: float = Field(..., ge=30, le=250, allow_inf_nan=False)
+
+    _v_date = field_validator("date")(validate_log_date)
 
 
 class WaistOut(BaseModel):
@@ -65,6 +70,8 @@ class WaterIn(BaseModel):
     date: date_type | None = None
     ml: int = Field(..., gt=0, le=3000)
 
+    _v_date = field_validator("date")(validate_log_date)
+
 
 class WaterDayOut(BaseModel):
     date: date_type
@@ -80,9 +87,11 @@ class ActivityIn(BaseModel):
     date: date_type | None = None
     type_ar: str = Field(..., min_length=1, max_length=80)
     duration_min: int = Field(0, ge=0, le=1440)
-    calories_burned: float | None = Field(None, ge=0)
+    calories_burned: float | None = Field(None, ge=0, allow_inf_nan=False)
     steps: int | None = Field(None, ge=0)
     source: ActivitySource = ActivitySource.manual
+
+    _v_date = field_validator("date")(validate_log_date)
 
 
 class ActivityOut(BaseModel):
@@ -102,8 +111,10 @@ class ActivityOut(BaseModel):
 class MoodIn(BaseModel):
     date: date_type | None = None
     energy: int | None = Field(None, ge=1, le=5)
-    sleep_hours: float | None = Field(None, ge=0, le=24)
+    sleep_hours: float | None = Field(None, ge=0, le=24, allow_inf_nan=False)
     hunger: int | None = Field(None, ge=1, le=5)
+
+    _v_date = field_validator("date")(validate_log_date)
 
 
 class MoodOut(BaseModel):

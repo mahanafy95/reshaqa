@@ -2,21 +2,24 @@
 from datetime import date as date_type
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..models.enums import FoodSource, Meal, Region
+from ._common import validate_log_date
 
 
 class FoodLogIn(BaseModel):
     date: date_type
     meal: Meal
     name_ar: str = Field(..., min_length=1, max_length=160)
-    amount: float = Field(..., gt=0)
-    calories: float = Field(..., ge=0)
-    protein: float = Field(0, ge=0)
-    carbs: float = Field(0, ge=0)
-    fat: float = Field(0, ge=0)
+    amount: float = Field(..., gt=0, allow_inf_nan=False)
+    calories: float = Field(..., ge=0, allow_inf_nan=False)
+    protein: float = Field(0, ge=0, allow_inf_nan=False)
+    carbs: float = Field(0, ge=0, allow_inf_nan=False)
+    fat: float = Field(0, ge=0, allow_inf_nan=False)
     source: FoodSource = FoodSource.manual
+
+    _v_date = field_validator("date")(validate_log_date)
 
 
 class FoodLogUpdate(BaseModel):
@@ -24,11 +27,11 @@ class FoodLogUpdate(BaseModel):
 
     meal: Meal | None = None
     name_ar: str | None = Field(None, min_length=1, max_length=160)
-    amount: float | None = Field(None, gt=0)
-    calories: float | None = Field(None, ge=0)
-    protein: float | None = Field(None, ge=0)
-    carbs: float | None = Field(None, ge=0)
-    fat: float | None = Field(None, ge=0)
+    amount: float | None = Field(None, gt=0, allow_inf_nan=False)
+    calories: float | None = Field(None, ge=0, allow_inf_nan=False)
+    protein: float | None = Field(None, ge=0, allow_inf_nan=False)
+    carbs: float | None = Field(None, ge=0, allow_inf_nan=False)
+    fat: float | None = Field(None, ge=0, allow_inf_nan=False)
 
 
 class FoodLogOut(BaseModel):

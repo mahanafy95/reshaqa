@@ -1,10 +1,11 @@
 """راوتر المصادقة — تسجيل، دخول (JWT)، وبيانات المستخدم الحالي."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..core.deps import get_current_user
+from ..core.ratelimit import limiter
 from ..core.security import create_access_token, hash_password, verify_password
 from ..database import get_db
 from ..models.user import User
@@ -20,7 +21,10 @@ def _user_out(user: User) -> UserOut:
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("8/hour")
+def register(
+    request: Request, payload: RegisterRequest, db: Session = Depends(get_db)
+) -> TokenResponse:
     # فحص عدم التكرار (غير حسّاس لحالة الأحرف لتفادي الالتباس)
     exists = db.scalar(
         select(User).where(func.lower(User.username) == payload.username.lower())
@@ -39,7 +43,10 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("10/minute")
+def login(
+    request: Request, payload: LoginRequest, db: Session = Depends(get_db)
+) -> TokenResponse:
     user = db.scalar(
         select(User).where(func.lower(User.username) == payload.username.lower())
     )
@@ -52,8 +59,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
 
 
 @router.post("/token", response_model=TokenResponse, include_in_schema=False)
+@limiter.limit("10/minute")
 def login_form(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
 ) -> TokenResponse:
     """نقطة دخول متوافقة مع OAuth2 form (تُستخدم في صفحة توثيق Swagger)."""
     user = db.scalar(
