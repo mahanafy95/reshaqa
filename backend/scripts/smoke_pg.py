@@ -116,6 +116,14 @@ def main() -> int:
         assert r.status_code == 200 and r.json()["bmi"] > 0, r.text
         print("tracking + summary + body metrics OK")
 
+        # --- Phase 5: مزامنة الصحة ---
+        r = c.get("/health/status", headers=h)
+        assert r.status_code == 200, r.text
+        r = c.post("/health/sync", json={"date": today, "source": "huawei", "steps": 8000,
+                                         "active_minutes": 40, "calories_burned": 250, "sleep_hours": 7}, headers=h)
+        assert r.status_code == 201 and r.json()["saved_activity"], r.text
+        print("health sync (huawei push) OK")
+
     # تنظيف: حذف مستخدم الاختبار
     db = SessionLocal()
     try:

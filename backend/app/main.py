@@ -8,6 +8,7 @@ from .routers import (
     auth,
     favorites,
     foods,
+    health,
     profile,
     recipes,
     summary,
@@ -37,6 +38,7 @@ app.include_router(recipes.router)
 app.include_router(favorites.router)
 app.include_router(tracking.router)
 app.include_router(summary.router)
+app.include_router(health.router)
 
 
 @app.get("/", tags=["النظام"])
