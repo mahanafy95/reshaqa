@@ -95,6 +95,13 @@ export const api = {
     get<any>(`/foods/estimate?name=${encodeURIComponent(name)}&amount=${amount}`),
   suggest: (q: string) => get<any[]>(`/foods/suggest?q=${encodeURIComponent(q)}`),
   barcode: (code: string) => get<any>(`/foods/barcode/${code}`),
+  parseMeal: (text: string, opts?: { date?: string; default_meal?: string; confirm?: boolean }) =>
+    post<any>("/foods/parse", {
+      text,
+      date: opts?.date,
+      default_meal: opts?.default_meal ?? "snack",
+      confirm: opts?.confirm ?? false,
+    }),
 
   // الوصفات والمفضلة
   recipes: () => get<any[]>("/recipes"),

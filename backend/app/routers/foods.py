@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..core.deps import get_current_user
 from ..database import get_db
-from ..models.enums import FoodSource
+from ..models.enums import FoodSource, Meal
 from ..models.favorite import Favorite
 from ..models.food import FoodLibrary, FoodLogged
 from ..models.recipe import Recipe
@@ -20,9 +20,13 @@ from ..schemas.food import (
     FoodLogOut,
     FoodLogUpdate,
     LabelParseOut,
+    ParsedFoodItem,
+    ParseRequest,
+    ParseResponse,
     SuggestionOut,
 )
 from ..services import barcode as barcode_svc
+from ..services import meal_parser
 from ..services import ocr as ocr_svc
 from ..services.estimator import get_estimator
 
@@ -106,6 +110,79 @@ def estimate_food(
         confidence=est.confidence,
         note_ar=est.note_ar,
         source=FoodSource.estimated,
+    )
+
+
+# ---------- المحلّل الذكي (اكتب/كلّم بالكلام) ----------
+def _fmt_qty(it: ParsedFoodItem) -> str:
+    q = int(it.qty) if it.qty == int(it.qty) else it.qty
+    if it.unit:
+        return f"{q} {it.unit}"
+    return f"{round(it.grams)} جم"
+
+
+def _build_reply(items: list[ParsedFoodItem], total: float, logged: bool) -> str:
+    if not items:
+        return "مفهمتش الأكل — جرّب تكتبه أوضح، مثلاً: «بيضتين وكوباية لبن ورغيف عيش»."
+    lines = [f"• {it.name_ar} ({_fmt_qty(it)}) ≈ {round(it.calories)} سعرة" for it in items]
+    head = "سجّلت لك ✅:" if logged else "فهمت إنك أكلت:"
+    tail = f"المجموع ≈ {round(total)} سعرة."
+    if not logged:
+        tail += " تأكّد من الأصناف وعدّل لو محتاج، وبعدين اضغط «سجّل الكل»."
+    return head + "\n" + "\n".join(lines) + "\n" + tail
+
+
+@router.post("/parse", response_model=ParseResponse)
+def parse_meal(
+    payload: ParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """يفهم كلام حر عن الأكل، يطلّع الأصناف والسعرات (من المكتبة/المقدّر المحلي)، ويسجّلها عند التأكيد."""
+    raw_items = meal_parser.parse_text(payload.text, payload.default_meal.value)
+    out: list[ParsedFoodItem] = []
+    for raw in raw_items:
+        match = db.scalar(
+            select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{raw.name_ar.strip()}%")).limit(1)
+        )
+        lib_hu = match.household_unit_ar if match else None
+        lib_hg = match.household_grams if match else None
+        grams = meal_parser.resolve_grams(raw.qty, raw.unit_ar, lib_hu, lib_hg)
+        if match is not None:
+            f = grams / 100.0
+            item = ParsedFoodItem(
+                name_ar=match.name_ar, qty=raw.qty, unit=raw.unit_ar, grams=grams, meal=Meal(raw.meal),
+                calories=round(match.calories_per_100 * f), protein=round(match.protein * f, 1),
+                carbs=round(match.carbs * f, 1), fat=round(match.fat * f, 1),
+                confidence="high", source=FoodSource.library, matched_library_id=match.id,
+                note_ar="من مكتبة الأكلات.",
+            )
+        else:
+            est = get_estimator().estimate(raw.name_ar, grams)
+            item = ParsedFoodItem(
+                name_ar=est.name_ar or raw.name_ar, qty=raw.qty, unit=raw.unit_ar, grams=grams,
+                meal=Meal(raw.meal), calories=round(est.calories), protein=round(est.protein, 1),
+                carbs=round(est.carbs, 1), fat=round(est.fat, 1),
+                confidence=getattr(est, "confidence", "low"), source=FoodSource.estimated,
+                note_ar=getattr(est, "note_ar", "تقدير تقريبي — راجع الرقم."),
+            )
+        out.append(item)
+
+    total = round(sum(i.calories for i in out))
+    logged_ids: list[int] = []
+    if payload.confirm and out:
+        for it in out:
+            row = FoodLogged(
+                user_id=current_user.id, date=payload.date, meal=it.meal, name_ar=it.name_ar,
+                amount=it.grams, calories=it.calories, protein=it.protein, carbs=it.carbs,
+                fat=it.fat, source=it.source,
+            )
+            db.add(row)
+            db.flush()
+            logged_ids.append(row.id)
+        db.commit()
+
+    return ParseResponse(
+        items=out, total_calories=total, logged=bool(payload.confirm and out),
+        logged_ids=logged_ids, reply_ar=_build_reply(out, total, bool(payload.confirm and out)),
     )
 
 

@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { Button, Card, Field, Select, Spinner } from "@/components/ui";
-import { UNITS, toGrams, unitText } from "@/lib/units";
+import { UNITS, toGrams, unitText, SUGAR_TYPES, sugarType, SUGAR_UNITS, sugarUnitGrams } from "@/lib/units";
+import MealChat from "@/components/MealChat";
 
 const MEALS: Record<string, string> = { breakfast: "فطار", lunch: "غدا", dinner: "عشا", snack: "سناك" };
 const today = () => new Date().toISOString().split("T")[0];
@@ -22,6 +23,11 @@ export default function FoodsPage() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
 
+  // السكر المُضاف (للمشروبات)
+  const [sugarKey, setSugarKey] = useState("none");
+  const [sugarQty, setSugarQty] = useState("1");
+  const [sugarUnit, setSugarUnit] = useState("tsp");
+
   const [per100, setPer100] = useState<Per100 | null>(null);
   const [manual, setManual] = useState(false); // المستخدم عدّل الأرقام بإيده
   const [estimating, setEstimating] = useState(false);
@@ -30,6 +36,10 @@ export default function FoodsPage() {
   const lastEstimated = useRef("");
 
   const grams = toGrams(Number(qty) || 0, unit);
+  const sugarG = sugarKey === "none" ? 0 : (Number(sugarQty) || 0) * sugarUnitGrams(sugarUnit);
+  const sugarCal = Math.round(sugarG * sugarType(sugarKey).calPerG);
+  const sugarCarbs = +(sugarG * sugarType(sugarKey).carbPerG).toFixed(1);
+  const totalCal = (Number(cal) || 0) + sugarCal;
 
   async function load() {
     setLogs(await api.foods(today()));
@@ -105,21 +115,28 @@ export default function FoodsPage() {
     setPer100(null);
     setManual(false);
     setNote(null);
+    setSugarKey("none");
+    setSugarQty("1");
+    setSugarUnit("tsp");
     lastEstimated.current = "";
   }
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    const displayName = unit === "g" ? name.trim() : `${name.trim()} (${unitText(Number(qty) || 0, unit)})`;
+    let displayName = unit === "g" ? name.trim() : `${name.trim()} (${unitText(Number(qty) || 0, unit)})`;
+    if (sugarKey !== "none") {
+      const su = SUGAR_UNITS.find((u) => u.key === sugarUnit);
+      displayName += ` + ${sugarType(sugarKey).label} (${sugarQty} ${su?.key === "g" ? "جم" : su?.label.split(" ")[0] + " " + (su?.label.split(" ")[1] || "")})`;
+    }
     await api.addFood({
       date: today(),
       meal,
       name_ar: displayName,
-      amount: Math.round(grams * 10) / 10 || 1,
-      calories: Number(cal) || 0,
+      amount: Math.round((grams + sugarG) * 10) / 10 || 1,
+      calories: totalCal,
       protein: Number(protein) || 0,
-      carbs: Number(carbs) || 0,
+      carbs: +((Number(carbs) || 0) + sugarCarbs).toFixed(1),
       fat: Number(fat) || 0,
       source: "manual",
     });
@@ -138,6 +155,8 @@ export default function FoodsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">تسجيل الأكل والمشروبات</h1>
+
+      <MealChat defaultMeal={meal} todayTotal={total} onLogged={load} />
 
       <Card>
         <div className="flex gap-2 flex-wrap mb-4">
@@ -190,11 +209,37 @@ export default function FoodsPage() {
             </Select>
           </div>
 
+          <div className="rounded-xl border border-gray-100 p-3 mb-3">
+            <div className="grid grid-cols-2 gap-x-3 items-end">
+              <Select label="🍬 سكر/مُحلّي المشروب" value={sugarKey} onChange={(e) => setSugarKey(e.target.value)}>
+                {SUGAR_TYPES.map((s) => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
+                ))}
+              </Select>
+              {sugarKey !== "none" && (
+                <div className="grid grid-cols-2 gap-x-2">
+                  <Field label="عدد" type="number" inputMode="decimal" value={sugarQty} onChange={(e) => setSugarQty(e.target.value)} />
+                  <Select label="الوحدة" value={sugarUnit} onChange={(e) => setSugarUnit(e.target.value)}>
+                    {SUGAR_UNITS.map((u) => (
+                      <option key={u.key} value={u.key}>{u.label}</option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+            </div>
+            {sugarKey !== "none" && (
+              <p className="text-muted text-xs mt-1">
+                {sugarCal > 0 ? `السكر بيضيف ${sugarCal} سعرة` : "استيفيا — صفر سعرات 👍"}
+              </p>
+            )}
+          </div>
+
           <div className="rounded-xl bg-teal/5 p-3 mb-3 text-center">
-            <div className="text-3xl font-extrabold text-teal">{cal || 0}</div>
+            <div className="text-3xl font-extrabold text-teal">{totalCal || 0}</div>
             <div className="text-muted text-sm">
               سعرة لـ {unitText(Number(qty) || 0, unit)}
               {unit !== "g" && grams ? ` (≈ ${Math.round(grams)} جم)` : ""}
+              {sugarCal > 0 ? ` + ${sugarCal} سكر` : ""}
             </div>
           </div>
 

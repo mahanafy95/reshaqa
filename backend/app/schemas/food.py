@@ -104,3 +104,37 @@ class SuggestionOut(BaseModel):
     calories_per_100: float | None = None    # للمكتبة (لكل 100جم)
     calories_per_serving: float | None = None  # للوصفة (نصيب الفرد)
     region: Region | None = None
+
+
+# ---------- المحلّل الذكي (اكتب أكلك بالكلام) ----------
+class ParsedFoodItem(BaseModel):
+    name_ar: str
+    qty: float
+    unit: str | None = None
+    grams: float
+    meal: Meal
+    calories: float
+    protein: float = 0
+    carbs: float = 0
+    fat: float = 0
+    confidence: str = "medium"  # high | medium | low
+    source: FoodSource = FoodSource.estimated
+    matched_library_id: int | None = None
+    note_ar: str = ""
+
+
+class ParseRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+    date: date_type = Field(default_factory=date_type.today)
+    default_meal: Meal = Meal.snack
+    confirm: bool = False
+
+    _v_date = field_validator("date")(validate_log_date)
+
+
+class ParseResponse(BaseModel):
+    items: list[ParsedFoodItem] = []
+    total_calories: float = 0
+    logged: bool = False
+    logged_ids: list[int] = []
+    reply_ar: str = ""

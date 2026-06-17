@@ -1,4 +1,6 @@
 """اختبارات تسجيل الأكل والمكتبة والتقدير والاقتراحات."""
+from datetime import date
+
 from app.models.food import FoodLibrary
 from tests.conftest import auth_headers
 
@@ -84,3 +86,37 @@ def test_label_parse_endpoint(client):
 def test_foods_require_auth(client):
     r = client.get("/foods")
     assert r.status_code == 401
+
+
+def test_parse_meal_understands_and_splits_meals(client, db_session):
+    _seed_lib(db_session)
+    h = auth_headers(client, "fp1")
+    r = client.post("/foods/parse", json={"text": "بيضتين وكوباية لبن وعلى الغدا طبق رز"}, headers=h)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body["items"]) >= 2
+    meals = {i["meal"] for i in body["items"]}
+    assert "lunch" in meals  # "رز" اتحط على الغدا
+    assert body["logged"] is False
+    assert body["total_calories"] > 0
+    assert body["reply_ar"]
+
+
+def test_parse_meal_confirm_logs_to_day(client, db_session):
+    _seed_lib(db_session)
+    h = auth_headers(client, "fp2")
+    today = date.today().isoformat()
+    r = client.post(
+        "/foods/parse",
+        json={"text": "طبق رز", "date": today, "default_meal": "lunch", "confirm": True},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["logged"] is True
+    assert len(r.json()["logged_ids"]) >= 1
+    logs = client.get(f"/foods?on={today}", headers=h).json()
+    assert any("رز" in l["name_ar"] for l in logs)
+
+
+def test_parse_meal_requires_auth(client):
+    assert client.post("/foods/parse", json={"text": "تفاحة"}).status_code == 401

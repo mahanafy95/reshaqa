@@ -28,3 +28,21 @@ export const MILK_TYPES: MilkType[] = [
   { key: "skim", label: "حليب خالي الدسم", per100: { cal: 34, p: 3.4, c: 5.0, f: 0.1 } },
 ];
 export const milkType = (k: string) => MILK_TYPES.find((m) => m.key === k) ?? MILK_TYPES[0];
+
+// السكر/المُحلّي — يُضاف للمشروبات. القيم لكل جرام (السكر ~100% كربوهيدرات).
+export type SugarType = { key: string; label: string; calPerG: number; carbPerG: number };
+export const SUGAR_TYPES: SugarType[] = [
+  { key: "none", label: "بدون سكر", calPerG: 0, carbPerG: 0 },
+  { key: "white", label: "سكر أبيض", calPerG: 4, carbPerG: 1 },
+  { key: "brown", label: "سكر بني", calPerG: 3.9, carbPerG: 0.98 },
+  { key: "stevia", label: "استيفيا (صفر سعرات)", calPerG: 0, carbPerG: 0 },
+];
+export const sugarType = (k: string) => SUGAR_TYPES.find((s) => s.key === k) ?? SUGAR_TYPES[0];
+
+// وحدات قياس السكر بالجرام (كثافة السكر ~4جم للمعلقة الصغيرة).
+export const SUGAR_UNITS: { key: string; label: string; grams: number }[] = [
+  { key: "tsp", label: "معلقة صغيرة (~4جم)", grams: 4 },
+  { key: "tbsp", label: "معلقة كبيرة (~12جم)", grams: 12 },
+  { key: "g", label: "جرام", grams: 1 },
+];
+export const sugarUnitGrams = (k: string) => SUGAR_UNITS.find((u) => u.key === k)?.grams ?? 1;
