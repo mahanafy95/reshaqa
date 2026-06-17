@@ -269,19 +269,32 @@ export default function FoodsPage() {
         ) : logs.length === 0 ? (
           <p className="text-muted text-center py-4">لسه مسجّلتش حاجة النهاردة.</p>
         ) : (
-          <div className="space-y-1">
-            {logs.map((l) => (
-              <div key={l.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                <div>
-                  <div className="font-semibold">{l.name_ar}</div>
-                  <div className="text-muted text-sm">
-                    {MEALS[l.meal]} • {Math.round(l.calories)} سعرة
-                    {l.protein ? ` • ب${Math.round(l.protein)} ك${Math.round(l.carbs)} د${Math.round(l.fat)}` : ""}
+          <div className="space-y-3">
+            {(["breakfast", "lunch", "dinner", "snack"] as const).map((mk) => {
+              const items = logs.filter((l) => l.meal === mk);
+              if (!items.length) return null;
+              const sub = items.reduce((s, x) => s + x.calories, 0);
+              return (
+                <div key={mk}>
+                  <div className="flex justify-between items-center bg-teal/5 rounded-lg px-3 py-1.5 mb-1">
+                    <span className="font-bold text-teal">{MEALS[mk]}</span>
+                    <span className="text-teal text-sm font-semibold">{Math.round(sub)} سعرة</span>
                   </div>
+                  {items.map((l) => (
+                    <div key={l.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 px-2">
+                      <div>
+                        <div className="font-semibold">{l.name_ar}</div>
+                        <div className="text-muted text-sm">
+                          {Math.round(l.calories)} سعرة
+                          {l.protein ? ` • ب${Math.round(l.protein)} ك${Math.round(l.carbs)} د${Math.round(l.fat)}` : ""}
+                        </div>
+                      </div>
+                      <button onClick={() => remove(l.id)} className="text-red-500 text-sm">حذف</button>
+                    </div>
+                  ))}
                 </div>
-                <button onClick={() => remove(l.id)} className="text-red-500 text-sm">حذف</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>
