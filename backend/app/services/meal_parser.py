@@ -100,18 +100,26 @@ class ParsedItem:
     raw_text: str
 
 
+# كلمات تُتخطّى في بداية المقطع قبل البحث عن ماركر الوجبة (حشو/أفعال تمهيدية)
+_LEADING_SKIP = {
+    "على", "علي", "في", "وعلى", "وعلي", "و",
+    "النهاردة", "النهارده", "انهاردة", "انهارده", "امبارح",
+    "اكلت", "أكلت", "كلت", "تناولت", "خدت", "اخدت", "شربت", "كمان", "بعدين",
+}
+
+
 def _strip_leading_meal(seg: str) -> tuple[str | None, str]:
-    """يكشف ماركر وجبة في بداية المقطع ويزيله؛ يرجّع (الوجبة أو None، الباقي)."""
+    """يكشف ماركر وجبة في بداية المقطع (حتى لو سبقه حشو زي "النهاردة فطرت") ويزيله."""
     tokens = seg.split()
     meal = None
     i = 0
     while i < len(tokens):
         tok = tokens[i].strip("،.,")
-        if tok in ("على", "علي", "في", "وعلى", "وعلي"):
-            i += 1
-            continue
         if tok in MEAL_KEYWORDS:
             meal = MEAL_KEYWORDS[tok]
+            i += 1
+            continue
+        if tok in _LEADING_SKIP:
             i += 1
             continue
         break

@@ -65,6 +65,15 @@ def test_meal_marker_at_start():
     assert any("فول" in i.name_ar for i in items)
 
 
+def test_meal_verb_after_filler():
+    # "النهاردة فطرت بيضتين" — لازم يفهم "فطرت" = فطار ويشيلها من الاسم
+    items = parse_text("النهاردة فطرت بيضتين", "snack")
+    assert len(items) == 1
+    assert items[0].meal == "breakfast"
+    assert items[0].qty == 2
+    assert "فطرت" not in items[0].name_ar and "بيض" in items[0].name_ar
+
+
 def test_commas_and_plus():
     items = parse_text("تفاحة، موزة + برتقالة")
     assert len(items) == 3
