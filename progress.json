@@ -1,14 +1,15 @@
 {
   "project": "رشاقة - تطبيق حساب السعرات والتغذية للتخسيس الصحي",
   "mode": "autonomous_full_build (المستخدم طلب المنتج النهائي كامل بدون وقوف عند كل مرحلة)",
-  "current_phase": 1,
+  "current_phase": 2,
   "current_step": 1,
   "completed_steps": [
     "p0_s1",
-    "p1_s1"
+    "p1_s1",
+    "p2_s1"
   ],
   "status": "phase_done",
-  "notes": "Phase 1 خلصت واتحققت: 13 جدول + migration مطبّقة على Postgres + مصادقة (register/login/me) JWT/bcrypt + عزل المستخدمين. 8/8 اختبارات نجحت + smoke test على Postgres الحقيقي نجح. الجاي: Phase 2 محرك حساب السعرات والماكروز.",
+  "notes": "Phase 2 خلصت واتحققت: محرك السعرات (BMR/TDEE/عجز/حد أدنى آمن/منع وزن غير صحي/تثبيت/ماكروز) + مؤشرات الجسم (BMI/دهون) + كشف الثبات + endpoints (profile/targets). مراجعة عدائية لقطت C1 (تخسيس لمستخدم تحت الوزن) و N3 (سقف نسبة الدهون) واتصلحوا. 45/45 اختبار + smoke على Postgres نجحوا. الجاي: Phase 3 APIs تسجيل الأكل.",
   "toolchain": {
     "git": "متاح",
     "python": "3.12.10 مثبّت + venv في backend/.venv",
@@ -21,8 +22,8 @@
   "phases": {
     "0": "تأسيس المشروع - DONE",
     "1": "Backend: قاعدة البيانات + المصادقة - DONE",
-    "2": "محرك حساب السعرات والماكروز - NEXT",
-    "3": "APIs تسجيل الأكل - pending",
+    "2": "محرك حساب السعرات والماكروز - DONE",
+    "3": "APIs تسجيل الأكل - NEXT",
     "4": "APIs المتابعة والمؤشرات - pending",
     "5": "ربط هواوي الصحة - pending",
     "6": "التقارير - pending",
@@ -31,5 +32,5 @@
     "9": "النبرة والرسائل - pending",
     "10": "التدقيق النهائي - pending"
   },
-  "last_updated": "2026-06-17T10:58:28Z"
+  "last_updated": "2026-06-17T11:09:34Z"
 }
