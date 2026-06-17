@@ -128,6 +128,11 @@ export const api = {
     post<any>("/admin/users", b),
   adminRenameUser: (id: number, newUsername: string) =>
     post<any>(`/admin/users/${id}/username`, { new_username: newUsername }),
+  adminBulkDelete: (ids: number[]) =>
+    post<{ deleted: number; skipped: number; deleted_usernames: string[] }>(
+      "/admin/users/bulk-delete",
+      { ids }
+    ),
   adminResetPassword: (id: number, newPassword: string) =>
     post<any>(`/admin/users/${id}/reset-password`, { new_password: newPassword }),
   adminSetAdmin: (id: number, isAdmin: boolean) =>

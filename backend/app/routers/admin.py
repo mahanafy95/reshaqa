@@ -21,6 +21,8 @@ from ..schemas.admin import (
     AdminUserDetail,
     AdminUserSummary,
     AdminWeightOut,
+    BulkDeleteRequest,
+    BulkDeleteResult,
     ChangeUsernameRequest,
     ResetPasswordRequest,
     SetAdminRequest,
@@ -271,3 +273,26 @@ def delete_user(
     db.delete(user)
     db.commit()
     return AdminActionResult(message=f"تم حذف المستخدم {username} وكل بياناته.")
+
+
+@router.post("/users/bulk-delete", response_model=BulkDeleteResult)
+def bulk_delete_users(
+    payload: BulkDeleteRequest,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """حذف مجموعة مستخدمين دفعة واحدة (لتنظيف الحسابات التجريبية).
+
+    أمان: يتخطّى أي مشرف ويتخطّى حساب الطالب نفسه — لا يُحذفان أبداً.
+    """
+    deleted: list[str] = []
+    skipped = 0
+    for uid in set(payload.ids):
+        user = db.get(User, uid)
+        if user is None or user.id == admin.id or is_user_admin(user):
+            skipped += 1
+            continue
+        deleted.append(user.username)
+        db.delete(user)
+    db.commit()
+    return BulkDeleteResult(deleted=len(deleted), skipped=skipped, deleted_usernames=deleted[:50])

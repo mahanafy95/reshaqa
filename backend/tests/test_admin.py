@@ -119,6 +119,36 @@ def test_change_username_conflict(client, db_session):
     assert r.status_code == 409
 
 
+def test_bulk_delete_skips_admins_and_self(client, db_session):
+    # حسابات تجريبية عادية
+    auth_headers(client, "junk1", "pass1234")
+    auth_headers(client, "junk2", "pass1234")
+    auth_headers(client, "keepadmin", "pass1234")
+    ah = auth_headers(client, "boss8", "bosspass1")
+    _promote(db_session, "boss8")
+    _promote(db_session, "keepadmin")  # مشرف تاني لازم ما يتحذفش
+
+    users = client.get("/admin/users", headers=ah).json()
+    ids = {u["username"]: u["id"] for u in users}
+    boss_id = ids["boss8"]
+    payload_ids = [ids["junk1"], ids["junk2"], ids["keepadmin"], boss_id]
+
+    r = client.post("/admin/users/bulk-delete", json={"ids": payload_ids}, headers=ah)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["deleted"] == 2  # junk1, junk2 فقط
+    assert body["skipped"] == 2  # keepadmin (مشرف) + boss8 (نفسه)
+
+    after = {u["username"] for u in client.get("/admin/users", headers=ah).json()}
+    assert "junk1" not in after and "junk2" not in after
+    assert "keepadmin" in after and "boss8" in after
+
+
+def test_non_admin_cannot_bulk_delete(client):
+    h = auth_headers(client, "plain2", "pass1234")
+    assert client.post("/admin/users/bulk-delete", json={"ids": [1, 2]}, headers=h).status_code == 403
+
+
 def test_me_reports_is_admin(client, db_session):
     ah = auth_headers(client, "boss3", "bosspass1")
     # قبل الترقية

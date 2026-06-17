@@ -87,6 +87,16 @@ class SetAdminRequest(BaseModel):
     is_admin: bool
 
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[int] = Field(..., min_length=1, max_length=1000)
+
+
+class BulkDeleteResult(BaseModel):
+    deleted: int
+    skipped: int
+    deleted_usernames: list[str] = []
+
+
 class AdminActionResult(BaseModel):
     ok: bool = True
     message: str
