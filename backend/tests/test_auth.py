@@ -9,6 +9,24 @@ def test_register_returns_token(client):
     assert body["access_token"]
 
 
+def test_delete_account_removes_user_and_data(client):
+    tok = client.post("/auth/register", json={"username": "tobedeleted", "password": "secret12"}).json()["access_token"]
+    h = {"Authorization": f"Bearer {tok}"}
+    client.post("/foods", json={"date": "2026-03-01", "meal": "lunch", "name_ar": "أكل",
+                                "amount": 100, "calories": 200}, headers=h)
+    # حذف الحساب
+    assert client.delete("/auth/account", headers=h).status_code == 204
+    # مينفعش دخول بعد الحذف، ولا الوصول بالتوكن القديم
+    assert client.post("/auth/login", json={"username": "tobedeleted", "password": "secret12"}).status_code == 401
+    assert client.get("/auth/me", headers=h).status_code == 401
+    # الاسم بقى متاح للتسجيل من جديد
+    assert client.post("/auth/register", json={"username": "tobedeleted", "password": "secret12"}).status_code == 201
+
+
+def test_delete_account_requires_auth(client):
+    assert client.delete("/auth/account").status_code == 401
+
+
 def test_register_duplicate_username_rejected(client):
     client.post("/auth/register", json={"username": "ali", "password": "secret12"})
     r = client.post("/auth/register", json={"username": "ali", "password": "other123"})

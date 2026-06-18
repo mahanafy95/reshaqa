@@ -33,6 +33,9 @@ class AdminUserSummary(BaseModel):
     current_weight_kg: float | None = None
     goal_weight_kg: float | None = None
     target_calories: int | None = None
+    mode: str | None = None           # البرنامج: loss | maintain | gain
+    weight_status: str | None = None  # underweight | normal | overweight
+    is_premium: bool = False
     foods_count: int = 0
     weights_count: int = 0
     last_food_date: date_type | None = None
@@ -59,6 +62,9 @@ class AdminUserDetail(BaseModel):
     profile: AdminProfileOut | None = None
     target_calories: int | None = None
     bmi: float | None = None
+    mode: str | None = None           # البرنامج: loss | maintain | gain
+    weight_status: str | None = None  # underweight | normal | overweight
+    is_premium: bool = False
     foods_count: int = 0
     weights_count: int = 0
     recent_foods: list[AdminFoodOut] = []
@@ -85,6 +91,11 @@ class ChangeUsernameRequest(BaseModel):
 
 class SetAdminRequest(BaseModel):
     is_admin: bool
+
+
+class GrantPremiumRequest(BaseModel):
+    grant: bool = True                 # True = منح، False = سحب
+    days: int | None = Field(None, ge=1, le=3650)  # عدد الأيام (None = بلا انتهاء)
 
 
 class BulkDeleteRequest(BaseModel):

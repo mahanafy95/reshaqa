@@ -77,6 +77,21 @@ def _weight_phrase(change: float | None) -> str | None:
     return "ثابت تقريباً"
 
 
+_PROGRAM_LABELS = {"loss": "تخسيس", "maintain": "تثبيت", "gain": "زيادة وزن"}
+_STATUS_LABELS = {
+    "underweight": "تحت الوزن الصحي",
+    "normal": "ضمن الوزن الصحي",
+    "overweight": "فوق الوزن الصحي",
+}
+
+
+def _program_line(mode: str, weight_status: str) -> str:
+    """وصف البرنامج النشط + حالة الوزن (مفيد للطبيب/الأخصائي)."""
+    prog = _PROGRAM_LABELS.get(mode, "تخسيس")
+    status = _STATUS_LABELS.get(weight_status)
+    return f"{prog} ({status})" if status else prog
+
+
 class _Page:
     """مساعد رسم RTL على صفحة A4."""
 
@@ -128,6 +143,7 @@ def weekly_pdf(report: WeeklyReport) -> bytes:
     p = _Page(c)
     _header(p, "تقرير أسبوعي", f"من {report.start} إلى {report.end}")
 
+    p.kv("البرنامج:", _program_line(report.mode, report.weight_status))
     p.kv("أيام الالتزام (ضمن الهدف):", f"{report.adherent_days} من 7")
     p.kv("توزيع الأيام:", f"ضمن {report.days_within} • فوق {report.days_over} • تحت {report.days_under}")
     p.kv("أيام فيها تسجيل:", f"{report.logged_days} أيام")
@@ -173,6 +189,7 @@ def monthly_pdf(report: MonthlyReport) -> bytes:
     month_name = _MONTH_NAMES[report.month] if 1 <= report.month <= 12 else str(report.month)
     _header(p, "تقرير شهري", f"{month_name} {report.year}")
 
+    p.kv("البرنامج:", _program_line(report.mode, report.weight_status))
     p.kv("إجمالي أيام الالتزام:", f"{report.total_adherent_days} يوم")
     p.kv("إجمالي أيام التسجيل:", f"{report.total_logged_days} يوم")
     p.kv("متوسط المتناول اليومي:", f"{report.avg_eaten} سعرة")

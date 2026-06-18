@@ -4,7 +4,7 @@ from datetime import date as date_type
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models.enums import Meal
+from ..models.enums import Meal, TargetMode
 from ..models.food import FoodLogged
 from ..models.profile import Profile
 from . import targets_service
@@ -12,10 +12,20 @@ from . import targets_service
 TOLERANCE = 0.10  # ±10% يُعتبر "مظبوط"
 
 
-def _status_calories(target: float, eaten: float) -> tuple[str, str]:
-    if eaten > target * (1 + TOLERANCE):
+def _status_calories(target: float, eaten: float, mode: TargetMode) -> tuple[str, str]:
+    over = eaten > target * (1 + TOLERANCE)
+    under = eaten < target * (1 - TOLERANCE)
+    if mode == TargetMode.gain:
+        # في الزيادة: الأكل الأكثر مطلوب — التحت-هدف هو اللي محتاج تذكير
+        if under:
+            return "قليل", "لسه قدامك سعرات من هدف الزيادة — كمّل أكلك (وبروتينك) عشان نكسب عضل 💪"
+        if over:
+            return "كتير", "زوّدت شوية عن هدف الزيادة، خلّيها تدريجية عشان تكسب عضل أكتر من الدهون 🙂"
+        return "مظبوط", "ماشي على هدف الزيادة بظبط 👏"
+    # تخسيس/تثبيت
+    if over:
         return "كتير", "زوّدت شوية عن هدفك النهاردة، وده بيحصل للكل! بكرة يوم جديد واحنا ماشيين صح 💚"
-    if eaten < target * (1 - TOLERANCE):
+    if under:
         return "قليل", "لسه قدامك سعرات من هدفك — متنساش تاكل كفايتك عشان طاقتك تفضل كويسة 🙂"
     return "مظبوط", "ماشي على هدفك بظبط، تمام التمام 👏"
 
@@ -61,7 +71,7 @@ def build_summary(db: Session, user_id: int, profile: Profile, day: date_type) -
         m["carbs"] += x.carbs
         m["fat"] += x.fat
 
-    cal_status, cal_msg = _status_calories(target.calories, eaten_cal)
+    cal_status, cal_msg = _status_calories(target.calories, eaten_cal, result.mode)
     p_status, p_msg = _status_protein(target.protein_g, eaten_p)
     c_status, c_msg = _status_generic("نشويات", target.carbs_g, eaten_c)
     f_status, f_msg = _status_generic("دهون", target.fat_g, eaten_f)
@@ -69,12 +79,21 @@ def build_summary(db: Session, user_id: int, profile: Profile, day: date_type) -
     remaining = target.calories - eaten_cal
     percent = int(round(eaten_cal / target.calories * 100)) if target.calories else 0
 
+    is_gain = result.mode == TargetMode.gain
     if cal_status == "مظبوط":
         encouragement = "يوم متوازن وجميل، كمّل كده 🌟"
     elif cal_status == "قليل":
-        encouragement = "بداية كويسة، خد راحتك وكمّل يومك بصحة 🙂"
+        encouragement = (
+            "محتاج تاكل أكتر شوية عشان نوصل لهدف الزيادة 💪"
+            if is_gain
+            else "بداية كويسة، خد راحتك وكمّل يومك بصحة 🙂"
+        )
     else:
-        encouragement = "مفيش حاجة اسمها يوم وحش — المهم الاستمرار، وإنت ماشي صح 💚"
+        encouragement = (
+            "زوّدت كويس النهاردة 👍 خلّي الزيادة تدريجية ومتوازنة"
+            if is_gain
+            else "مفيش حاجة اسمها يوم وحش — المهم الاستمرار، وإنت ماشي صح 💚"
+        )
 
     return {
         "date": day,

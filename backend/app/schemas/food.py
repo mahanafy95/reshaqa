@@ -84,6 +84,19 @@ class BarcodeOut(BaseModel):
     protein: float
     carbs: float
     fat: float
+    source: str = "barcode"  # local | barcode (Open Food Facts) | contributed
+
+
+class BarcodeIn(BaseModel):
+    """حفظ منتج بالباركود في المكتبة (مساهمة المستخدم — يتعرّف عليه بعد كده)."""
+    barcode: str = Field(..., min_length=6, max_length=20)
+    name_ar: str = Field(..., min_length=1, max_length=120)
+    calories_per_100: float = Field(..., ge=0, le=2000)
+    protein: float = Field(0, ge=0, le=200)
+    carbs: float = Field(0, ge=0, le=300)
+    fat: float = Field(0, ge=0, le=200)
+    household_unit_ar: str | None = Field(None, max_length=40)
+    household_grams: float | None = Field(None, gt=0, le=5000)
 
 
 class LabelParseOut(BaseModel):

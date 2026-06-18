@@ -1,10 +1,15 @@
-"""نشر APK جديد للتحديث الذاتي.
+"""نشر إصدار جديد للتحديث الذاتي (يحدّث app_manifest.json).
 
-الاستخدام:
-  python -m scripts.publish_apk <path-to-apk> <version_code> <version_name> "<notes_ar>"
+مصدر التنزيل يدعم وضعين:
+  1) رابط GitHub Release (مُستحسن — لا يثقّل Render، ولا يضخّم المستودع):
+       python -m scripts.publish_apk <version_code> <version_name> "<notes_ar>" \
+           https://github.com/<user>/<repo>/releases/download/v<x>/reshaqa.apk [mandatory]
+  2) ملف APK محلي يُخدَّم من /app/download (للتجارب فقط):
+       python -m scripts.publish_apk <version_code> <version_name> "<notes_ar>" ./reshaqa.apk [mandatory]
 
-ينسخ الـ APK إلى app/static/reshaqa-latest.apk ويحدّث app_manifest.json.
-بعد كده كل الموبايلات هتكتشف الإصدار الجديد تلقائياً.
+بعد التحديث: اعمل Deploy للباك-إند على Render عشان /app/version يرجّع الإصدار الجديد.
+⚠️ مهم: ارفع الـ APK على GitHub Release الأول، وبعدها حدّث المانيفست وادفع — عشان
+رابط التنزيل ما يبقاش 404 لما البانر يظهر للمستخدمين.
 """
 import json
 import shutil
@@ -18,32 +23,41 @@ def main() -> int:
     if len(sys.argv) < 5:
         print(__doc__)
         return 1
-    apk_src = Path(sys.argv[1])
-    version_code = int(sys.argv[2])
-    version_name = sys.argv[3]
-    notes = sys.argv[4]
+    version_code = int(sys.argv[1])
+    version_name = sys.argv[2]
+    notes = sys.argv[3]
+    source = sys.argv[4]  # رابط http(s) أو مسار ملف APK
     mandatory = len(sys.argv) > 5 and sys.argv[5].lower() in ("1", "true", "yes")
 
-    if not apk_src.exists():
-        print(f"APK not found: {apk_src}")
-        return 1
+    manifest: dict = {
+        "version_code": version_code,
+        "version_name": version_name,
+        "notes_ar": notes,
+        "mandatory": mandatory,
+    }
 
     STATIC.mkdir(parents=True, exist_ok=True)
-    shutil.copy(apk_src, STATIC / "reshaqa-latest.apk")
+    if source.lower().startswith("http"):
+        # وضع الرابط الخارجي (GitHub Release) — لا ننسخ ملفاً محلياً
+        manifest["download_url"] = source
+        # نشيل أي APK محلي قديم لتفادي خدمته بالغلط
+        local = STATIC / "reshaqa-latest.apk"
+        if local.exists():
+            local.unlink()
+        target_desc = source
+    else:
+        apk_src = Path(source)
+        if not apk_src.exists():
+            print(f"APK not found: {apk_src}")
+            return 1
+        shutil.copy(apk_src, STATIC / "reshaqa-latest.apk")
+        target_desc = str(STATIC / "reshaqa-latest.apk")
+
     (STATIC / "app_manifest.json").write_text(
-        json.dumps(
-            {
-                "version_code": version_code,
-                "version_name": version_name,
-                "notes_ar": notes,
-                "mandatory": mandatory,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"published v{version_code} ({version_name}) -> {STATIC / 'reshaqa-latest.apk'}")
+    print(f"published v{version_code} ({version_name}) -> {target_desc}")
+    print("تذكير: اعمل Deploy على Render عشان التغيير يبان للمستخدمين.")
     return 0
 
 

@@ -11,7 +11,12 @@ from ..models.profile import Profile
 from ..models.tracking import WeightLog
 from ..models.user import User
 from ..schemas.profile import ProfileIn, ProfileOut
-from ..services.body_metrics import healthy_weight_range
+from ..services.body_metrics import (
+    bmi,
+    healthy_weight_range,
+    recommended_goal_weight,
+    weight_status,
+)
 from ..services.calories import validate_goal_weight
 
 router = APIRouter(prefix="/profile", tags=["الملف الشخصي"])
@@ -22,12 +27,18 @@ def _to_out(profile: Profile) -> ProfileOut:
     lo, hi = healthy_weight_range(profile.height_cm)
     out.healthy_min_kg = lo
     out.healthy_max_kg = hi
+    out.weight_status = weight_status(bmi(profile.weight_kg, profile.height_cm))
+    out.recommended_goal_weight_kg = recommended_goal_weight(
+        profile.weight_kg, profile.height_cm
+    )
     return out
 
 
 def _validate_goal(payload: ProfileIn) -> None:
     if payload.goal_weight_kg is not None:
-        v = validate_goal_weight(payload.goal_weight_kg, payload.height_cm)
+        v = validate_goal_weight(
+            payload.goal_weight_kg, payload.height_cm, payload.weight_kg
+        )
         if not v.is_valid:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

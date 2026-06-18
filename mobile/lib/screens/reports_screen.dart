@@ -2,12 +2,26 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../services/api.dart';
+import '../state/app_state.dart';
 import '../widgets/common.dart';
+import 'paywall_screen.dart';
+
+/// اسم البرنامج النشط حسب الوضع (زيادة/تثبيت/تخسيس).
+String _programLabel(dynamic mode) =>
+    mode == 'gain' ? 'زيادة وزن' : (mode == 'maintain' ? 'تثبيت' : 'تخسيس');
+
+/// صياغة تغيّر الوزن باتجاه واضح (نزول/زيادة) بدل رقم سالب ملتبس.
+String _weightChangeText(dynamic change) {
+  final v = (change as num).toDouble();
+  if (v < -0.05) return 'نزول ${v.abs().toStringAsFixed(1)} كجم';
+  if (v > 0.05) return 'زيادة ${v.toStringAsFixed(1)} كجم';
+  return 'ثابت تقريباً';
+}
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -20,12 +34,59 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final premium = context.watch<AppState>().isPremium;
+    if (!premium) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('التقارير')),
+        body: const PremiumLock(
+          title: 'التقارير المفصّلة ميزة Premium 📊',
+          message: 'اشترك عشان تشوف تقاريرك الأسبوعية والشهرية بالتفصيل وتصدّرها PDF لطبيبك.',
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('التقارير'),
         bottom: TabBar(controller: _tabs, tabs: const [Tab(text: 'أسبوعي'), Tab(text: 'شهري')]),
       ),
       body: TabBarView(controller: _tabs, children: const [_WeeklyView(), _MonthlyView()]),
+    );
+  }
+}
+
+/// بطاقة قفل لميزة مدفوعة — تعرض رسالة وزر اشتراك.
+class PremiumLock extends StatelessWidget {
+  const PremiumLock({super.key, required this.title, required this.message});
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('💎', style: TextStyle(fontSize: 56)),
+            const SizedBox(height: 16),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textMuted)),
+            const SizedBox(height: 22),
+            ElevatedButton.icon(
+              icon: const Text('💎', style: TextStyle(fontSize: 16)),
+              label: const Text('اشترك في Premium'),
+              onPressed: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => const PaywallScreen())),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -79,13 +140,14 @@ class _WeeklyViewState extends State<_WeeklyView> {
         SectionCard(
           title: 'أسبوع ${r['start']} → ${r['end']}',
           child: Column(children: [
+            _stat('البرنامج', _programLabel(r['mode'])),
             _stat('أيام الالتزام', '${r['adherent_days']} من 7'),
             _stat('توزيع الأيام', 'ضمن ${r['days_within']} • فوق ${r['days_over']} • تحت ${r['days_under']}'),
             _stat('متوسط المتناول', '${r['avg_eaten']} سعرة (هدف ${r['avg_target']})'),
             _stat('متوسط الماكروز', 'بروتين ${r['avg_protein']} • نشويات ${r['avg_carbs']} • دهون ${r['avg_fat']}'),
             if ((r['water_avg_ml'] ?? 0) > 0) _stat('متوسط المياه', '${r['water_avg_ml']} مل/يوم'),
             if ((r['activity_total_min'] ?? 0) > 0) _stat('النشاط', '${r['activity_total_min']} دقيقة • ${r['activity_total_calories']} سعرة'),
-            if (r['weight_change_kg'] != null) _stat('تغيّر الوزن', '${r['weight_change_kg']} كجم'),
+            if (r['weight_change_kg'] != null) _stat('تغيّر الوزن', _weightChangeText(r['weight_change_kg'])),
           ]),
         ),
         const SizedBox(height: 12),
@@ -171,13 +233,14 @@ class _MonthlyViewState extends State<_MonthlyView> {
         SectionCard(
           title: 'ملخص الشهر',
           child: Column(children: [
+            _stat('البرنامج', _programLabel(r['mode'])),
             _stat('إجمالي أيام الالتزام', '${r['total_adherent_days']} يوم'),
             _stat('أيام التسجيل', '${r['total_logged_days']} يوم'),
             _stat('متوسط المتناول', '${r['avg_eaten']} سعرة'),
             _stat('متوسط الماكروز', 'بروتين ${r['avg_protein']} • نشويات ${r['avg_carbs']} • دهون ${r['avg_fat']}'),
             if ((r['water_avg_ml'] ?? 0) > 0) _stat('متوسط المياه', '${r['water_avg_ml']} مل/يوم'),
             if ((r['activity_total_min'] ?? 0) > 0) _stat('النشاط', '${r['activity_total_min']} دقيقة • ${r['activity_total_calories']} سعرة'),
-            if (r['weight_change_kg'] != null) _stat('تغيّر الوزن', '${r['weight_change_kg']} كجم'),
+            if (r['weight_change_kg'] != null) _stat('تغيّر الوزن', _weightChangeText(r['weight_change_kg'])),
           ]),
         ),
         const SizedBox(height: 12),

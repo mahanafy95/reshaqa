@@ -1,8 +1,10 @@
 """راوتر الوصفات — البناء بمكونات (مع خانة الزيت)، حساب الحلة ونصيب الفرد، وتسجيل النصيب."""
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..config import settings
+from ..core.billing import PREMIUM_REQUIRED, is_user_premium
 from ..core.deps import get_current_user
 from ..database import get_db
 from ..models.enums import FoodSource
@@ -70,6 +72,22 @@ def _owned_recipe(db: Session, user_id: int, recipe_id: int) -> Recipe:
 def create_recipe(
     payload: RecipeIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    # الطبقة المجانية: حد أقصى لعدد الوصفات المحفوظة؛ Premium بلا حدود
+    if not is_user_premium(db, current_user.id):
+        count = db.scalar(
+            select(func.count()).select_from(Recipe).where(Recipe.user_id == current_user.id)
+        ) or 0
+        if count >= settings.FREE_RECIPE_LIMIT:
+            raise HTTPException(
+                status_code=PREMIUM_REQUIRED,
+                detail={
+                    "message": (
+                        f"وصلت للحد المجاني ({settings.FREE_RECIPE_LIMIT} وصفات). "
+                        "اشترك Premium لوصفات بلا حدود 💎"
+                    ),
+                    "premium_required": True,
+                },
+            )
     recipe = Recipe(user_id=current_user.id, name_ar=payload.name_ar, servings=payload.servings)
     recipe.ingredients = [_build_ingredient(db, ing) for ing in payload.ingredients]
     _apply_totals(recipe)

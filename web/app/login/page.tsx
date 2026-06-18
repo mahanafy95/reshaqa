@@ -1,16 +1,24 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { Button, Field } from "@/components/ui";
+import { Button, Field, PasswordField } from "@/components/ui";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function afterAuth() {
+    const profile = await api.getProfile();
+    router.replace(profile ? "/dashboard" : "/dashboard/profile");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,11 +30,23 @@ export default function LoginPage() {
     setError(null);
     try {
       if (isLogin) await api.login(username.trim(), password);
-      else await api.register(username.trim(), password);
-      const profile = await api.getProfile();
-      router.replace(profile ? "/dashboard" : "/dashboard/profile");
+      else await api.register(username.trim(), password, email.trim() || undefined);
+      await afterAuth();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "حصل خطأ. حاول تاني.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onGoogle(idToken: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.googleLogin(idToken);
+      await afterAuth();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "تعذّر تسجيل الدخول بجوجل.");
     } finally {
       setBusy(false);
     }
@@ -47,21 +67,44 @@ export default function LoginPage() {
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
           />
-          <Field
+          <PasswordField
             label="كلمة السر"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={isLogin ? "current-password" : "new-password"}
           />
+          {!isLogin && (
+            <Field
+              label="البريد الإلكتروني (اختياري — لاسترجاع كلمة السر)"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder="example@gmail.com"
+            />
+          )}
           {error && <p className="text-red-600 text-sm mb-3 text-center">{error}</p>}
           <Button type="submit" disabled={busy} className="w-full">
             {busy ? "..." : isLogin ? "دخول" : "إنشاء حساب"}
           </Button>
+
+          {isLogin && (
+            <div className="text-center mt-3">
+              <Link href="/forgot-password" className="text-teal text-sm">
+                نسيت كلمة السر؟
+              </Link>
+            </div>
+          )}
+
+          <GoogleSignIn onCredential={onGoogle} onError={(m) => setError(m)} />
+
           <button
             type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="w-full mt-3 text-teal text-sm"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError(null);
+            }}
+            className="w-full mt-4 text-teal text-sm"
           >
             {isLogin ? "معندكش حساب؟ سجّل دلوقتي" : "عندك حساب؟ سجّل دخول"}
           </button>

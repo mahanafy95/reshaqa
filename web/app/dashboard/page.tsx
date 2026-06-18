@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { Bar, Card, Spinner, StatRow } from "@/components/ui";
 
 const MACRO_COLORS: Record<string, string> = { بروتين: "#1B998B", نشويات: "#E08A3C", دهون: "#3C7DD9" };
+const MODE_LABEL: Record<string, string> = { loss: "تخسيس", maintain: "تثبيت", gain: "زيادة" };
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -70,7 +71,7 @@ export default function DashboardHome() {
             </div>
           </div>
           <span className="rounded-full bg-teal/10 text-teal px-3 py-1 text-sm font-semibold">
-            وضع {summary.mode === "maintain" ? "تثبيت" : "تخسيس"}
+            وضع {MODE_LABEL[summary.mode] ?? "تخسيس"}
           </span>
         </div>
         <div className="mt-4 rounded-xl bg-teal/5 text-teal-dark p-3 text-center">{summary.encouragement_ar}</div>

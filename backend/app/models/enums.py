@@ -17,6 +17,7 @@ class ActivityLevel(str, enum.Enum):
 class TargetMode(str, enum.Enum):
     loss = "loss"             # وضع التخسيس (عجز سعرات)
     maintain = "maintain"     # وضع التثبيت (سعرات المحافظة)
+    gain = "gain"             # وضع زيادة الوزن (فائض سعرات معتدل وصحي)
 
 
 class Meal(str, enum.Enum):

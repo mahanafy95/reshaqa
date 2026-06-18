@@ -6,9 +6,22 @@ from dataclasses import dataclass
 
 from ..models.enums import Sex
 
-# حدود BMI الصحية (منظمة الصحة العالمية)
+# حدود BMI الصحية (منظمة الصحة العالمية).
+# نستخدم 25.0 كحدّ واحد متّسق بين التصنيف ونطاق الوزن الصحي حتى لا تظهر فجوة
+# في النطاق [24.9, 25.0) (الطبيعي = [18.5, 25.0)، وزيادة الوزن تبدأ من 25.0).
 HEALTHY_BMI_MIN = 18.5
-HEALTHY_BMI_MAX = 24.9
+HEALTHY_BMI_MAX = 25.0
+# عتبة "فوق الوزن الصحي" — نفس حدّ النطاق الصحي الأعلى (بلا فجوة)
+OVERWEIGHT_BMI_MIN = HEALTHY_BMI_MAX
+
+# تصنيفات حالة الوزن (تُستخدم لاختيار البرنامج: زيادة/تثبيت/تخسيس)
+STATUS_UNDERWEIGHT = "underweight"
+STATUS_NORMAL = "normal"
+STATUS_OVERWEIGHT = "overweight"
+
+# الـ BMI المستهدف المقترح لكل حالة (داخل النطاق الصحي بمسافة مريحة، مش على الحافة)
+TARGET_BMI_FOR_GAIN = 20.0   # لمن هو تحت النطاق الصحي
+TARGET_BMI_FOR_LOSS = 24.0   # لمن هو فوق النطاق الصحي
 
 
 def bmi(weight_kg: float, height_cm: float) -> float:
@@ -17,6 +30,36 @@ def bmi(weight_kg: float, height_cm: float) -> float:
         raise ValueError("الطول يجب أن يكون أكبر من صفر")
     h_m = height_cm / 100.0
     return weight_kg / (h_m * h_m)
+
+
+def weight_at_bmi(target_bmi: float, height_cm: float) -> float:
+    """الوزن (كجم) المقابل لـ BMI معيّن عند طول معيّن."""
+    h_m = height_cm / 100.0
+    return round(target_bmi * h_m * h_m, 1)
+
+
+def weight_status(bmi_value: float) -> str:
+    """تصنيف حالة الوزن: تحت / ضمن / فوق النطاق الصحي."""
+    if bmi_value < HEALTHY_BMI_MIN:
+        return STATUS_UNDERWEIGHT
+    if bmi_value >= OVERWEIGHT_BMI_MIN:
+        return STATUS_OVERWEIGHT
+    return STATUS_NORMAL
+
+
+def recommended_goal_weight(weight_kg: float, height_cm: float) -> float | None:
+    """الوزن المستهدف المقترح حسب الحالة:
+
+    - تحت النطاق الصحي → وزن مريح داخل الطبيعي (BMI 20) ← زيادة.
+    - فوق النطاق الصحي → أعلى الطبيعي بمسافة مريحة (BMI 24) ← تخسيس.
+    - ضمن الطبيعي → None (الهدف هو التثبيت على الوزن الحالي).
+    """
+    status = weight_status(bmi(weight_kg, height_cm))
+    if status == STATUS_UNDERWEIGHT:
+        return weight_at_bmi(TARGET_BMI_FOR_GAIN, height_cm)
+    if status == STATUS_OVERWEIGHT:
+        return weight_at_bmi(TARGET_BMI_FOR_LOSS, height_cm)
+    return None
 
 
 def bmi_category_ar(bmi_value: float) -> str:

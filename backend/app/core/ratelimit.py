@@ -13,10 +13,17 @@ from ..config import settings
 
 
 def _client_key(request: Request) -> str:
-    """يحدّد عميل الطلب — يقرأ X-Forwarded-For خلف بروكسي Render ليحسب لكل IP فعلي."""
+    """يحدّد عميل الطلب بشكل آمن خلف بروكسي Render.
+
+    ⚠️ أمان: العميل يقدر يزوّر X-Forwarded-For. بروكسي Render بيضيف عنوان العميل
+    الحقيقي في **آخر** القائمة (هوب واحد موثوق)، فناخد آخر عنصر — مش أول عنصر
+    (اللي المهاجم يتحكّم فيه) — عشان تزوير الهيدر مايتجاوزش تحديد المعدّل.
+    """
     xff = request.headers.get("x-forwarded-for")
     if xff:
-        return xff.split(",")[0].strip()
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
     return get_remote_address(request)
 
 

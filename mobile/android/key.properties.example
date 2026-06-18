@@ -1,0 +1,10 @@
+# انسخ الملف ده باسم  key.properties  في نفس المجلد (android/) واملأ القيم بمفتاح الإصدار بتاعك.
+# ⚠️ الملف key.properties و ملفات .jks متجاهَلين في git — متشاركهمش مع حد ومتحطّهمش في OneDrive.
+#
+# تولّد مفتاح الرفع بالأمر ده (مرة واحدة، احفظه في مكان آمن خارج المشروع):
+#   keytool -genkeypair -v -keystore C:/keys/reshaqa-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=C:/keys/reshaqa-upload.jks

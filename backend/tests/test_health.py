@@ -1,7 +1,7 @@
 """اختبارات مزامنة الصحة (هواوي/Health Connect/يدوي)."""
 from datetime import date
 
-from tests.conftest import auth_headers
+from tests.conftest import auth_headers, make_premium
 
 PROFILE = {
     "age": 30, "sex": "male", "height_cm": 180, "weight_kg": 90,
@@ -25,8 +25,9 @@ def test_huawei_authorize_not_configured(client):
     assert r.status_code == 503  # غير مُهيّأ
 
 
-def test_sync_stores_activity_and_sleep(client):
+def test_sync_stores_activity_and_sleep(client, db_session):
     h = auth_headers(client, "hsy3")
+    make_premium(db_session, "hsy3")  # مزامنة الصحة ميزة مدفوعة
     payload = {"date": TODAY, "source": "huawei", "steps": 8000,
                "active_minutes": 45, "calories_burned": 300, "sleep_hours": 7.5}
     r = client.post("/health/sync", json=payload, headers=h)
@@ -45,8 +46,9 @@ def test_sync_stores_activity_and_sleep(client):
     assert r.json()["sleep_hours"] == 7.5
 
 
-def test_sync_calories_not_deducted_from_food_budget(client):
+def test_sync_calories_not_deducted_from_food_budget(client, db_session):
     h = auth_headers(client, "hsy4")
+    make_premium(db_session, "hsy4")
     client.put("/profile", json=PROFILE, headers=h)
     client.post("/health/sync", json={"date": TODAY, "source": "health_connect",
                                       "calories_burned": 500, "steps": 10000}, headers=h)
@@ -59,3 +61,9 @@ def test_sync_calories_not_deducted_from_food_budget(client):
 def test_sync_requires_auth(client):
     r = client.post("/health/sync", json={"steps": 100})
     assert r.status_code == 401
+
+
+def test_sync_blocked_for_free_user(client):
+    h = auth_headers(client, "hsyfree")
+    r = client.post("/health/sync", json={"date": TODAY, "source": "huawei", "steps": 100}, headers=h)
+    assert r.status_code == 402  # ميزة مدفوعة

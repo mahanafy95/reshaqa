@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
+import '../services/api.dart';
+import '../services/google_signin_service.dart';
 import '../state/app_state.dart';
+import 'forgot_password_screen.dart';
 
-/// شاشة الدخول/التسجيل بـ username وكلمة سر (بدون إيميل).
+/// شاشة الدخول/التسجيل بـ username وكلمة سر، مع دخول بجوجل واسترجاع كلمة السر.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
   @override
@@ -15,9 +18,28 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _user = TextEditingController();
   final _pass = TextEditingController();
+  final _email = TextEditingController();
   bool _isLogin = true;
   bool _busy = false;
   String? _error;
+  bool _googleAvailable = GoogleSignInService.configured;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      final c = await Api.authConfig();
+      final id = (c['google_client_id'] ?? '').toString();
+      if (c['google_login_enabled'] == true && id.isNotEmpty) {
+        GoogleSignInService.configure(id);
+        if (mounted) setState(() => _googleAvailable = true);
+      }
+    } catch (_) {/* تجاهل — يفضل الدخول بكلمة السر */}
+  }
 
   Future<void> _submit() async {
     final u = _user.text.trim();
@@ -35,8 +57,29 @@ class _AuthScreenState extends State<AuthScreen> {
       if (_isLogin) {
         await app.login(u, p);
       } else {
-        await app.register(u, p);
+        await app.register(u, p, email: _email.text.trim());
       }
+    } catch (e) {
+      setState(() => _error = ApiClient.errorMessage(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final idToken = await GoogleSignInService.signIn();
+      if (idToken == null) {
+        // المستخدم ألغى
+        if (mounted) setState(() => _busy = false);
+        return;
+      }
+      if (!mounted) return;
+      await context.read<AppState>().googleLogin(idToken);
     } catch (e) {
       setState(() => _error = ApiClient.errorMessage(e));
     } finally {
@@ -71,6 +114,17 @@ class _AuthScreenState extends State<AuthScreen> {
                   obscureText: true,
                   decoration: const InputDecoration(labelText: 'كلمة السر', prefixIcon: Icon(Icons.lock_outline)),
                 ),
+                if (!_isLogin) ...[
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'البريد الإلكتروني (اختياري — لاسترجاع كلمة السر)',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                ],
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(_error!, style: const TextStyle(color: AppColors.danger), textAlign: TextAlign.center),
@@ -82,9 +136,37 @@ class _AuthScreenState extends State<AuthScreen> {
                       ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text(_isLogin ? 'دخول' : 'إنشاء حساب'),
                 ),
+                if (_isLogin)
+                  TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                            ),
+                    child: const Text('نسيت كلمة السر؟'),
+                  ),
+                if (_googleAvailable) ...[
+                  const SizedBox(height: 6),
+                  const Row(children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('أو', style: TextStyle(color: AppColors.textMuted)),
+                    ),
+                    Expanded(child: Divider()),
+                  ]),
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : _googleSignIn,
+                    icon: const Text('G',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF4285F4))),
+                    label: const Text('تسجيل الدخول بجوجل'),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextButton(
-                  onPressed: _busy ? null : () => setState(() => _isLogin = !_isLogin),
+                  onPressed: _busy ? null : () => setState(() { _isLogin = !_isLogin; _error = null; }),
                   child: Text(_isLogin ? 'معندكش حساب؟ سجّل دلوقتي' : 'عندك حساب؟ سجّل دخول'),
                 ),
               ],

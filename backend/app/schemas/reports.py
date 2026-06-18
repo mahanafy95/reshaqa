@@ -39,6 +39,8 @@ class WeeklyReportOut(BaseModel):
     activity_sessions: int
     weight_change_kg: float | None
     weight_slope_kg_week: float | None
+    mode: str = "loss"
+    weight_status: str = "normal"
     summary_ar: str
 
 
@@ -60,4 +62,6 @@ class MonthlyReportOut(BaseModel):
     activity_total_min: int
     activity_total_calories: int
     weight_change_kg: float | None
+    mode: str = "loss"
+    weight_status: str = "normal"
     summary_ar: str

@@ -2,16 +2,20 @@
 
 كل المسارات محميّة بـ get_admin_user (صلاحية إشراف إلزامية).
 """
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..core.admin import get_admin_user, is_user_admin
+from ..core.billing import user_is_premium
 from ..core.security import hash_password
 from ..database import get_db
 from ..models.food import FoodLogged
 from ..models.profile import Profile
+from ..models.subscription import Subscription
 from ..models.tracking import WeightLog
 from ..models.user import User
 from ..schemas.admin import (
@@ -25,6 +29,7 @@ from ..schemas.admin import (
     BulkDeleteRequest,
     BulkDeleteResult,
     ChangeUsernameRequest,
+    GrantPremiumRequest,
     ResetPasswordRequest,
     SetAdminRequest,
 )
@@ -41,14 +46,14 @@ def _get_user_or_404(db: Session, user_id: int) -> User:
 
 
 def _safe_target(db: Session, user: User, profile: Profile | None):
-    """يحسب هدف السعرات و BMI إن أمكن، وإلا (None, None)."""
+    """يحسب (هدف السعرات, BMI, البرنامج, حالة الوزن) إن أمكن، وإلا قيم None."""
     if profile is None:
-        return None, None
+        return None, None, None, None
     try:
         result, _cw, _pl = targets_service.compute_for_user(db, user.id, profile)
-        return result.target_calories, result.bmi
+        return result.target_calories, result.bmi, str(result.mode.value), result.weight_status
     except Exception:
-        return None, None
+        return None, None, None, None
 
 
 @router.get("/users", response_model=list[AdminUserSummary])
@@ -83,7 +88,8 @@ def list_users(
             .order_by(WeightLog.date.desc())
             .limit(1)
         )
-        target_cal, _bmi = _safe_target(db, u, profile)
+        target_cal, _bmi, mode, wstatus = _safe_target(db, u, profile)
+        sub = db.scalar(select(Subscription).where(Subscription.user_id == u.id))
         out.append(
             AdminUserSummary(
                 id=u.id,
@@ -96,6 +102,9 @@ def list_users(
                 ),
                 goal_weight_kg=profile.goal_weight_kg if profile else None,
                 target_calories=target_cal,
+                mode=mode,
+                weight_status=wstatus,
+                is_premium=user_is_premium(sub),
                 foods_count=foods_count,
                 weights_count=weights_count,
                 last_food_date=last_food_date,
@@ -142,7 +151,7 @@ def user_detail(
 ):
     user = _get_user_or_404(db, user_id)
     profile = db.scalar(select(Profile).where(Profile.user_id == user.id))
-    target_cal, bmi = _safe_target(db, user, profile)
+    target_cal, bmi, mode, wstatus = _safe_target(db, user, profile)
 
     foods_count = db.scalar(
         select(func.count()).select_from(FoodLogged).where(FoodLogged.user_id == user.id)
@@ -184,6 +193,11 @@ def user_detail(
         profile=prof_out,
         target_calories=target_cal,
         bmi=bmi,
+        mode=mode,
+        weight_status=wstatus,
+        is_premium=user_is_premium(
+            db.scalar(select(Subscription).where(Subscription.user_id == user.id))
+        ),
         foods_count=foods_count,
         weights_count=weights_count,
         recent_foods=[
@@ -263,6 +277,41 @@ def set_admin(
     db.commit()
     verb = "تم منح" if payload.is_admin else "تم سحب"
     return AdminActionResult(message=f"{verb} صلاحية الإشراف للمستخدم {user.username}.")
+
+
+@router.post("/users/{user_id}/premium", response_model=AdminActionResult)
+def set_premium(
+    user_id: int,
+    payload: GrantPremiumRequest,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """منح/سحب Premium يدوياً (مجاناً، بدون دفع) — للأصدقاء أو التجارب أو الهدايا.
+
+    التفعيل ده مستقل تماماً عن Google Play (platform=manual، بلا عمولة).
+    """
+    user = _get_user_or_404(db, user_id)
+    sub = db.scalar(select(Subscription).where(Subscription.user_id == user.id))
+    if payload.grant:
+        if sub is None:
+            sub = Subscription(user_id=user.id)
+            db.add(sub)
+        sub.platform = "manual"
+        sub.product_id = "comp"
+        sub.status = "active"
+        sub.auto_renewing = False
+        sub.current_period_end = (
+            datetime.now(timezone.utc) + timedelta(days=payload.days) if payload.days else None
+        )
+        dur = f"لمدة {payload.days} يوم" if payload.days else "بدون انتهاء"
+        msg = f"تم منح Premium للمستخدم {user.username} ({dur})."
+    else:
+        if sub is not None:
+            sub.status = "expired"
+            sub.current_period_end = datetime.now(timezone.utc)
+        msg = f"تم سحب Premium من المستخدم {user.username}."
+    db.commit()
+    return AdminActionResult(message=msg)
 
 
 @router.delete("/users/{user_id}", response_model=AdminActionResult)

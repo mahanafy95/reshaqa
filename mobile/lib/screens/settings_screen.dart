@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/api_client.dart';
 import '../core/theme.dart';
+import '../services/api.dart';
 import '../services/biometric_service.dart';
 import '../services/notifications_service.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
+import 'paywall_screen.dart';
 import 'setup_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -19,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifications = false;
   bool _lock = false;
   bool _loading = true;
+  String _version = '';
   static const _kNotif = 'reshaqa_notifications';
 
   @override
@@ -31,6 +36,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     _notifications = prefs.getBool(_kNotif) ?? false;
     _lock = await BiometricService.isLockEnabled();
+    try {
+      final info = await PackageInfo.fromPlatform();
+      _version = '${info.version} (${info.buildNumber})';
+    } catch (_) {
+      _version = '—';
+    }
     setState(() => _loading = false);
   }
 
@@ -70,6 +81,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          SectionCard(
+            title: 'الاشتراك',
+            child: app.isPremium
+                ? const Row(children: [
+                    Text('💎', style: TextStyle(fontSize: 22)),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text('مشترك في Premium — كل المميزات مفتوحة. شكراً لدعمك 💚',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ])
+                : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    const Text('افتح التقارير المفصّلة + PDF، الوصفات بلا حدود + الباركود، '
+                        'ومزامنة الصحة مع Premium.',
+                        style: TextStyle(color: AppColors.textMuted)),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      icon: const Text('💎', style: TextStyle(fontSize: 16)),
+                      label: const Text('اشترك في Premium'),
+                      onPressed: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const PaywallScreen())),
+                    ),
+                  ]),
+          ),
+          const SizedBox(height: 12),
           SectionCard(
             title: 'التذكيرات',
             child: Column(children: [
@@ -127,12 +163,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
             label: const Text('تسجيل الخروج'),
             onPressed: () => context.read<AppState>().logout(),
           ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            icon: const Icon(Icons.delete_forever_outlined, size: 20),
+            label: const Text('حذف حسابي نهائياً'),
+            onPressed: () => _confirmDelete(context),
+          ),
           const SizedBox(height: 20),
-          const Center(child: Text('رشاقة • نسخة 1.0', style: TextStyle(color: AppColors.textMuted))),
+          Center(child: Text('رشاقة • نسخة $_version', style: const TextStyle(color: AppColors.textMuted))),
           const Center(child: Text('أداة توعية وليست بديلاً عن استشارة طبية', style: TextStyle(color: AppColors.textMuted, fontSize: 12))),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final app = context.read<AppState>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الحساب'),
+        content: const Text(
+            'هتمسح حسابك وكل بياناتك نهائياً (الأكل، الوزن، الوصفات…). الإجراء ده لا يمكن التراجع عنه. متأكد؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('حذف نهائي'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await Api.deleteAccount();
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+      return;
+    }
+    await app.logout();
   }
 
   Widget _info(String k, String v) => Padding(

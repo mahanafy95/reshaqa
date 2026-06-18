@@ -1,7 +1,7 @@
 name: reshaqa
 description: "رشاقة — تطبيق حساب السعرات والتغذية للتخسيس الصحي"
 publish_to: 'none'
-version: 1.3.0+4
+version: 1.5.0+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -44,6 +44,12 @@ dependencies:
   home_widget: ^0.6.0
   fl_chart: ^0.69.0
   cupertino_icons: ^1.0.8
+
+  # تسجيل الدخول بجوجل (مجاني — Google Identity، تبعية أصلية تتطلب إصدار جديد)
+  google_sign_in: ^6.2.1
+
+  # اشتراكات Google Play (تبعية أصلية — تتطلب إصدار AAB جديد)
+  in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..core.billing import require_premium
 from ..core.deps import get_current_user
 from ..database import get_db
 from ..models.health import HealthToken
@@ -85,7 +86,7 @@ def huawei_callback(
 @router.post("/sync", response_model=HealthSyncOut, status_code=status.HTTP_201_CREATED)
 def sync_health(
     payload: HealthSyncIn,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_premium),
     db: Session = Depends(get_db),
 ):
     """يستقبل بيانات صحية مقروءة على الجهاز ويخزّنها (نشاط + نوم)."""

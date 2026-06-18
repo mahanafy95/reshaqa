@@ -7,6 +7,7 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 psycopg[binary]==3.2.3
 PyJWT==2.10.1
+cryptography==44.0.0  # توقيع JWT لحساب خدمة Google Play (RS256) للتحقق من الاشتراكات
 bcrypt==4.2.1
 python-multipart==0.0.20
 httpx==0.28.1

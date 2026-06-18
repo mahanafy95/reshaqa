@@ -52,6 +52,40 @@ class Settings(BaseSettings):
     HUAWEI_HEALTH_CLIENT_SECRET: str = ""
     HUAWEI_HEALTH_REDIRECT_URI: str = ""
 
+    # تسجيل الدخول بجوجل (مجاني تماماً — Google Identity، مش Firebase)
+    # معرّفات العميل المسموح بها (جمهور الرمز aud) مفصولة بفواصل: عميل الويب (+ الأندرويد لاحقاً)
+    GOOGLE_CLIENT_IDS: str = ""
+
+    # البريد (مجاني) — لإرسال رمز إعادة تعيين كلمة السر بالإيميل (بدون أي SMS)
+    # المزوّد: gmail (SMTP عبر كلمة مرور تطبيق) أو brevo (HTTPS احتياطي لو Render حجب SMTP)
+    EMAIL_PROVIDER: str = "gmail"  # gmail | brevo | none
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 465
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_FROM_NAME: str = "رشاقة"
+    BREVO_API_KEY: str = ""
+    # مدة صلاحية رمز إعادة التعيين (بالدقائق) وأقصى عدد محاولات تحقّق
+    OTP_TTL_MINUTES: int = 15
+    OTP_MAX_ATTEMPTS: int = 5
+
+    # ===== الاشتراكات (Google Play Billing) =====
+    # حساب خدمة Google Play (محتوى ملف JSON كنص) للتحقق من المشتريات من جهة الخادم
+    GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""
+    GOOGLE_PLAY_PACKAGE_NAME: str = "com.reshaqa.reshaqa"
+    # معرّفات منتجات الاشتراك المقبولة (مفصولة بفواصل)
+    GOOGLE_PLAY_PRODUCT_IDS: str = "reshaqa_premium"
+    # رمز تحقّق ويبهوك Pub/Sub (RTDN) — يُمرَّر كـ ?token=... ويُطابَق
+    PUBSUB_VERIFICATION_TOKEN: str = ""
+    # حدود الطبقة المجانية
+    FREE_RECIPE_LIMIT: int = 3
+
+    # المساعد الصحي بالذكاء الاصطناعي — Google Gemini (الباقة المجانية، بدون فيزا)
+    # مفتاح مجاني من https://aistudio.google.com/apikey . لو فاضي، يفضل المحلّل المحلي (heuristic).
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
     @model_validator(mode="after")
     def _enforce_secure_secret(self):
         # في الإنتاج: ارفض التشغيل بمفتاح JWT افتراضي/فارغ (يمنع تزوير التوكنات)
@@ -69,6 +103,41 @@ class Settings(BaseSettings):
     @property
     def admin_usernames_set(self) -> set[str]:
         return {u.strip().lower() for u in self.ADMIN_USERNAMES.split(",") if u.strip()}
+
+    @property
+    def google_client_ids_set(self) -> set[str]:
+        return {c.strip() for c in self.GOOGLE_CLIENT_IDS.split(",") if c.strip()}
+
+    @property
+    def google_login_enabled(self) -> bool:
+        return bool(self.google_client_ids_set)
+
+    @property
+    def email_from_address(self) -> str:
+        return (self.SMTP_FROM or self.SMTP_USERNAME).strip()
+
+    @property
+    def email_enabled(self) -> bool:
+        """هل إرسال البريد مضبوط؟ (Gmail SMTP أو Brevo)."""
+        if self.EMAIL_PROVIDER == "gmail":
+            return bool(self.SMTP_HOST and self.SMTP_USERNAME and self.SMTP_PASSWORD)
+        if self.EMAIL_PROVIDER == "brevo":
+            return bool(self.BREVO_API_KEY and self.email_from_address)
+        return False
+
+    @property
+    def play_product_ids_set(self) -> set[str]:
+        return {p.strip() for p in self.GOOGLE_PLAY_PRODUCT_IDS.split(",") if p.strip()}
+
+    @property
+    def billing_enabled(self) -> bool:
+        """هل التحقّق من مشتريات Play مضبوط؟ (حساب الخدمة موجود)."""
+        return bool(self.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON.strip())
+
+    @property
+    def ai_enabled(self) -> bool:
+        """هل المساعد الذكي (Gemini) مفعّل؟ (وإلا نرجع للمحلّل المحلي المجاني)."""
+        return bool(self.GEMINI_API_KEY.strip())
 
     @property
     def sqlalchemy_url(self) -> str:

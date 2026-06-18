@@ -11,6 +11,25 @@ const ACTIVITY: Record<string, string> = {
   active: "نشاط عالٍ",
 };
 
+// تصنيف الوزن + البرنامج المقابل (نفس منطق الخادم — للمعاينة الفورية أثناء الكتابة)
+const STATUS_INFO: Record<string, { label: string; program: string; emoji: string; color: string }> = {
+  underweight: { label: "تحت الوزن الصحي", program: "زيادة وزن", emoji: "⬆️", color: "#3C7DD9" },
+  normal: { label: "ضمن الوزن الصحي", program: "تثبيت", emoji: "✅", color: "#1B998B" },
+  overweight: { label: "فوق الوزن الصحي", program: "تخسيس", emoji: "⬇️", color: "#E08A3C" },
+};
+
+function classify(heightCm: number, weightKg: number) {
+  const h = heightCm / 100;
+  if (h <= 0 || weightKg <= 0) return null;
+  const bmi = weightKg / (h * h);
+  const status = bmi < 18.5 ? "underweight" : bmi >= 25 ? "overweight" : "normal";
+  // الوزن المقترح: زيادة → BMI 20، تخسيس → BMI 24، تثبيت → بدون
+  let recommended: number | null = null;
+  if (status === "underweight") recommended = Math.round(20 * h * h * 10) / 10;
+  else if (status === "overweight") recommended = Math.round(24 * h * h * 10) / 10;
+  return { bmi: Math.round(bmi * 10) / 10, status, recommended };
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -63,12 +82,45 @@ export default function ProfilePage() {
   if (loading) return <Spinner />;
   const set = (k: string, v: string) => setF({ ...f, [k]: v });
 
+  const c = classify(Number(f.height_cm), Number(f.weight_kg));
+  const info = c ? STATUS_INFO[c.status] : null;
+  const rateLabel = c?.status === "underweight" ? "معدل الزيادة (كجم/أسبوع)" : "معدل النزول (كجم/أسبوع)";
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">بياناتي</h1>
       {existing && (
         <Card>
           <StatRow k="النطاق الصحي لوزنك" v={`${existing.healthy_min_kg} - ${existing.healthy_max_kg} كجم`} />
+        </Card>
+      )}
+      {c && info && (
+        <Card>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{info.emoji}</span>
+            <div className="flex-1">
+              <div className="font-bold" style={{ color: info.color }}>
+                {info.label} (BMI {c.bmi})
+              </div>
+              <div className="text-sm text-muted">
+                البرنامج المناسب ليك: <span className="font-semibold">{info.program}</span>
+              </div>
+            </div>
+          </div>
+          {c.recommended && (
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-teal/5 p-3">
+              <span className="text-sm">
+                وزن مقترح صحي: <span className="font-bold">{c.recommended} كجم</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => set("goal_weight_kg", String(c.recommended))}
+                className="text-teal text-sm font-semibold underline"
+              >
+                استخدم ده كهدف
+              </button>
+            </div>
+          )}
         </Card>
       )}
       <Card>
@@ -87,10 +139,10 @@ export default function ProfilePage() {
               ))}
             </Select>
             <Field label="الوزن المستهدف (اختياري)" type="number" value={f.goal_weight_kg} onChange={(e) => set("goal_weight_kg", e.target.value)} />
-            <Select label="معدل النزول (كجم/أسبوع)" value={f.goal_rate} onChange={(e) => set("goal_rate", e.target.value)}>
+            <Select label={rateLabel} value={f.goal_rate} onChange={(e) => set("goal_rate", e.target.value)}>
               <option value="0.25">0.25 (بطيء ومريح)</option>
               <option value="0.5">0.5 (معتدل)</option>
-              <option value="0.75">0.75 (أسرع)</option>
+              {c?.status !== "underweight" && <option value="0.75">0.75 (أسرع)</option>}
             </Select>
           </div>
           {error && <p className="text-red-600 text-sm my-2">{error}</p>}

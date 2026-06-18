@@ -12,6 +12,7 @@ type UserRow = {
   current_weight_kg: number | null;
   goal_weight_kg: number | null;
   target_calories: number | null;
+  is_premium: boolean;
   foods_count: number;
   weights_count: number;
   last_food_date: string | null;
@@ -170,6 +171,36 @@ export default function AdminPage() {
     }
   }
 
+  async function togglePremium(u: { id: number; username: string; is_premium: boolean }) {
+    if (u.is_premium) {
+      if (!window.confirm(`سحب Premium من المستخدم "${u.username}"؟`)) return;
+      try {
+        const r = await api.adminSetPremium(u.id, false);
+        flash(r?.message || "تم سحب Premium.");
+        await load(q);
+        if (selected?.id === u.id) await openDetail(u.id);
+      } catch (e) {
+        flash(e instanceof ApiError ? e.message : "فشل.");
+      }
+      return;
+    }
+    const ans = window.prompt(
+      `منح Premium مجاناً للمستخدم "${u.username}".\nكام يوم؟ (سيبها فاضية = بلا انتهاء)`,
+      ""
+    );
+    if (ans === null) return;
+    const days = ans.trim() === "" ? null : Number(ans.trim());
+    if (days !== null && (!Number.isFinite(days) || days < 1)) return flash("عدد أيام غير صالح.");
+    try {
+      const r = await api.adminSetPremium(u.id, true, days);
+      flash(r?.message || "تم منح Premium.");
+      await load(q);
+      if (selected?.id === u.id) await openDetail(u.id);
+    } catch (e) {
+      flash(e instanceof ApiError ? e.message : "فشل منح Premium.");
+    }
+  }
+
   async function deleteUser(u: { id: number; username: string }) {
     if (!window.confirm(`حذف المستخدم "${u.username}" وكل بياناته نهائياً؟ لا يمكن التراجع.`)) return;
     try {
@@ -278,6 +309,11 @@ export default function AdminPage() {
                         مشرف
                       </span>
                     )}
+                    {u.is_premium && (
+                      <span className="ms-2 text-[11px] bg-teal/15 text-teal rounded px-1.5 py-0.5">
+                        💎 Premium
+                      </span>
+                    )}
                     {!u.has_profile && <span className="ms-2 text-[11px] text-muted">(بدون ملف)</span>}
                   </td>
                   <td className="py-2 px-2">{u.target_calories ?? "—"}</td>
@@ -303,6 +339,12 @@ export default function AdminPage() {
                         className="text-xs rounded-lg border border-amber-500 text-amber-600 px-2 py-1 hover:bg-amber-50"
                       >
                         {u.is_admin ? "إلغاء إشراف" : "إشراف"}
+                      </button>
+                      <button
+                        onClick={() => togglePremium(u)}
+                        className="text-xs rounded-lg border border-teal text-teal px-2 py-1 hover:bg-teal/5"
+                      >
+                        {u.is_premium ? "سحب Premium" : "منح Premium"}
                       </button>
                       {u.id !== meId && (
                         <button
@@ -401,6 +443,9 @@ export default function AdminPage() {
             </Button>
             <Button variant="outline" onClick={() => toggleAdmin(selected)}>
               {selected.is_admin ? "سحب الإشراف" : "منح الإشراف"}
+            </Button>
+            <Button variant="outline" onClick={() => togglePremium(selected)}>
+              {selected.is_premium ? "💎 سحب Premium" : "💎 منح Premium"}
             </Button>
             {selected.id !== meId && (
               <Button variant="danger" onClick={() => deleteUser(selected)}>

@@ -19,8 +19,14 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(_to_bcrypt_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 
-def verify_password(password: str, password_hash: str) -> bool:
-    """تتحقّق من مطابقة كلمة السر للتجزئة المخزّنة."""
+def verify_password(password: str, password_hash: str | None) -> bool:
+    """تتحقّق من مطابقة كلمة السر للتجزئة المخزّنة.
+
+    تُرجع False بأمان لو ما فيش تجزئة مخزّنة (حساب جوجل بدون كلمة سر) — فلا
+    يقدر أحد يسجّل دخول بكلمة سر على حساب جوجل-فقط.
+    """
+    if not password_hash:
+        return False
     try:
         return bcrypt.checkpw(_to_bcrypt_bytes(password), password_hash.encode("utf-8"))
     except (ValueError, TypeError):

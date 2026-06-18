@@ -8,6 +8,14 @@ const String kApiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://reshaqa-backend.onrender.com',
 );
 
+/// معرّف عميل الويب من Google Cloud (نفس قيمة GOOGLE_CLIENT_IDS بالباك-إند).
+/// يُمرَّر وقت البناء: --dart-define=GOOGLE_SERVER_CLIENT_ID=xxxx.apps.googleusercontent.com
+/// لو فاضي، زر "الدخول بجوجل" يختفي تلقائياً ويبقى الدخول بكلمة السر شغّال.
+const String kGoogleServerClientId = String.fromEnvironment(
+  'GOOGLE_SERVER_CLIENT_ID',
+  defaultValue: '',
+);
+
 /// عميل HTTP مع حقن توكن JWT تلقائياً وتخزينه بأمان.
 class ApiClient {
   ApiClient._() {
@@ -39,6 +47,9 @@ class ApiClient {
   Future<void> saveToken(String token) => _storage.write(key: _kToken, value: token);
   Future<String?> getToken() => _storage.read(key: _kToken);
   Future<void> clearToken() => _storage.delete(key: _kToken);
+
+  /// كود حالة HTTP من خطأ Dio (أو null لو مش خطأ شبكة).
+  static int? statusOf(Object e) => e is DioException ? e.response?.statusCode : null;
 
   /// يحوّل أخطاء Dio إلى رسالة عربية ودّية.
   static String errorMessage(Object e) {

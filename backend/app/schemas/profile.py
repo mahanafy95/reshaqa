@@ -28,3 +28,5 @@ class ProfileOut(BaseModel):
     goal_rate: float | None
     healthy_min_kg: float = 0
     healthy_max_kg: float = 0
+    weight_status: str = "normal"  # underweight | normal | overweight
+    recommended_goal_weight_kg: float | None = None

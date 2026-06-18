@@ -24,6 +24,7 @@ function arabicError(status: number, detail: unknown): string {
     if (Array.isArray(detail) && detail[0]?.msg) return String(detail[0].msg);
   }
   if (status === 401) return "بيانات الدخول غير صالحة. سجّل الدخول من جديد.";
+  if (status === 402) return "دي ميزة مميّزة (Premium). افتحها من تطبيق الأندرويد 💎";
   return "حصل خطأ. حاول تاني.";
 }
 
@@ -62,8 +63,12 @@ const del = (p: string) => req<null>(p, { method: "DELETE" });
 
 export const api = {
   // المصادقة
-  async register(username: string, password: string) {
-    const r = await post<{ access_token: string }>("/auth/register", { username, password });
+  async register(username: string, password: string, email?: string) {
+    const r = await post<{ access_token: string }>("/auth/register", {
+      username,
+      password,
+      email: email || undefined,
+    });
     setToken(r.access_token);
     return r;
   },
@@ -72,7 +77,30 @@ export const api = {
     setToken(r.access_token);
     return r;
   },
+  async googleLogin(idToken: string) {
+    const r = await post<{ access_token: string }>("/auth/google", { id_token: idToken });
+    setToken(r.access_token);
+    return r;
+  },
+  setEmail: (email: string) => post<any>("/auth/email", { email }),
+  forgotPassword: (email: string) =>
+    post<{ message: string }>("/auth/forgot-password", { email }),
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const r = await post<{ access_token: string }>("/auth/reset-password", {
+      email,
+      code,
+      new_password: newPassword,
+    });
+    setToken(r.access_token);
+    return r;
+  },
   me: () => get<any>("/auth/me"),
+  deleteAccount: () => req<null>("/auth/account", { method: "DELETE" }),
+  billingStatus: () => get<{ is_premium: boolean; status: string }>("/billing/status"),
+  authConfig: () =>
+    get<{ google_login_enabled: boolean; google_client_id: string; email_reset_enabled: boolean }>(
+      "/auth/config"
+    ),
 
   // الملف الشخصي والأهداف
   getProfile: () => get<any>("/profile").catch((e) => {
@@ -145,6 +173,8 @@ export const api = {
     post<any>(`/admin/users/${id}/reset-password`, { new_password: newPassword }),
   adminSetAdmin: (id: number, isAdmin: boolean) =>
     post<any>(`/admin/users/${id}/admin`, { is_admin: isAdmin }),
+  adminSetPremium: (id: number, grant: boolean, days?: number | null) =>
+    post<{ ok: boolean; message: string }>(`/admin/users/${id}/premium`, { grant, days: days ?? null }),
   adminDeleteUser: (id: number) =>
     req<{ ok: boolean; message: string }>(`/admin/users/${id}`, { method: "DELETE" }),
 

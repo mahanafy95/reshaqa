@@ -24,6 +24,8 @@ class FoodLibrary(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name_ar: Mapped[str] = mapped_column(String(120), index=True, nullable=False)
+    # باركود المنتج (اختياري) — للبحث بالمسح. القيم لكل 100 جرام/مل
+    barcode: Mapped[str | None] = mapped_column(String(20), index=True, nullable=True)
     # القيم لكل 100 جرام
     calories_per_100: Mapped[float] = mapped_column(Float, nullable=False)
     protein: Mapped[float] = mapped_column(Float, nullable=False, default=0)

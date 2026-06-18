@@ -10,6 +10,7 @@ from datetime import timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..models.enums import TargetMode
 from ..models.food import FoodLogged
 from ..models.profile import Profile
 from ..models.targets import DailyTarget
@@ -64,6 +65,8 @@ class WeeklyReport:
     activity_sessions: int
     weight_change_kg: float | None
     weight_slope_kg_week: float | None
+    mode: str = "loss"          # البرنامج النشط: loss | maintain | gain
+    weight_status: str = "normal"
     summary_ar: str = ""
 
 
@@ -204,7 +207,8 @@ def build_weekly(db: Session, user_id: int, profile: Profile, week_of: date_type
         avg_protein=avg_p, avg_carbs=avg_c, avg_fat=avg_f, best_day=best,
         water_avg_ml=water_avg, activity_total_min=act_min,
         activity_total_calories=act_cal, activity_sessions=act_sessions,
-        weight_change_kg=change, weight_slope_kg_week=slope, summary_ar=summary,
+        weight_change_kg=change, weight_slope_kg_week=slope,
+        mode=str(result.mode.value), weight_status=result.weight_status, summary_ar=summary,
     )
 
 
@@ -225,7 +229,34 @@ class MonthlyReport:
     activity_total_min: int = 0
     activity_total_calories: int = 0
     weight_change_kg: float | None = None
+    mode: str = "loss"          # البرنامج النشط: loss | maintain | gain
+    weight_status: str = "normal"
     summary_ar: str = ""
+
+
+def _monthly_summary(mode: str, change: float | None, total_adherent: int, total_logged: int) -> str:
+    """ملخّص شهري واعٍ بالبرنامج — التقدّم يختلف باختلاف الهدف (زيادة/تخسيس/تثبيت)."""
+    gained = change is not None and change > 0.3
+    lost = change is not None and change < -0.3
+    if mode == TargetMode.gain.value:
+        if gained:
+            return (f"شهر فيه تقدّم حقيقي — زدت {change:g} كجم تقريباً، "
+                    f"والتزمت {total_adherent} يوم 👏💚")
+        if lost:
+            return (f"وزنك نزل {abs(change):g} كجم والهدف زيادة — زوّد سعراتك وبروتينك "
+                    "شوية وهنوصل بصحة 💪")
+    elif mode == TargetMode.maintain.value:
+        if change is not None and abs(change) <= 0.5:
+            return f"ثبّتت وزنك بنجاح الشهر ده 👏 التزام {total_adherent} يوم 💚"
+    else:  # loss
+        if lost:
+            return (f"شهر فيه تقدّم حقيقي — نزلت {abs(change):g} كجم تقريباً، "
+                    f"والتزمت {total_adherent} يوم 👏💚")
+    if total_adherent >= 12:
+        return f"التزام رائع: {total_adherent} يوم ضمن الهدف الشهر ده. شغل جميل!"
+    if total_logged:
+        return "شهر فيه صعود ونزول، وده طبيعي في أي رحلة. الاستمرار هو السر 💪"
+    return "ابدأ التسجيل المنتظم الشهر الجاي عشان نقدر نطلعلك تقرير مفيد 🙂"
 
 
 def _month_end(year: int, month: int) -> date_type:
@@ -237,6 +268,9 @@ def _month_end(year: int, month: int) -> date_type:
 def build_monthly(db: Session, user_id: int, profile: Profile, year: int, month: int) -> MonthlyReport:
     start = date_type(year, month, 1)
     end = _month_end(year, month)
+
+    result, _cw, _pl = targets_service.compute_for_user(db, user_id, profile)
+    mode = str(result.mode.value)
 
     weeks: list[WeeklyReport] = []
     cur = week_start_saturday(start)
@@ -257,19 +291,13 @@ def build_monthly(db: Session, user_id: int, profile: Profile, year: int, month:
     act_min, act_cal, _sessions = _period_activity(db, user_id, start, end)
     change, _slope = _weight_change(db, user_id, start, end)
 
-    if change is not None and change < -0.3:
-        summary = f"شهر فيه تقدّم حقيقي — نزلت {abs(change):g} كجم تقريباً، والتزمت {total_adherent} يوم 👏💚"
-    elif total_adherent >= 12:
-        summary = f"التزام رائع: {total_adherent} يوم ضمن الهدف الشهر ده. شغل جميل!"
-    elif total_logged:
-        summary = "شهر فيه صعود ونزول، وده طبيعي في أي رحلة. الاستمرار هو السر 💪"
-    else:
-        summary = "ابدأ التسجيل المنتظم الشهر الجاي عشان نقدر نطلعلك تقرير مفيد 🙂"
+    summary = _monthly_summary(mode, change, total_adherent, total_logged)
 
     return MonthlyReport(
         year=year, month=month, start=start, end=end, weeks=weeks,
         total_adherent_days=total_adherent, total_logged_days=total_logged,
         avg_eaten=avg_eaten, avg_protein=avg_p, avg_carbs=avg_c, avg_fat=avg_f,
         water_avg_ml=water_avg, activity_total_min=act_min, activity_total_calories=act_cal,
-        weight_change_kg=change, summary_ar=summary,
+        weight_change_kg=change, mode=mode, weight_status=result.weight_status,
+        summary_ar=summary,
     )

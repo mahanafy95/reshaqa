@@ -41,6 +41,8 @@ def _build_out(result, current_weight, plateau) -> TargetOut:
             fat_g=result.macros.fat_g,
         ),
         bmi=result.bmi,
+        weight_status=result.weight_status,
+        recommended_goal_weight_kg=result.recommended_goal_weight_kg,
         current_weight_kg=current_weight,
         messages_ar=result.messages_ar,
         plateau=PlateauOut(**plateau.__dict__) if plateau is not None else None,

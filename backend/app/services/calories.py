@@ -11,7 +11,15 @@
 from dataclasses import dataclass, field
 
 from ..models.enums import ActivityLevel, Sex, TargetMode
-from .body_metrics import HEALTHY_BMI_MIN, bmi, healthy_weight_range
+from .body_metrics import (
+    STATUS_NORMAL,
+    STATUS_OVERWEIGHT,
+    STATUS_UNDERWEIGHT,
+    bmi,
+    healthy_weight_range,
+    recommended_goal_weight,
+    weight_status,
+)
 
 # معاملات النشاط
 ACTIVITY_FACTORS: dict[ActivityLevel, float] = {
@@ -34,6 +42,11 @@ KCAL_PER_KG_FAT = 7700.0
 MAX_DEFICIT_KCAL = 500.0          # حد أقصى مطلق للعجز اليومي
 DEFAULT_DEFICIT_PCT = 0.20        # 20% من TDEE (أعلى نطاق "المعتدل")
 MAX_LOSS_RATE_KG_WEEK = 0.75      # أقصى معدل نزول مسموح
+
+# الحدود الافتراضية لفائض زيادة الوزن (زيادة صحية تدريجية تميل للعضل لا الدهون)
+MAX_SURPLUS_KCAL = 500.0          # حد أقصى مطلق للفائض اليومي
+DEFAULT_SURPLUS_PCT = 0.12        # 12% من TDEE (زيادة معتدلة)
+MAX_GAIN_RATE_KG_WEEK = 0.5       # أقصى معدل زيادة مسموح (أسرع = دهون أكتر)
 
 # حدود البروتين (جم/كجم)
 PROTEIN_MIN_PER_KG = 1.6
@@ -74,11 +87,47 @@ def loss_deficit(tdee_value: float, goal_rate_kg_week: float | None = None) -> f
     return max(min(candidates), 0.0)
 
 
-def determine_mode(current_weight_kg: float, goal_weight_kg: float | None) -> TargetMode:
-    """وضع التثبيت عند الوصول للهدف (أو تجاوزه)، وإلا وضع التخسيس."""
-    if goal_weight_kg is not None and current_weight_kg <= goal_weight_kg + 0.05:
+def _surplus_from_rate(goal_rate_kg_week: float | None) -> float | None:
+    """تحويل معدل الزيادة المطلوب (كجم/أسبوع) إلى فائض يومي (سعرة)."""
+    if goal_rate_kg_week is None or goal_rate_kg_week <= 0:
+        return None
+    capped = min(goal_rate_kg_week, MAX_GAIN_RATE_KG_WEEK)
+    return capped * KCAL_PER_KG_FAT / 7.0
+
+
+def gain_surplus(tdee_value: float, goal_rate_kg_week: float | None = None) -> float:
+    """يحسب الفائض اليومي لزيادة الوزن وفق قاعدة معتدلة.
+
+    surplus = min( الفائض المقابل لمعدل الزيادة المطلوب أو 12% من TDEE , 500 سعرة )
+    """
+    rate_surplus = _surplus_from_rate(goal_rate_kg_week)
+    base = rate_surplus if rate_surplus is not None else DEFAULT_SURPLUS_PCT * tdee_value
+    return max(min(base, MAX_SURPLUS_KCAL), 0.0)
+
+
+def determine_mode(
+    current_weight_kg: float, height_cm: float, goal_weight_kg: float | None
+) -> TargetMode:
+    """يختار البرنامج المناسب:
+
+    - لو فيه وزن مستهدف: الاتجاه بمقارنة الوزن الحالي بالهدف (تخسيس/زيادة/تثبيت).
+    - لو مفيش هدف محدّد: نشتقّه تلقائياً من حالة الوزن (BMI):
+        تحت الطبيعي → زيادة، فوق الطبيعي → تخسيس، ضمن الطبيعي → تثبيت.
+    """
+    status = weight_status(bmi(current_weight_kg, height_cm))
+
+    if goal_weight_kg is None:
+        if status == STATUS_UNDERWEIGHT:
+            return TargetMode.gain
+        if status == STATUS_OVERWEIGHT:
+            return TargetMode.loss
         return TargetMode.maintain
-    return TargetMode.loss
+
+    if current_weight_kg > goal_weight_kg + 0.05:
+        return TargetMode.loss
+    if current_weight_kg < goal_weight_kg - 0.05:
+        return TargetMode.gain
+    return TargetMode.maintain
 
 
 @dataclass
@@ -90,8 +139,16 @@ class GoalValidation:
     message_ar: str = ""
 
 
-def validate_goal_weight(goal_weight_kg: float, height_cm: float) -> GoalValidation:
-    """يتحقق أن الوزن المستهدف ضمن النطاق الصحي؛ يمنع ما هو أقل من الحد الصحي."""
+def validate_goal_weight(
+    goal_weight_kg: float, height_cm: float, current_weight_kg: float | None = None
+) -> GoalValidation:
+    """يتحقق أن الوزن المستهدف صحي.
+
+    - يمنع دائماً هدفاً تحت الحد الأدنى الصحي (خطر النحافة).
+    - يمنع هدفاً فوق الحد الأقصى الصحي *فقط لو كان زيادة* عن الوزن الحالي
+      (أي زيادة لوزن غير صحي). أما من هو أثقل ويضع هدفاً متوسطاً لا يزال فوق
+      الحد لكنه أقل من وزنه الحالي، فهذا تخسيس مشروع ولا نمنعه.
+    """
     lo, hi = healthy_weight_range(height_cm)
     if goal_weight_kg < lo:
         return GoalValidation(
@@ -103,6 +160,19 @@ def validate_goal_weight(goal_weight_kg: float, height_cm: float) -> GoalValidat
                 f"الوزن المستهدف ({goal_weight_kg:g} كجم) تحت النطاق الصحي لطولك. "
                 f"النطاق الصحي تقريباً من {lo:g} إلى {hi:g} كجم. "
                 f"نقترح هدفاً لا يقل عن {lo:g} كجم — صحتك أهم 💚"
+            ),
+        )
+    gaining_into_overweight = current_weight_kg is None or goal_weight_kg > current_weight_kg
+    if goal_weight_kg > hi and gaining_into_overweight:
+        return GoalValidation(
+            is_valid=False,
+            healthy_min_kg=lo,
+            healthy_max_kg=hi,
+            suggested_goal_kg=hi,
+            message_ar=(
+                f"الوزن المستهدف ({goal_weight_kg:g} كجم) فوق النطاق الصحي لطولك. "
+                f"النطاق الصحي تقريباً من {lo:g} إلى {hi:g} كجم. "
+                f"نقترح هدفاً لا يزيد عن {hi:g} كجم — صحتك أهم 💚"
             ),
         )
     return GoalValidation(
@@ -161,10 +231,12 @@ class TargetResult:
     tdee: float
     mode: TargetMode
     target_calories: float
-    deficit_applied: float
+    deficit_applied: float        # موجب للعجز، سالب للفائض (زيادة)
     floored_to_safe_min: bool
     macros: Macros
     bmi: float
+    weight_status: str = STATUS_NORMAL          # underweight | normal | overweight
+    recommended_goal_weight_kg: float | None = None
     messages_ar: list[str] = field(default_factory=list)
 
 
@@ -183,31 +255,46 @@ def compute_targets(
     bmr_value = bmr_mifflin(sex, weight_kg, height_cm, age)
     tdee_value = tdee(bmr_value, activity_level)
     current_bmi = bmi(weight_kg, height_cm)
+    status = weight_status(current_bmi)
     messages: list[str] = []
 
-    # بوابة أمان: لو الوزن الحالي تحت النطاق الصحي (BMI < 18.5) لا نطبّق أي عجز إطلاقاً —
-    # نحوّل لوضع التثبيت مع تنبيه داعم (حتى لو لم يُحدّد وزن مستهدف).
-    underweight = current_bmi < HEALTHY_BMI_MIN
-    if underweight:
-        mode = TargetMode.maintain
-    else:
-        mode = determine_mode(weight_kg, goal_weight_kg)
+    mode = determine_mode(weight_kg, height_cm, goal_weight_kg)
 
-    if mode == TargetMode.maintain:
-        target = tdee_value
-        deficit = 0.0
-        if underweight:
-            messages.append(
-                "وزنك الحالي تحت النطاق الصحي، فمش هنطبّق أي عجز — حسبنالك سعرات التثبيت. "
-                "لو حابب تعدّل وزنك بصحة، يُفضّل استشارة مختص تغذية 💚"
-            )
-        else:
-            messages.append("وصلت لوزنك المستهدف 🎉 حوّلناك لوضع التثبيت على سعرات المحافظة.")
-    else:
+    # بوابات أمان (دفاع متعدد الطبقات):
+    # - لا نطبّق عجز (تخسيس) على شخص تحت النطاق الصحي إطلاقاً → نحوّله لزيادة.
+    # - لا نطبّق فائض (زيادة) على شخص فوق النطاق الصحي إطلاقاً → نحوّله لتخسيس.
+    if status == STATUS_UNDERWEIGHT and mode == TargetMode.loss:
+        mode = TargetMode.gain
+    elif status == STATUS_OVERWEIGHT and mode == TargetMode.gain:
+        mode = TargetMode.loss
+
+    deficit = 0.0  # موجب = عجز، سالب = فائض
+    if mode == TargetMode.loss:
         deficit = loss_deficit(tdee_value, goal_rate_kg_week)
         target = tdee_value - deficit
+        if status == STATUS_OVERWEIGHT:
+            messages.append("وزنك فوق النطاق الصحي — عملنالك برنامج تخسيس بعجز سعرات آمن 💪")
+        else:
+            messages.append("برنامج تخسيس بعجز سعرات معتدل وآمن 💪")
+    elif mode == TargetMode.gain:
+        surplus = gain_surplus(tdee_value, goal_rate_kg_week)
+        deficit = -surplus
+        target = tdee_value + surplus
+        if status == STATUS_UNDERWEIGHT:
+            messages.append(
+                "وزنك تحت النطاق الصحي — عملنالك برنامج زيادة وزن صحي بفائض سعرات معتدل، "
+                "وزوّدنا البروتين لزيادة العضل لا الدهون 💚"
+            )
+        else:
+            messages.append("برنامج زيادة وزن صحي بفائض سعرات معتدل 💚")
+    else:  # maintain
+        target = tdee_value
+        if goal_weight_kg is not None:
+            messages.append("وصلت لوزنك المستهدف 🎉 حوّلناك لوضع التثبيت على سعرات المحافظة.")
+        else:
+            messages.append("وزنك ضمن النطاق الصحي 👍 برنامج تثبيت على سعرات المحافظة.")
 
-    # تطبيق الحد الأدنى الآمن
+    # تطبيق الحد الأدنى الآمن (للتخسيس فقط عملياً — الزيادة/التثبيت أعلى منه)
     safe_min = SAFE_MIN_CALORIES[sex]
     floored = False
     if target < safe_min:
@@ -220,6 +307,11 @@ def compute_targets(
 
     macros = split_macros(target, weight_kg, protein_per_kg)
 
+    # القيمة المُبلّغة = الفرق الفعلي عن TDEE بعد كل التعديلات (موجب=عجز، سالب=فائض).
+    # نعيد حسابها من الهدف النهائي حتى تبقى المعادلة target == tdee - deficit_applied
+    # صحيحة دائماً — حتى لو رفع الحدُّ الأدنى الآمن هدفَ التخسيس فوق TDEE.
+    deficit = tdee_value - target
+
     return TargetResult(
         bmr=round(bmr_value, 1),
         tdee=round(tdee_value, 1),
@@ -229,5 +321,7 @@ def compute_targets(
         floored_to_safe_min=floored,
         macros=macros,
         bmi=round(current_bmi, 1),
+        weight_status=status,
+        recommended_goal_weight_kg=recommended_goal_weight(weight_kg, height_cm),
         messages_ar=messages,
     )

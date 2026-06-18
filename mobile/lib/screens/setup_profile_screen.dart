@@ -30,6 +30,26 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
     'active': 'نشاط عالٍ (تمرين يومي)',
   };
 
+  /// تصنيف فوري حسب الطول والوزن المُدخَلين (نفس منطق الخادم).
+  /// يُرجع (الحالة, BMI, الوزن المقترح) أو null لو البيانات ناقصة.
+  ({String status, double bmi, double? recommended})? _classify() {
+    final h = (double.tryParse(_height.text) ?? 0) / 100;
+    final w = double.tryParse(_weight.text) ?? 0;
+    if (h <= 0 || w <= 0) return null;
+    final b = w / (h * h);
+    final status = b < 18.5 ? 'underweight' : (b >= 25 ? 'overweight' : 'normal');
+    double? rec;
+    if (status == 'underweight') rec = (20 * h * h * 10).roundToDouble() / 10;
+    if (status == 'overweight') rec = (24 * h * h * 10).roundToDouble() / 10;
+    return (status: status, bmi: (b * 10).roundToDouble() / 10, recommended: rec);
+  }
+
+  static const _statusInfo = {
+    'underweight': ('تحت الوزن الصحي', 'زيادة وزن', '⬆️', AppColors.blue),
+    'normal': ('ضمن الوزن الصحي', 'تثبيت', '✅', AppColors.teal),
+    'overweight': ('فوق الوزن الصحي', 'تخسيس', '⬇️', AppColors.orange),
+  };
+
   Future<void> _save() async {
     final age = int.tryParse(_age.text);
     final height = double.tryParse(_height.text);
@@ -82,9 +102,10 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
             ),
             const SizedBox(height: 14),
             _num(_age, 'العمر (سنة)'),
-            _num(_height, 'الطول (سم)'),
-            _num(_weight, 'الوزن الحالي (كجم)'),
+            _num(_height, 'الطول (سم)', live: true),
+            _num(_weight, 'الوزن الحالي (كجم)', live: true),
             _num(_goalWeight, 'الوزن المستهدف (كجم) — اختياري'),
+            _buildClassificationCard(),
             const SizedBox(height: 8),
             const Align(alignment: Alignment.centerRight, child: Text('مستوى النشاط')),
             const SizedBox(height: 6),
@@ -96,15 +117,27 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
               onChanged: (v) => setState(() => _activity = v!),
             ),
             const SizedBox(height: 16),
-            Text('معدل النزول المطلوب: ${_rate.toStringAsFixed(2)} كجم/أسبوع'),
-            Slider(
-              value: _rate,
-              min: 0.25,
-              max: 0.75,
-              divisions: 2,
-              label: '${_rate.toStringAsFixed(2)} كجم',
-              onChanged: (v) => setState(() => _rate = v),
-            ),
+            Builder(builder: (_) {
+              final isGain = _classify()?.status == 'underweight';
+              final rateMax = isGain ? 0.5 : 0.75;          // الزيادة الصحية أقصاها 0.5/أسبوع
+              final divisions = isGain ? 1 : 2;
+              final shown = _rate.clamp(0.25, rateMax);
+              final word = isGain ? 'الزيادة' : 'النزول';
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('معدل $word المطلوب: ${shown.toStringAsFixed(2)} كجم/أسبوع'),
+                  Slider(
+                    value: shown,
+                    min: 0.25,
+                    max: rateMax,
+                    divisions: divisions,
+                    label: '${shown.toStringAsFixed(2)} كجم',
+                    onChanged: (v) => setState(() => _rate = v),
+                  ),
+                ],
+              );
+            }),
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -123,12 +156,61 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
     );
   }
 
-  Widget _num(TextEditingController c, String label) => Padding(
+  Widget _buildClassificationCard() {
+    final c = _classify();
+    if (c == null) return const SizedBox.shrink();
+    final info = _statusInfo[c.status]!;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: info.$4.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(info.$3, style: const TextStyle(fontSize: 26)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${info.$1} (BMI ${c.bmi})',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: info.$4)),
+                    Text('البرنامج المناسب: ${info.$2}',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (c.recommended != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: Text('وزن مقترح صحي: ${c.recommended} كجم')),
+                TextButton(
+                  onPressed: () => setState(() => _goalWeight.text = '${c.recommended}'),
+                  child: const Text('استخدمه كهدف'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _num(TextEditingController c, String label, {bool live = false}) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: TextField(
           controller: c,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(labelText: label),
+          onChanged: live ? (_) => setState(() {}) : null,
         ),
       );
 }

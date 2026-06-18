@@ -1,4 +1,4 @@
-"""نموذج المستخدم — المصادقة بالـ username فقط (بدون إيميل)."""
+"""نموذج المستخدم — مصادقة بـ username/كلمة سر، أو بريد + دخول جوجل (اختياري)."""
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String, false, func
@@ -12,7 +12,14 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # البريد اختياري — مطلوب فقط لإعادة تعيين كلمة السر أو الربط بحساب جوجل
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    # معرّف جوجل الثابت (sub) لمستخدمي تسجيل الدخول بجوجل
+    google_sub: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
+    # قابل لأن يكون فارغاً لحسابات جوجل التي لا تملك كلمة سر
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_admin: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=false()
     )
@@ -21,5 +28,11 @@ class User(Base):
     )
 
     profile: Mapped["Profile"] = relationship(  # noqa: F821
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    password_resets: Mapped[list["PasswordReset"]] = relationship(  # noqa: F821
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    subscription: Mapped["Subscription"] = relationship(  # noqa: F821
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )

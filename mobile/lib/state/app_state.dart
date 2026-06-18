@@ -14,6 +14,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? targets;
   Map<String, dynamic>? water;
   List<dynamic> todayFoods = [];
+  bool isPremium = false;
   bool busy = false;
 
   Future<void> bootstrap() async {
@@ -24,7 +25,8 @@ class AppState extends ChangeNotifier {
       return;
     }
     try {
-      await Api.me();
+      final me = await Api.me();
+      isPremium = me['is_premium'] == true;
       profile = await Api.getProfile();
       status = profile == null ? AuthStatus.needsProfile : AuthStatus.ready;
       if (status == AuthStatus.ready) await refreshHome();
@@ -35,17 +37,38 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// يحدّث حالة الاشتراك (بعد شراء/استعادة).
+  Future<void> refreshPremium() async {
+    try {
+      final me = await Api.me();
+      isPremium = me['is_premium'] == true;
+      notifyListeners();
+    } catch (_) {/* تجاهل */}
+  }
+
   Future<void> login(String u, String p) async {
     await Api.login(u, p);
+    final me = await Api.me();
+    isPremium = me['is_premium'] == true;
     profile = await Api.getProfile();
     status = profile == null ? AuthStatus.needsProfile : AuthStatus.ready;
     if (status == AuthStatus.ready) await refreshHome();
     notifyListeners();
   }
 
-  Future<void> register(String u, String p) async {
-    await Api.register(u, p);
+  Future<void> register(String u, String p, {String? email}) async {
+    await Api.register(u, p, email: email);
     status = AuthStatus.needsProfile;
+    notifyListeners();
+  }
+
+  Future<void> googleLogin(String idToken) async {
+    await Api.googleLogin(idToken);
+    final me = await Api.me();
+    isPremium = me['is_premium'] == true;
+    profile = await Api.getProfile();
+    status = profile == null ? AuthStatus.needsProfile : AuthStatus.ready;
+    if (status == AuthStatus.ready) await refreshHome();
     notifyListeners();
   }
 
@@ -91,6 +114,7 @@ class AppState extends ChangeNotifier {
     summary = null;
     targets = null;
     water = null;
+    isPremium = false;
     status = AuthStatus.unauthenticated;
     notifyListeners();
   }

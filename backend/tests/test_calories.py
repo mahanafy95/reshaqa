@@ -88,11 +88,19 @@ def test_goal_within_healthy_ok():
     assert v.is_valid is True
 
 
-# ---------- وضع التثبيت ----------
-def test_mode_maintain_at_goal():
-    assert C.determine_mode(72, 72) == TargetMode.maintain
-    assert C.determine_mode(70, 72) == TargetMode.maintain  # تجاوز الهدف
-    assert C.determine_mode(75, 72) == TargetMode.loss
+# ---------- اختيار البرنامج (وضع الهدف) ----------
+def test_mode_by_goal_direction():
+    # أطوال طبيعية الوزن حتى لا تتدخّل بوابات حالة الجسم
+    assert C.determine_mode(72, 175, 72) == TargetMode.maintain   # عند الهدف
+    assert C.determine_mode(75, 175, 72) == TargetMode.loss        # فوق الهدف → تخسيس
+    assert C.determine_mode(70, 175, 72) == TargetMode.gain        # تحت الهدف → زيادة
+
+
+def test_mode_auto_from_bmi_when_no_goal():
+    # بدون هدف: نشتقّ البرنامج من حالة الوزن
+    assert C.determine_mode(45, 165, None) == TargetMode.gain      # BMI ≈ 16.5 تحت
+    assert C.determine_mode(64, 170, None) == TargetMode.maintain  # BMI ≈ 22 ضمن
+    assert C.determine_mode(95, 175, None) == TargetMode.loss      # BMI ≈ 31 فوق
 
 
 def test_maintain_uses_full_tdee_no_deficit():
@@ -133,26 +141,29 @@ def test_macros_calories_field_matches_target():
 
 
 # ---------- التكامل ----------
-# ---------- بوابة أمان: الوزن الحالي تحت النطاق الصحي (C1) ----------
-def test_underweight_current_weight_forced_to_maintain_no_deficit():
-    # امرأة 45 كجم، 165 سم => BMI ≈ 16.5 (تحت 18.5) وبدون هدف
+# ---------- برنامج زيادة الوزن للأشخاص تحت النطاق الصحي ----------
+def test_underweight_gets_gain_program_with_surplus():
+    # امرأة 45 كجم، 165 سم => BMI ≈ 16.5 (تحت 18.5) وبدون هدف => زيادة
     r = C.compute_targets(
         sex=Sex.female, age=30, height_cm=165, weight_kg=45,
         activity_level=ActivityLevel.light, goal_weight_kg=None,
     )
-    assert r.mode == TargetMode.maintain
-    assert r.deficit_applied == 0
+    assert r.mode == TargetMode.gain
+    assert r.deficit_applied < 0                 # فائض (سالب)
+    assert r.target_calories > round(r.tdee)     # أعلى من سعرات المحافظة
+    assert r.weight_status == "underweight"
+    assert r.recommended_goal_weight_kg is not None
     assert any("تحت النطاق الصحي" in m for m in r.messages_ar)
 
 
-def test_underweight_overrides_even_with_higher_goal():
-    # وزن حالي تحت الصحي حتى لو الهدف أعلى => يظل تثبيت (لا تخسيس)
+def test_underweight_never_put_on_deficit_even_with_low_goal():
+    # وزن حالي تحت الصحي؛ حتى لو دخل هدف منخفض، البوابة تمنع التخسيس وتحوّله لزيادة
     r = C.compute_targets(
         sex=Sex.male, age=25, height_cm=180, weight_kg=58,  # BMI ≈ 17.9
-        activity_level=ActivityLevel.moderate, goal_weight_kg=70,
+        activity_level=ActivityLevel.moderate, goal_weight_kg=55,
     )
-    assert r.mode == TargetMode.maintain
-    assert r.deficit_applied == 0
+    assert r.mode == TargetMode.gain
+    assert r.deficit_applied <= 0  # مفيش عجز إطلاقاً
 
 
 # ---------- نسبة الدهون (N3) ----------

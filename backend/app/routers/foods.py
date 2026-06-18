@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Reques
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from ..core.billing import require_premium
 from ..core.deps import get_current_user
 from ..core.ratelimit import limiter
 from ..database import get_db
@@ -16,6 +17,7 @@ from ..models.food import FoodLibrary, FoodLogged
 from ..models.recipe import Recipe
 from ..models.user import User
 from ..schemas.food import (
+    BarcodeIn,
     BarcodeOut,
     EstimateOut,
     FoodLibraryOut,
@@ -28,6 +30,7 @@ from ..schemas.food import (
     ParseResponse,
     SuggestionOut,
 )
+from ..services import ai_assistant
 from ..services import barcode as barcode_svc
 from ..services import meal_parser
 from ..services import ocr as ocr_svc
@@ -176,7 +179,8 @@ def parse_meal(
 
     total = round(sum(i.calories for i in out))
     logged_ids: list[int] = []
-    if payload.confirm and out:
+    logged = bool(payload.confirm and out)
+    if logged:
         for it in out:
             row = FoodLogged(
                 user_id=current_user.id, date=payload.date, meal=it.meal, name_ar=it.name_ar,
@@ -188,24 +192,53 @@ def parse_meal(
             logged_ids.append(row.id)
         db.commit()
 
+    # طبقة المحادثة الذكية (Gemini مجاني) فوق الأرقام المحسوبة محليًا — مع رجوع للرد المحلي
+    reply = _build_reply(out, total, logged)
+    if ai_assistant.settings.ai_enabled:
+        if out:
+            summary = "؛ ".join(f"{i.name_ar} {i.calories} سعرة" for i in out)
+            ai_reply = ai_assistant.meal_reply(payload.text, summary, total, logged)
+        else:
+            # مفيش أكل اتفهم → غالبًا سؤال صحي عام، نخلّي المساعد يجاوبه
+            ai_reply = ai_assistant.general_reply(payload.text)
+        if ai_reply:
+            reply = ai_reply
+
     return ParseResponse(
-        items=out, total_calories=total, logged=bool(payload.confirm and out),
-        logged_ids=logged_ids, reply_ar=_build_reply(out, total, bool(payload.confirm and out)),
+        items=out, total_calories=total, logged=logged,
+        logged_ids=logged_ids, reply_ar=reply,
     )
 
 
-# ---------- الباركود ----------
+# ---------- الباركود (ميزة مدفوعة) ----------
 @router.get("/barcode/{code}", response_model=BarcodeOut)
 def lookup_barcode(
-    code: str, current_user: User = Depends(get_current_user)
+    code: str,
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
 ):
     if not re.fullmatch(r"[0-9]{6,14}", code):
         raise HTTPException(status_code=422, detail="باركود غير صالح.")
+
+    # 1) المكتبة المحلية أولاً (أسرع + يشمل منتجات المنطقة والمساهمات)
+    lib = db.scalar(select(FoodLibrary).where(FoodLibrary.barcode == code).limit(1))
+    if lib is not None:
+        return BarcodeOut(
+            barcode=code,
+            name_ar=lib.name_ar,
+            calories_per_100=lib.calories_per_100,
+            protein=lib.protein,
+            carbs=lib.carbs,
+            fat=lib.fat,
+            source="local",
+        )
+
+    # 2) Open Food Facts كاحتياطي
     result = barcode_svc.fetch_barcode(code)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="مالقيناش المنتج ده بالباركود. تقدر تضيفه يدوياً.",
+            detail="مالقيناش المنتج ده بالباركود. ضيف قيمه مرة وهنفتكره ليك المرة الجاية.",
         )
     return BarcodeOut(
         barcode=result.barcode,
@@ -214,6 +247,40 @@ def lookup_barcode(
         protein=result.protein,
         carbs=result.carbs,
         fat=result.fat,
+        source="barcode",
+    )
+
+
+@router.post("/barcode", response_model=BarcodeOut, status_code=status.HTTP_201_CREATED)
+def save_barcode(
+    payload: BarcodeIn,
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    """يحفظ منتجاً بالباركود في المكتبة (مساهمة) — فيُتعرَّف عليه بأي مسح لاحق."""
+    if not re.fullmatch(r"[0-9]{6,14}", payload.barcode):
+        raise HTTPException(status_code=422, detail="باركود غير صالح.")
+    lib = db.scalar(select(FoodLibrary).where(FoodLibrary.barcode == payload.barcode).limit(1))
+    if lib is None:
+        lib = FoodLibrary(barcode=payload.barcode)
+        db.add(lib)
+    lib.name_ar = payload.name_ar.strip()
+    lib.calories_per_100 = payload.calories_per_100
+    lib.protein = payload.protein
+    lib.carbs = payload.carbs
+    lib.fat = payload.fat
+    lib.household_unit_ar = payload.household_unit_ar
+    lib.household_grams = payload.household_grams
+    db.commit()
+    db.refresh(lib)
+    return BarcodeOut(
+        barcode=payload.barcode,
+        name_ar=lib.name_ar,
+        calories_per_100=lib.calories_per_100,
+        protein=lib.protein,
+        carbs=lib.carbs,
+        fat=lib.fat,
+        source="contributed",
     )
 
 

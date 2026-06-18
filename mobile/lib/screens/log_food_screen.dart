@@ -11,6 +11,7 @@ import '../core/units.dart';
 import '../services/api.dart';
 import '../widgets/common.dart';
 import 'meal_chat_tab.dart';
+import 'paywall_screen.dart';
 import 'recipe_builder_screen.dart';
 
 class LogFoodScreen extends StatefulWidget {
@@ -513,25 +514,133 @@ class _BarcodeTab extends StatelessWidget {
             ElevatedButton.icon(
               icon: const Icon(Icons.camera_alt),
               label: const Text('افتح الماسح'),
-              onPressed: () async {
-                final code = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const _ScannerScreen()));
-                if (code == null || !context.mounted) return;
-                try {
-                  final r = await Api.barcode(code);
-                  await onAdd(name: r['name_ar'], amount: 100,
-                      calories: (r['calories_per_100'] as num).toDouble(),
-                      protein: (r['protein'] as num).toDouble(), carbs: (r['carbs'] as num).toDouble(),
-                      fat: (r['fat'] as num).toDouble(), source: 'barcode');
-                } catch (e) {
-                  if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
-                }
-              },
+              onPressed: () => _scanAndHandle(context),
             ),
+            const SizedBox(height: 8),
+            const Text('لو المنتج مش موجود، هنطلب قيمه مرة واحدة ونفتكره ليك بعد كده 👌',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ],
         ),
       ),
     );
   }
+
+  Future<void> _scanAndHandle(BuildContext context) async {
+    final code = await Navigator.push<String>(
+        context, MaterialPageRoute(builder: (_) => const _ScannerScreen()));
+    if (code == null || !context.mounted) return;
+    try {
+      final r = await Api.barcode(code);
+      await onAdd(
+        name: r['name_ar'], amount: 100,
+        calories: (r['calories_per_100'] as num).toDouble(),
+        protein: (r['protein'] as num).toDouble(),
+        carbs: (r['carbs'] as num).toDouble(),
+        fat: (r['fat'] as num).toDouble(),
+        source: 'barcode',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      final code404 = ApiClient.statusOf(e) == 404;
+      final premiumReq = ApiClient.statusOf(e) == 402;
+      if (premiumReq) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
+      } else if (code404) {
+        // المنتج مش موجود — نطلب من المستخدم قيمه ونحفظه بالباركود
+        await _promptSaveProduct(context, code);
+      } else {
+        showSnack(context, ApiClient.errorMessage(e), error: true);
+      }
+    }
+  }
+
+  Future<void> _promptSaveProduct(BuildContext context, String code) async {
+    final saved = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => _SaveBarcodeDialog(code: code),
+    );
+    if (saved == null || !context.mounted) return;
+    try {
+      await Api.saveBarcode(saved);
+      await onAdd(
+        name: saved['name_ar'], amount: 100,
+        calories: (saved['calories_per_100'] as num).toDouble(),
+        protein: (saved['protein'] as num).toDouble(),
+        carbs: (saved['carbs'] as num).toDouble(),
+        fat: (saved['fat'] as num).toDouble(),
+        source: 'barcode',
+      );
+      if (context.mounted) showSnack(context, 'حفظنا المنتج 👌 هيتعرف عليه أي مسح جاي');
+    } catch (e) {
+      if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+}
+
+/// نافذة إدخال قيم منتج جديد لحفظه بالباركود (القيم لكل 100 جم/مل).
+class _SaveBarcodeDialog extends StatefulWidget {
+  const _SaveBarcodeDialog({required this.code});
+  final String code;
+  @override
+  State<_SaveBarcodeDialog> createState() => _SaveBarcodeDialogState();
+}
+
+class _SaveBarcodeDialogState extends State<_SaveBarcodeDialog> {
+  final _name = TextEditingController();
+  final _cal = TextEditingController();
+  final _carbs = TextEditingController();
+  final _protein = TextEditingController();
+  final _fat = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('منتج جديد'),
+      content: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('الباركود: ${widget.code}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const SizedBox(height: 4),
+          const Text('اكتب القيم لكل 100 جم/مل (من جدول التغذية على المنتج)',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          TextField(controller: _name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
+          _numField(_cal, 'سعرات / 100'),
+          _numField(_carbs, 'نشويات / 100 (اختياري)'),
+          _numField(_protein, 'بروتين / 100 (اختياري)'),
+          _numField(_fat, 'دهون / 100 (اختياري)'),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        ElevatedButton(
+          onPressed: () {
+            final name = _name.text.trim();
+            final cal = double.tryParse(_cal.text);
+            if (name.isEmpty || cal == null) {
+              showSnack(context, 'اكتب الاسم والسعرات على الأقل', error: true);
+              return;
+            }
+            Navigator.pop(context, {
+              'barcode': widget.code,
+              'name_ar': name,
+              'calories_per_100': cal,
+              'carbs': double.tryParse(_carbs.text) ?? 0,
+              'protein': double.tryParse(_protein.text) ?? 0,
+              'fat': double.tryParse(_fat.text) ?? 0,
+            });
+          },
+          child: const Text('احفظ'),
+        ),
+      ],
+    );
+  }
+
+  Widget _numField(TextEditingController c, String label) => TextField(
+        controller: c,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(labelText: label),
+      );
 }
 
 class _ScannerScreen extends StatelessWidget {

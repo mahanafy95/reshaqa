@@ -21,3 +21,29 @@ services:
       # أسماء المستخدمين اللي ليهم صلاحية سوبر أدمن (مفصولة بفواصل)
       - key: ADMIN_USERNAMES
         value: admin
+      # ===== الدخول بجوجل (مجاني) — حُط معرّف عميل الويب من Google Cloud =====
+      # بمجرّد ضبطه يظهر زر "الدخول بجوجل" في الويب والموبايل بدون إعادة بناء.
+      - key: GOOGLE_CLIENT_IDS
+        sync: false
+      # ===== إرسال البريد لاسترجاع كلمة السر (مجاني — Gmail SMTP) =====
+      - key: EMAIL_PROVIDER
+        value: gmail   # gmail | brevo | none
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USERNAME
+        sync: false    # بريد جيميل بتاعك (المُرسِل)
+      - key: SMTP_PASSWORD
+        sync: false    # كلمة مرور التطبيق (16 حرف بدون مسافات) — مش كلمة سرّك العادية
+      - key: SMTP_FROM
+        sync: false    # نفس بريد جيميل
+      - key: SMTP_FROM_NAME
+        value: رشاقة
+      # احتياطي لو Render حجب منافذ SMTP (HTTPS بدل SMTP) — اختياري
+      - key: BREVO_API_KEY
+        sync: false
+      # ===== المساعد الصحي الذكي (مجاني — Google Gemini) =====
+      # مفتاح مجاني من https://aistudio.google.com/apikey (بدون فيزا). فاضي = محلّل محلي.
+      - key: GEMINI_API_KEY
+        sync: false

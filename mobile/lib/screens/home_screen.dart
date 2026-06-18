@@ -7,6 +7,7 @@ import '../services/update_service.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
 import 'activity_screen.dart';
+import 'community_screen.dart';
 import 'log_food_screen.dart';
 import 'mood_screen.dart';
 import 'reports_screen.dart';
@@ -75,6 +76,7 @@ class HomeScreen extends StatelessWidget {
                   QuickAction(icon: Icons.directions_run, label: 'النشاط', color: AppColors.orange, onTap: () => _push(context, const ActivityScreen())),
                   QuickAction(icon: Icons.mood, label: 'حاسس بإيه', color: AppColors.orange, onTap: () => _push(context, const MoodScreen())),
                   QuickAction(icon: Icons.bar_chart, label: 'التقارير', onTap: () => _push(context, const ReportsScreen())),
+                  QuickAction(icon: Icons.groups, label: 'المجتمع', color: AppColors.blue, onTap: () => _push(context, const CommunityScreen())),
                 ],
               ),
             ],
@@ -105,7 +107,12 @@ class _SummaryCard extends StatelessWidget {
     final eaten = (summary['eaten_calories'] as num).toDouble();
     final remaining = (summary['remaining_calories'] as num).toDouble();
     final pct = ((summary['percent_of_target'] as num?)?.toDouble() ?? 0) / 100;
-    final mode = summary['mode'] == 'maintain' ? 'تثبيت' : 'تخسيس';
+    final modeKey = summary['mode'];
+    final mode = modeKey == 'maintain'
+        ? 'تثبيت'
+        : modeKey == 'gain'
+            ? 'زيادة'
+            : 'تخسيس';
 
     return SectionCard(
       child: Column(
