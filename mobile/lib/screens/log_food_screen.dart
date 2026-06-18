@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
+import '../core/units.dart';
 import '../services/api.dart';
 import '../widgets/common.dart';
 import 'meal_chat_tab.dart';
@@ -85,7 +86,7 @@ class _LogFoodScreenState extends State<LogFoodScreen> with SingleTickerProvider
       body: TabBarView(
         controller: _tabs,
         children: [
-          MealChatTab(meal: _meal, date: today, onLogged: () => showSnack(context, 'اتسجّل في يومك 👍')),
+          MealChatLauncher(meal: _meal, date: today, onLogged: () => showSnack(context, 'اتحدّث يومك 👍')),
           _ManualTab(onAdd: confirmAndAdd),
           _LibraryTab(onAdd: confirmAndAdd),
           _BarcodeTab(onAdd: confirmAndAdd),
@@ -222,40 +223,89 @@ class _ManualTab extends StatefulWidget {
 class _ManualTabState extends State<_ManualTab> {
   final _name = TextEditingController();
   final _amount = TextEditingController(text: '100');
+  String _unit = 'g';
+  String _sugarKey = 'none';
+  final _sugarQty = TextEditingController(text: '1');
+  String _sugarUnit = 'tsp';
+  Map<String, double>? _per100; // cal,p,c,f لكل 100
   List<dynamic> _suggestions = [];
   Timer? _debounce;
   bool _estimating = false;
 
+  double get _grams => toGrams(double.tryParse(_amount.text) ?? 0, _unit);
+  double get _sugarG => _sugarKey == 'none' ? 0 : (double.tryParse(_sugarQty.text) ?? 0) * sugarUnitByKey(_sugarUnit).grams;
+  int get _sugarCal => (_sugarG * sugarByKey(_sugarKey).calPerG).round();
+  int get _previewCal {
+    final base = _per100 == null ? 0.0 : _per100!['cal']! * _grams / 100;
+    return (base + _sugarCal).round();
+  }
+
+  // أول ما تكتب الصنف: اقتراحات + جلب السعرات تلقائياً (قيم لكل 100)
   void _onNameChanged(String q) {
     _debounce?.cancel();
-    if (q.trim().length < 2) {
-      setState(() => _suggestions = []);
+    final t = q.trim();
+    if (t.length < 2) {
+      setState(() {
+        _suggestions = [];
+        _per100 = null;
+      });
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
+    setState(() => _estimating = true);
+    _debounce = Timer(const Duration(milliseconds: 450), () async {
       try {
-        final r = await Api.suggest(q.trim());
-        if (mounted) setState(() => _suggestions = r);
+        final s = await Api.suggest(t);
+        if (mounted) setState(() => _suggestions = s);
       } catch (_) {}
+      try {
+        final r = await Api.estimate(t, 100);
+        if (mounted) {
+          setState(() => _per100 = {
+                'cal': (r['calories'] as num).toDouble(),
+                'p': (r['protein'] as num).toDouble(),
+                'c': (r['carbs'] as num).toDouble(),
+                'f': (r['fat'] as num).toDouble(),
+              });
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _estimating = false);
     });
   }
 
-  Future<void> _estimate() async {
-    if (_name.text.trim().isEmpty) return;
-    setState(() => _estimating = true);
-    try {
-      final amount = double.tryParse(_amount.text) ?? 100;
-      final r = await Api.estimate(_name.text.trim(), amount);
-      await widget.onAdd(
-        name: r['name_ar'], amount: amount, calories: (r['calories'] as num).toDouble(),
-        protein: (r['protein'] as num).toDouble(), carbs: (r['carbs'] as num).toDouble(),
-        fat: (r['fat'] as num).toDouble(), source: r['source'] ?? 'estimated',
-      );
-    } catch (e) {
-      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
-    } finally {
-      if (mounted) setState(() => _estimating = false);
+  Future<void> _add() async {
+    final grams = _grams;
+    double cal = 0, p = 0, c = 0, f = 0;
+    if (_per100 != null) {
+      final fct = grams / 100;
+      cal = _per100!['cal']! * fct;
+      p = _per100!['p']! * fct;
+      c = _per100!['c']! * fct;
+      f = _per100!['f']! * fct;
+    } else if (_name.text.trim().isNotEmpty) {
+      try {
+        final r = await Api.estimate(_name.text.trim(), grams);
+        cal = (r['calories'] as num).toDouble();
+        p = (r['protein'] as num).toDouble();
+        c = (r['carbs'] as num).toDouble();
+        f = (r['fat'] as num).toDouble();
+      } catch (_) {}
     }
+    final sugar = sugarByKey(_sugarKey);
+    final sCal = _sugarG * sugar.calPerG;
+    final sCarb = _sugarG * sugar.carbPerG;
+    var nm = _name.text.trim().isEmpty ? 'صنف' : _name.text.trim();
+    final qv = double.tryParse(_amount.text) ?? 0;
+    if (_unit != 'g') nm = '$nm (${unitText(qv, _unit)})';
+    if (_sugarKey != 'none') nm = '$nm + ${sugar.label}';
+    await widget.onAdd(
+      name: nm,
+      amount: grams + _sugarG,
+      calories: cal + sCal,
+      protein: p,
+      carbs: c + sCarb,
+      fat: f,
+      source: _per100 != null ? 'library' : 'manual',
+    );
   }
 
   @override
@@ -266,51 +316,102 @@ class _ManualTabState extends State<_ManualTab> {
         TextField(
           controller: _name,
           onChanged: _onNameChanged,
-          decoration: const InputDecoration(labelText: 'اسم الأكلة', prefixIcon: Icon(Icons.search)),
+          decoration: InputDecoration(
+            labelText: 'اسم الصنف (السعرات تتجاب لوحدها)',
+            prefixIcon: const Icon(Icons.search),
+            suffix: _estimating ? const Text('بنحسب…', style: TextStyle(fontSize: 11, color: AppColors.textMuted)) : null,
+          ),
         ),
         const SizedBox(height: 10),
-        TextField(
-          controller: _amount,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'الكمية (جرام)'),
-        ),
-        const SizedBox(height: 12),
         Row(children: [
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _estimating ? null : _estimate,
-              icon: const Icon(Icons.auto_awesome),
-              label: Text(_estimating ? '...' : 'قدّر السعرات تلقائياً'),
+            child: TextField(
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(labelText: 'الكمية'),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: ElevatedButton(
-              onPressed: () => widget.onAdd(name: _name.text.trim().isEmpty ? 'أكلة' : _name.text.trim(),
-                  amount: double.tryParse(_amount.text) ?? 100, calories: 0, source: 'manual'),
-              child: const Text('إدخال يدوي'),
+            child: DropdownButtonFormField<String>(
+              value: _unit,
+              decoration: const InputDecoration(labelText: 'الوحدة'),
+              items: foodUnits.map((u) => DropdownMenuItem(value: u.key, child: Text(u.label))).toList(),
+              onChanged: (v) => setState(() => _unit = v ?? 'g'),
             ),
           ),
         ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _sugarKey,
+              decoration: const InputDecoration(labelText: '🍬 سكر/محلّي'),
+              items: sugarTypes.map((s) => DropdownMenuItem(value: s.key, child: Text(s.label, overflow: TextOverflow.ellipsis))).toList(),
+              onChanged: (v) => setState(() => _sugarKey = v ?? 'none'),
+            ),
+          ),
+          if (_sugarKey != 'none') ...[
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 64,
+              child: TextField(
+                controller: _sugarQty,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(labelText: 'عدد'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _sugarUnit,
+                decoration: const InputDecoration(labelText: 'وحدة'),
+                items: sugarUnits.map((u) => DropdownMenuItem(value: u.key, child: Text(u.label, overflow: TextOverflow.ellipsis))).toList(),
+                onChanged: (v) => setState(() => _sugarUnit = v ?? 'tsp'),
+              ),
+            ),
+          ],
+        ]),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.teal.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(12)),
+          child: Column(children: [
+            Text('$_previewCal', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.teal)),
+            Text('سعرة لـ ${unitText(double.tryParse(_amount.text) ?? 0, _unit)}${_sugarCal > 0 ? ' + $_sugarCal سكر' : ''}',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+          onPressed: _add,
+          icon: const Icon(Icons.auto_awesome),
+          label: const Text('أضف للوجبة'),
+        ),
         if (_suggestions.isNotEmpty) ...[
           const SizedBox(height: 12),
           const Align(alignment: Alignment.centerRight, child: Text('اقتراحات:', style: TextStyle(fontWeight: FontWeight.bold))),
           ..._suggestions.map((s) => Card(
-            child: ListTile(
-              title: Text(s['name_ar']),
-              subtitle: Text(s['kind'] == 'library'
-                  ? '${s['calories_per_100']} سعرة/100جم'
-                  : '${s['calories_per_serving'] ?? ''} سعرة'),
-              trailing: const Icon(Icons.add_circle_outline),
-              onTap: () {
-                final per100 = (s['calories_per_100'] as num?)?.toDouble();
-                final perServ = (s['calories_per_serving'] as num?)?.toDouble();
-                final amount = double.tryParse(_amount.text) ?? 100;
-                final cal = per100 != null ? per100 * amount / 100 : (perServ ?? 0);
-                widget.onAdd(name: s['name_ar'], amount: amount, calories: cal, source: 'library');
-              },
-            ),
-          )),
+                child: ListTile(
+                  title: Text(s['name_ar']),
+                  subtitle: Text(s['kind'] == 'library' ? '${s['calories_per_100']} سعرة/100جم' : '${s['calories_per_serving'] ?? ''} سعرة'),
+                  trailing: const Icon(Icons.add_circle_outline),
+                  onTap: () {
+                    final per100 = (s['calories_per_100'] as num?)?.toDouble();
+                    setState(() {
+                      _name.text = s['name_ar'];
+                      _suggestions = [];
+                      if (per100 != null) {
+                        _per100 = {'cal': per100, 'p': 0, 'c': 0, 'f': 0};
+                      }
+                    });
+                  },
+                ),
+              )),
         ],
       ],
     );

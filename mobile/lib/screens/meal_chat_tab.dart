@@ -6,29 +6,70 @@ import '../services/api.dart';
 
 const _meals = {'breakfast': 'فطار', 'lunch': 'غدا', 'dinner': 'عشا', 'snack': 'سناك'};
 
-class _Msg {
-  _Msg(this.role, this.text);
-  final String role; // user | bot
-  final String text;
-}
-
-/// تبويب المساعد الذكي — اكتب أكلك بالعامية ويفهمه ويسجّله (مجاني بالكامل).
-class MealChatTab extends StatefulWidget {
-  const MealChatTab({super.key, required this.meal, required this.date, this.onLogged});
+/// لانشر التبويب — يفتح شاشة المحادثة الكاملة (Scaffold مستقل عشان الكيبورد يشتغل صح).
+class MealChatLauncher extends StatelessWidget {
+  const MealChatLauncher({super.key, required this.meal, required this.date, this.onLogged});
   final String meal;
   final String date;
   final VoidCallback? onLogged;
 
   @override
-  State<MealChatTab> createState() => _MealChatTabState();
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🤖', style: TextStyle(fontSize: 56)),
+            const SizedBox(height: 12),
+            const Text('المساعد الذكي', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text(
+              'كلّمني بالعامية واكتب أكلت إيه، وأنا أفهمه وأحسب السعرات وأسجّلهولك.\nمثلاً: «فطرت بيضتين وكوباية لبن، وعلى الغدا طبق رز وفرخة».',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => MealChatScreen(meal: meal, date: date)),
+                );
+                onLogged?.call();
+              },
+              child: const Text('ابدأ المحادثة 💬'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _MealChatTabState extends State<MealChatTab> {
+class _Msg {
+  _Msg(this.role, this.text);
+  final String role;
+  final String text;
+}
+
+/// شاشة المحادثة الكاملة.
+class MealChatScreen extends StatefulWidget {
+  const MealChatScreen({super.key, required this.meal, required this.date});
+  final String meal;
+  final String date;
+
+  @override
+  State<MealChatScreen> createState() => _MealChatScreenState();
+}
+
+class _MealChatScreenState extends State<MealChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final List<_Msg> _msgs = [
-    _Msg('bot',
-        'اكتبلي أكلت إيه بالعامية، مثلاً: «النهاردة فطرت بيضتين وكوباية لبن ورغيف، وعلى الغدا طبق رز وفرخة». أنا أفهمه وأحسب السعرات وأسجّلهولك.'),
+    _Msg('bot', 'اكتبلي أكلت إيه بالعامية، مثلاً: «فطرت بيضتين وكوباية لبن ورغيف، وعلى الغدا طبق رز وفرخة». أنا أفهمه وأحسب السعرات وأسجّلهولك.'),
   ];
   List<Map<String, dynamic>> _pending = [];
   bool _busy = false;
@@ -36,8 +77,7 @@ class _MealChatTabState extends State<MealChatTab> {
   void _scrollDown() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
-        _scroll.animateTo(_scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+        _scroll.animateTo(_scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
       }
     });
   }
@@ -66,8 +106,7 @@ class _MealChatTabState extends State<MealChatTab> {
     }
   }
 
-  double get _pendingTotal =>
-      _pending.fold(0.0, (s, x) => s + ((x['calories'] as num?)?.toDouble() ?? 0));
+  double get _pendingTotal => _pending.fold(0.0, (s, x) => s + ((x['calories'] as num?)?.toDouble() ?? 0));
 
   Future<void> _logAll() async {
     if (_pending.isEmpty || _busy) return;
@@ -89,10 +128,9 @@ class _MealChatTabState extends State<MealChatTab> {
       final n = _pending.length;
       final tot = _pendingTotal.round();
       setState(() {
-        _msgs.add(_Msg('bot', 'تمام ✅ سجّلت $n صنف بمجموع $tot سعرة.'));
+        _msgs.add(_Msg('bot', 'تمام ✅ سجّلت $n صنف بمجموع $tot سعرة في يومك.'));
         _pending = [];
       });
-      widget.onLogged?.call();
     } catch (e) {
       setState(() => _msgs.add(_Msg('bot', ApiClient.errorMessage(e))));
     } finally {
@@ -103,45 +141,56 @@ class _MealChatTabState extends State<MealChatTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            controller: _scroll,
-            padding: const EdgeInsets.all(12),
-            itemCount: _msgs.length + (_pending.isNotEmpty ? 1 : 0),
-            itemBuilder: (_, i) {
-              if (i < _msgs.length) return _bubble(_msgs[i]);
-              return _pendingCard();
-            },
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _input,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _send(),
-                    decoration: const InputDecoration(hintText: 'اكتب أكلت إيه…', isDense: true),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                ElevatedButton(
-                  onPressed: _busy ? null : _send,
-                  child: _busy
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('ابعت'),
-                ),
-              ],
+    return Scaffold(
+      appBar: AppBar(title: const Text('🤖 المساعد الذكي')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scroll,
+              padding: const EdgeInsets.all(12),
+              itemCount: _msgs.length + (_pending.isNotEmpty ? 1 : 0),
+              itemBuilder: (_, i) => i < _msgs.length ? _bubble(_msgs[i]) : _pendingCard(),
             ),
           ),
-        ),
-      ],
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _input,
+                      autofocus: true,
+                      enabled: true,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _send(),
+                      minLines: 1,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'اكتب أكلت إيه…',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  ElevatedButton(
+                    onPressed: _busy ? null : _send,
+                    style: ElevatedButton.styleFrom(minimumSize: const Size(64, 48)),
+                    child: _busy
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('ابعت'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -177,8 +226,7 @@ class _MealChatTabState extends State<MealChatTab> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('المجموع ≈ ${_pendingTotal.round()} سعرة',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.teal)),
+                Text('المجموع ≈ ${_pendingTotal.round()} سعرة', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.teal)),
                 ElevatedButton(onPressed: _busy ? null : _logAll, child: const Text('سجّل الكل')),
               ],
             ),
@@ -190,11 +238,7 @@ class _MealChatTabState extends State<MealChatTab> {
 
   Widget _pendingRow(int i, Map<String, dynamic> it) {
     final conf = it['confidence'] as String? ?? 'medium';
-    final confColor = conf == 'high'
-        ? AppColors.teal
-        : conf == 'low'
-            ? AppColors.textMuted
-            : AppColors.orange;
+    final confColor = conf == 'high' ? AppColors.teal : conf == 'low' ? AppColors.textMuted : AppColors.orange;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(

@@ -16,6 +16,7 @@ class _WaterScreenState extends State<WaterScreen> {
   Map<String, dynamic>? _water;
   bool _loading = true;
   List<dynamic> _drinks = [];
+  final _customMl = TextEditingController();
 
   @override
   void initState() {
@@ -78,6 +79,28 @@ class _WaterScreenState extends State<WaterScreen> {
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue, minimumSize: const Size(90, 48)),
                             onPressed: () => _add(ml), child: Text('+$ml مل')),
+                      ]),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _customMl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'كمية يدوية (مل)', isDense: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue),
+                          onPressed: () {
+                            final ml = int.tryParse(_customMl.text);
+                            if (ml != null && ml > 0) {
+                              _add(ml);
+                              _customMl.clear();
+                            }
+                          },
+                          child: const Text('أضف'),
+                        ),
                       ]),
                     ],
                   ),
