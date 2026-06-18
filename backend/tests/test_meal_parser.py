@@ -110,3 +110,24 @@ def test_unit_grams_lookup():
     assert unit_grams("معلقة صغيرة") == 5
     assert unit_grams(None) is None
     assert unit_grams("حاجة غير معروفة") is None
+
+
+# ---------- جرامات افتراضية حسب الاسم (البيضة ~50جم) ----------
+def test_resolve_grams_egg_default_50g():
+    # بدون وحدة صريحة، البيضة الواحدة ~50جم مش 100
+    assert resolve_grams(1, None, None, None, "بيض") == 50
+    assert resolve_grams(2, None, None, None, "بيضة") == 100
+    # صنف غير معروف لسه بياخد 100 افتراضي
+    assert resolve_grams(1, None, None, None, "حاجة غريبة") == 100
+
+
+# ---------- إزالة صفات الحجم من اسم الصنف ----------
+def test_strips_size_adjective_from_name():
+    items = parse_text("كشري وسط")
+    assert len(items) == 1
+    assert items[0].name_ar == "كشري"
+
+
+def test_strips_various_size_adjectives():
+    assert parse_text("سندوتش صغير")[0].name_ar == "سندوتش"
+    assert parse_text("بسكويت كبيرة")[0].name_ar == "بسكويت"

@@ -90,6 +90,61 @@ STOPWORDS = {
 
 _FRACTION_PREFIX = {"نص", "نصف", "ربع", "تلت", "ثلث"}
 
+# ---------- كشف الأسئلة/الطلبات (مش تسجيل أكل) ----------
+# كلمات تدلّ على سؤال أو طلب نصيحة — تُطابَق ككلمات كاملة فقط حتى لا تلتقط أجزاء من أسماء أكل.
+_QUESTION_WORDS = {
+    "عايز", "عاوز", "عايزة", "ازاي", "إزاي", "ايه", "إيه", "ليه", "هل",
+    "امتى", "إمتى", "فين", "كام", "ينفع", "أقدر", "اقدر", "نصيحة", "نصايح",
+    "ساعدني", "اعملي", "قوللي", "قولي", "رأيك", "افضل", "أفضل", "ترى",
+}
+
+
+def looks_like_question(text: str) -> bool:
+    """True لو النص سؤال/طلب واضح (مش تسجيل أكل). متحفّظ: «اكلت رغيف» ترجع False."""
+    if not text:
+        return False
+    if "؟" in text or "?" in text:
+        return True
+    norm = normalize(text)
+    # نطابق ككلمات كاملة (حدود غير-حرفية) حتى لا نلتقط «ايه» داخل اسم أكل مثلاً.
+    tokens = re.split(r"[\s،,؛.!]+", norm)
+    for tok in tokens:
+        tok = tok.strip()
+        if not tok:
+            continue
+        if tok in _QUESTION_WORDS:
+            return True
+        # «يا ترى» — كلمتان متتاليتان
+    if re.search(r"(^|\s)يا\s+ترى(\s|$)", norm):
+        return True
+    return False
+
+
+# ---------- جرامات افتراضية لكل صنف (لما مفيش وحدة صريحة) ----------
+# مفتاح = الاسم بعد التطبيع. البيضة ~50جم (مش 100).
+_DEFAULT_GRAMS_BY_NAME: dict[str, float] = {
+    "بيض": 50.0, "بيضة": 50.0, "بيضه": 50.0,
+}
+
+
+def default_grams_for_name(name_ar: str | None) -> float | None:
+    """جرام افتراضي للصنف بالاسم لو معروف (زي البيض ~50جم/وحدة)، وإلا None."""
+    if not name_ar:
+        return None
+    return _DEFAULT_GRAMS_BY_NAME.get(name_ar.strip())
+
+
+# ---------- صفات الحجم تُزال من آخر اسم الصنف ----------
+_SIZE_ADJECTIVES = {"وسط", "متوسط", "كبير", "كبيرة", "صغير", "صغيرة", "وسطاني"}
+
+
+def _strip_size_adjectives(name: str) -> str:
+    """يشيل صفات الحجم من آخر الاسم: «كشري وسط» -> «كشري». يحافظ على كلمة واحدة على الأقل."""
+    tokens = name.split()
+    while len(tokens) > 1 and tokens[-1].strip("،.") in _SIZE_ADJECTIVES:
+        tokens.pop()
+    return " ".join(tokens).strip()
+
 
 @dataclass
 class ParsedItem:
@@ -180,6 +235,8 @@ def _extract_qty_unit(frag: str) -> tuple[float, str | None, str]:
     # 5) إزالة كلمات الحشو وبناء الاسم
     name_tokens = [t for t in tokens if t.strip("،.,") and t.strip("،.,") not in STOPWORDS]
     name = " ".join(name_tokens).strip(" ،.")
+    # شيل صفات الحجم من آخر الاسم: «كشري وسط» -> «كشري»
+    name = _strip_size_adjectives(name)
     # لو الاسم فضي والكلمة كانت وحدة (زي "رغيف"/"كوب") فالوحدة نفسها هي الصنف
     if not name and unit_ar:
         name = unit_ar
@@ -192,7 +249,8 @@ def parse_text(text: str, default_meal: str = "snack") -> list[ParsedItem]:
     if not norm:
         return []
     # تقسيم على الفواصل وحرف الواو الرابط (بمسافة قبله)
-    segments = re.split(r"[،,؛]|\+|\n|\s+و\s*", norm)
+    # حرف الواو الرابط — بس مش لو هو بداية صفة حجم تبدأ بواو (وسط/وسطاني) عشان مانكسرهاش
+    segments = re.split(r"[،,؛]|\+|\n|\s+و(?!سط)\s*", norm)
 
     items: list[ParsedItem] = []
     current_meal = default_meal
@@ -213,12 +271,23 @@ def parse_text(text: str, default_meal: str = "snack") -> list[ParsedItem]:
 
 
 def resolve_grams(
-    qty: float, unit_ar: str | None, lib_household_unit: str | None, lib_household_grams: float | None
+    qty: float,
+    unit_ar: str | None,
+    lib_household_unit: str | None,
+    lib_household_grams: float | None,
+    name_ar: str | None = None,
 ) -> float:
-    """يحوّل (كمية + وحدة) إلى جرامات. يفضّل الوحدة المنزلية للصنف من المكتبة لو مفيش وحدة صريحة."""
+    """يحوّل (كمية + وحدة) إلى جرامات. يفضّل الوحدة المنزلية للصنف من المكتبة لو مفيش وحدة صريحة.
+
+    لو لا توجد وحدة صريحة ولا وحدة منزلية من المكتبة، يجرّب جرام افتراضي حسب الاسم
+    (زي البيضة ~50جم) قبل الرجوع للافتراضي العام (100جم/وحدة).
+    """
     g = unit_grams(unit_ar)
     if g is not None:
         return round(g * qty, 1)
     if lib_household_grams:
         return round(lib_household_grams * qty, 1)
+    by_name = default_grams_for_name(name_ar)
+    if by_name is not None:
+        return round(by_name * qty, 1)
     return round(100.0 * qty, 1)

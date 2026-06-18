@@ -5,7 +5,9 @@
 - Gemini بيدّي ردّ محادثة ودّي ويجاوب أسئلة صحية عامة.
 يتعطّل بهدوء لو المفتاح مش مضبوط أو حصل خطأ (نرجع للرد المحلي).
 """
+import json
 import logging
+import re
 
 import httpx
 
@@ -23,7 +25,9 @@ _SYSTEM = (
 )
 
 
-def _generate(prompt: str, *, max_tokens: int = 320, temperature: float = 0.4) -> str | None:
+def _generate(
+    prompt: str, *, max_tokens: int = 320, temperature: float = 0.4, system: str | None = None
+) -> str | None:
     if not settings.ai_enabled:
         return None
     url = _URL.format(model=settings.GEMINI_MODEL)
@@ -32,7 +36,7 @@ def _generate(prompt: str, *, max_tokens: int = 320, temperature: float = 0.4) -
             url,
             params={"key": settings.GEMINI_API_KEY},
             json={
-                "system_instruction": {"parts": [{"text": _SYSTEM}]},
+                "system_instruction": {"parts": [{"text": system or _SYSTEM}]},
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
             },
@@ -66,3 +70,65 @@ def meal_reply(user_text: str, items_summary: str, total_calories: int, logged: 
 def general_reply(user_text: str) -> str | None:
     """ردّ على سؤال صحي/تغذوي عام (مش تسجيل وجبة)."""
     return _generate(f"المستخدم سأل: «{user_text}»\nجاوبه باختصار ونبرة مشجّعة.")
+
+
+# ---------- استخراج الوجبة بالذكاء الاصطناعي (الأسماء + الجرامات فقط — السعرات تُحسب محليًا) ----------
+_PARSE_SYSTEM = (
+    "إنت محلّل وجبات لتطبيق تغذية مصري. مهمتك تستخرج الأكلات اللي قال المستخدم إنه أكلها "
+    "من كلام بالعامية المصرية، وتقدّر وزن كل صنف بالجرام بشكل واقعي. "
+    "لو النص سؤال أو طلب (مش تسجيل أكل فعلي)، حُطّ is_question=true وخلّي items فاضية. "
+    "رُدّ بـ JSON فقط بدون أي شرح، بالشكل ده بالظبط: "
+    '{"is_question": false, "items": [{"name_ar": "اسم الأكلة بالعربي", "grams": رقم}]}'
+)
+
+def _strip_json_fences(text: str) -> str:
+    t = text.strip()
+    # شيل ```json ... ``` لو موجودة (سطر أول/أخير أو inline)
+    t = re.sub(r"^```(?:json)?\s*", "", t, flags=re.IGNORECASE)
+    t = re.sub(r"\s*```$", "", t)
+    return t.strip()
+
+
+def parse_meal_ai(text: str) -> dict | None:
+    """يطلب من Gemini استخراج {is_question, items:[{name_ar, grams}]}.
+
+    - لا يحسب أي سعرات (التسعير محليًا في الراوتر).
+    - يرجّع None عند أي خطأ أو لو الـ AI متعطّل (الراوتر يرجع للـ heuristic).
+    """
+    if not settings.ai_enabled:
+        return None
+    raw = _generate(
+        f"النص: «{text}»\nاستخرج الأكلات والجرامات أو علّمه كسؤال. رُدّ بـ JSON فقط.",
+        max_tokens=600,
+        temperature=0.1,
+        system=_PARSE_SYSTEM,
+    )
+    if not raw:
+        return None
+    try:
+        cleaned = _strip_json_fences(raw)
+        data = json.loads(cleaned)
+        if not isinstance(data, dict):
+            return None
+        is_question = bool(data.get("is_question", False))
+        raw_items = data.get("items") or []
+        if not isinstance(raw_items, list):
+            return None
+        items: list[dict] = []
+        for it in raw_items:
+            if not isinstance(it, dict):
+                return None
+            name = it.get("name_ar")
+            grams = it.get("grams")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            if not isinstance(grams, (int, float)) or isinstance(grams, bool):
+                continue
+            grams = float(grams)
+            if grams <= 0:
+                continue
+            items.append({"name_ar": name.strip(), "grams": grams})
+        return {"is_question": is_question, "items": items}
+    except Exception:
+        logger.exception("فشل تحليل رد Gemini كـ JSON")
+        return None

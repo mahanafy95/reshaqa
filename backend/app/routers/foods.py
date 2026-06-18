@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Reques
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..core.billing import require_premium
 from ..core.deps import get_current_user
 from ..core.ratelimit import limiter
@@ -138,6 +139,42 @@ def _build_reply(items: list[ParsedFoodItem], total: float, logged: bool) -> str
     return head + "\n" + "\n".join(lines) + "\n" + tail
 
 
+# ردّ جاهز (احتياطي) لمّا النص يبقى سؤال/طلب مش تسجيل أكل
+_QUESTION_FALLBACK_REPLY = (
+    "أنا هنا أساعدك! اكتبلي الأكل اللي أكلته (زي: بيضتين وعيش بلدي) وأنا أحسبهولك. "
+    "لو عندك سؤال صحي اسأل وهجاوبك."
+)
+
+
+def _price_item(
+    db: Session, name_ar: str, qty: float, unit_ar: str | None, grams: float, meal: Meal
+) -> ParsedFoodItem:
+    """يسعّر صنفاً واحداً بعدد جرامات معروف عبر نفس مسار المكتبة/المقدّر المحلي.
+
+    السعرات دايماً محسوبة محليًا (مش من أي LLM).
+    """
+    match = db.scalar(
+        select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{name_ar.strip()}%")).limit(1)
+    )
+    if match is not None:
+        f = grams / 100.0
+        return ParsedFoodItem(
+            name_ar=match.name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
+            calories=round(match.calories_per_100 * f), protein=round(match.protein * f, 1),
+            carbs=round(match.carbs * f, 1), fat=round(match.fat * f, 1),
+            confidence="high", source=FoodSource.library, matched_library_id=match.id,
+            note_ar="من مكتبة الأكلات.",
+        )
+    est = get_estimator().estimate(name_ar, grams)
+    return ParsedFoodItem(
+        name_ar=est.name_ar or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
+        calories=round(est.calories), protein=round(est.protein, 1),
+        carbs=round(est.carbs, 1), fat=round(est.fat, 1),
+        confidence=getattr(est, "confidence", "low"), source=FoodSource.estimated,
+        note_ar=getattr(est, "note_ar", "تقدير تقريبي — راجع الرقم."),
+    )
+
+
 @router.post("/parse", response_model=ParseResponse)
 @limiter.limit("30/minute")
 def parse_meal(
@@ -146,36 +183,40 @@ def parse_meal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """يفهم كلام حر عن الأكل، يطلّع الأصناف والسعرات (من المكتبة/المقدّر المحلي)، ويسجّلها عند التأكيد."""
-    # حد أقصى للأصناف في الطلب الواحد (يمنع إغراق قاعدة البيانات)
-    raw_items = meal_parser.parse_text(payload.text, payload.default_meal.value)[:25]
+    """يفهم كلام حر عن الأكل، يطلّع الأصناف والسعرات (من المكتبة/المقدّر المحلي)، ويسجّلها عند التأكيد.
+
+    لو الـ AI مفعّل: نخلّي Gemini يستخرج الأصناف والجرامات (والسعرات تتحسب محليًا)، ولو النص
+    سؤال نرجع ردّ عام بدون أصناف. لو الـ AI متعطّل: نكشف الأسئلة بالـ heuristic ونرجع رد ودّي
+    بدون تلفيق أصناف، وإلا نحلّل النص بالمحلّل المحلي زي الأول.
+    """
+    default_meal = payload.default_meal
     out: list[ParsedFoodItem] = []
-    for raw in raw_items:
-        match = db.scalar(
-            select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{raw.name_ar.strip()}%")).limit(1)
-        )
-        lib_hu = match.household_unit_ar if match else None
-        lib_hg = match.household_grams if match else None
-        grams = meal_parser.resolve_grams(raw.qty, raw.unit_ar, lib_hu, lib_hg)
-        if match is not None:
-            f = grams / 100.0
-            item = ParsedFoodItem(
-                name_ar=match.name_ar, qty=raw.qty, unit=raw.unit_ar, grams=grams, meal=Meal(raw.meal),
-                calories=round(match.calories_per_100 * f), protein=round(match.protein * f, 1),
-                carbs=round(match.carbs * f, 1), fat=round(match.fat * f, 1),
-                confidence="high", source=FoodSource.library, matched_library_id=match.id,
-                note_ar="من مكتبة الأكلات.",
-            )
+
+    if settings.ai_enabled:
+        ai = ai_assistant.parse_meal_ai(payload.text)
+        if ai is not None:
+            if ai.get("is_question"):
+                # سؤال/طلب — مفيش أصناف، نرجع ردّ المساعد العام
+                reply = ai_assistant.general_reply(payload.text) or _QUESTION_FALLBACK_REPLY
+                return ParseResponse(
+                    items=[], total_calories=0, logged=False, logged_ids=[], reply_ar=reply,
+                )
+            # أصناف من الـ AI — نسعّرها بنفس المسار المحلي (السعرات محليًا دايماً)
+            for it in ai.get("items", [])[:25]:
+                out.append(
+                    _price_item(db, it["name_ar"], 1.0, None, float(it["grams"]), default_meal)
+                )
         else:
-            est = get_estimator().estimate(raw.name_ar, grams)
-            item = ParsedFoodItem(
-                name_ar=est.name_ar or raw.name_ar, qty=raw.qty, unit=raw.unit_ar, grams=grams,
-                meal=Meal(raw.meal), calories=round(est.calories), protein=round(est.protein, 1),
-                carbs=round(est.carbs, 1), fat=round(est.fat, 1),
-                confidence=getattr(est, "confidence", "low"), source=FoodSource.estimated,
-                note_ar=getattr(est, "note_ar", "تقدير تقريبي — راجع الرقم."),
+            # فشل الـ AI → رجوع للـ heuristic
+            out = _parse_heuristic_items(db, payload.text, default_meal.value)
+    else:
+        # مفيش AI — اكشف الأسئلة محليًا أولاً عشان مانلفّقش أصناف من سؤال
+        if meal_parser.looks_like_question(payload.text):
+            return ParseResponse(
+                items=[], total_calories=0, logged=False, logged_ids=[],
+                reply_ar=_QUESTION_FALLBACK_REPLY,
             )
-        out.append(item)
+        out = _parse_heuristic_items(db, payload.text, default_meal.value)
 
     total = round(sum(i.calories for i in out))
     logged_ids: list[int] = []
@@ -194,13 +235,9 @@ def parse_meal(
 
     # طبقة المحادثة الذكية (Gemini مجاني) فوق الأرقام المحسوبة محليًا — مع رجوع للرد المحلي
     reply = _build_reply(out, total, logged)
-    if ai_assistant.settings.ai_enabled:
-        if out:
-            summary = "؛ ".join(f"{i.name_ar} {i.calories} سعرة" for i in out)
-            ai_reply = ai_assistant.meal_reply(payload.text, summary, total, logged)
-        else:
-            # مفيش أكل اتفهم → غالبًا سؤال صحي عام، نخلّي المساعد يجاوبه
-            ai_reply = ai_assistant.general_reply(payload.text)
+    if settings.ai_enabled and out:
+        summary = "؛ ".join(f"{i.name_ar} {i.calories} سعرة" for i in out)
+        ai_reply = ai_assistant.meal_reply(payload.text, summary, total, logged)
         if ai_reply:
             reply = ai_reply
 
@@ -208,6 +245,22 @@ def parse_meal(
         items=out, total_calories=total, logged=logged,
         logged_ids=logged_ids, reply_ar=reply,
     )
+
+
+def _parse_heuristic_items(db: Session, text: str, default_meal: str) -> list[ParsedFoodItem]:
+    """المسار المحلي: يحلّل النص بالـ heuristic ويسعّر كل صنف عبر المكتبة/المقدّر."""
+    # حد أقصى للأصناف في الطلب الواحد (يمنع إغراق قاعدة البيانات)
+    raw_items = meal_parser.parse_text(text, default_meal)[:25]
+    out: list[ParsedFoodItem] = []
+    for raw in raw_items:
+        match = db.scalar(
+            select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{raw.name_ar.strip()}%")).limit(1)
+        )
+        lib_hu = match.household_unit_ar if match else None
+        lib_hg = match.household_grams if match else None
+        grams = meal_parser.resolve_grams(raw.qty, raw.unit_ar, lib_hu, lib_hg, raw.name_ar)
+        out.append(_price_item(db, raw.name_ar, raw.qty, raw.unit_ar, grams, Meal(raw.meal)))
+    return out
 
 
 # ---------- الباركود (ميزة مدفوعة) ----------
