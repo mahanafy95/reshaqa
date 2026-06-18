@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..core.admin import get_admin_user, is_user_admin
 from ..core.security import hash_password
 from ..database import get_db
@@ -223,6 +224,11 @@ def change_username(
 ):
     """تغيير اسم مستخدم (مع فحص عدم التكرار)."""
     user = _get_user_or_404(db, user_id)
+    if payload.new_username.lower() in settings.admin_usernames_set:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="الاسم ده محجوز للمشرف.",
+        )
     clash = db.scalar(
         select(User).where(
             func.lower(User.username) == payload.new_username.lower(), User.id != user_id

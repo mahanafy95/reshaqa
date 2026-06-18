@@ -1,0 +1,45 @@
+# نسخة احتياطية أسبوعية مجانية لقاعدة بيانات Neon (تُحفظ كـ artifact في GitHub Actions).
+# مجاني تماماً على المستودع العام. يتطلب إضافة سر NEON_DATABASE_URL في:
+#   GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+#   الاسم: NEON_DATABASE_URL ، القيمة: نفس DATABASE_URL بتاع Render (رابط Neon)
+name: db-backup
+
+on:
+  schedule:
+    - cron: "0 3 * * 0" # كل أحد الساعة 3 صباحاً UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install PostgreSQL 16 client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Dump database (gzip)
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          if [ -z "$NEON_DATABASE_URL" ]; then
+            echo "::warning::لم يُضبط السر NEON_DATABASE_URL — تخطّي النسخة الاحتياطية."
+            exit 0
+          fi
+          pg_dump --no-owner --no-privileges "$NEON_DATABASE_URL" | gzip > "reshaqa_backup_$(date +%F).sql.gz"
+          ls -lh reshaqa_backup_*.sql.gz
+
+      - name: Upload backup artifact
+        if: ${{ hashFiles('reshaqa_backup_*.sql.gz') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reshaqa-db-backup
+          path: reshaqa_backup_*.sql.gz
+          retention-days: 60

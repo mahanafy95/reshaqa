@@ -1,17 +1,18 @@
 """صلاحيات الإشراف (سوبر أدمن).
 
-مستخدم يُعدّ مشرفاً إذا كان عموده is_admin=True، أو كان اسمه ضمن ADMIN_USERNAMES
-في الإعدادات (طريقة الإقلاع: تمنح المالك صلاحية الإشراف بدون تعديل قاعدة البيانات يدوياً).
+الفحص الحيّ يعتمد على عمود is_admin في قاعدة البيانات فقط — أمان.
+أسماء ADMIN_USERNAMES تُستخدم كـ"إقلاع لمرة واحدة" عند بدء التطبيق (ترقّي الحسابات
+الموجودة فعلاً)، ولا تُمنح الصلاحية أبداً لمجرد تطابق الاسم وقت الطلب (يمنع أن يسجّل
+أي شخص بالاسم المحجوز ويصير مشرفاً).
 """
 from fastapi import Depends, HTTPException, status
 
-from ..config import settings
 from ..models.user import User
 from .deps import get_current_user
 
 
 def is_user_admin(user: User) -> bool:
-    return bool(user.is_admin) or user.username.lower() in settings.admin_usernames_set
+    return bool(user.is_admin)
 
 
 def get_admin_user(current_user: User = Depends(get_current_user)) -> User:

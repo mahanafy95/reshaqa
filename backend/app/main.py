@@ -27,11 +27,45 @@ from .routers import (
     tracking,
 )
 
+_is_prod = settings.APP_ENV == "production"
 app = FastAPI(
     title="رشاقة API",
     description="واجهة برمجية لتطبيق حساب السعرات والتغذية للتخسيس الصحي.",
     version=__version__,
+    # إخفاء توثيق الـ API في الإنتاج (يقلّل الاستطلاع على نقاط الإشراف)
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
+    openapi_url=None if _is_prod else "/openapi.json",
 )
+
+
+@app.on_event("startup")
+def _bootstrap_admins() -> None:
+    """إقلاع لمرة واحدة: ترقية الحسابات الموجودة التي أسماؤها ضمن ADMIN_USERNAMES.
+    لا يُنشئ حسابات ولا يمنح صلاحية وقت الطلب — الفحص الحيّ على is_admin فقط."""
+    names = settings.admin_usernames_set
+    if not names:
+        return
+    try:
+        from sqlalchemy import select
+
+        from .database import SessionLocal
+        from .models.user import User
+
+        db = SessionLocal()
+        try:
+            changed = False
+            for u in db.scalars(select(User)).all():
+                if u.username.lower() in names and not u.is_admin:
+                    u.is_admin = True
+                    changed = True
+            if changed:
+                db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass  # لا نوقف الإقلاع بسبب خطأ مؤقت في قاعدة البيانات
+
 
 # تحديد معدّل الطلبات (يُفعَّل في الإنتاج فقط) — يحمي نقاط المصادقة من التخمين والإغراق.
 app.state.limiter = limiter

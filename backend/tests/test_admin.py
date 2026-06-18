@@ -149,6 +149,16 @@ def test_non_admin_cannot_bulk_delete(client):
     assert client.post("/admin/users/bulk-delete", json={"ids": [1, 2]}, headers=h).status_code == 403
 
 
+def test_admin_is_db_flag_only_not_username():
+    # تصعيد الصلاحية مقفول: اسم "admin" وحده ما يمنحش إشراف — العمود is_admin بس
+    from app.core.admin import is_user_admin
+    from app.models.user import User
+
+    assert is_user_admin(User(username="admin", is_admin=False)) is False
+    assert is_user_admin(User(username="ADMIN", is_admin=False)) is False
+    assert is_user_admin(User(username="anyone", is_admin=True)) is True
+
+
 def test_me_reports_is_admin(client, db_session):
     ah = auth_headers(client, "boss3", "bosspass1")
     # قبل الترقية

@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..core.admin import is_user_admin
 from ..core.deps import get_current_user
 from ..core.ratelimit import limiter
@@ -27,6 +28,12 @@ def _user_out(user: User) -> UserOut:
 def register(
     request: Request, payload: RegisterRequest, db: Session = Depends(get_db)
 ) -> TokenResponse:
+    # الأسماء المحجوزة للمشرف لا يجوز تسجيلها من العامة (يمنع تصعيد الصلاحية)
+    if payload.username.lower() in settings.admin_usernames_set:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="الاسم ده محجوز، اختار اسم تاني.",
+        )
     # فحص عدم التكرار (غير حسّاس لحالة الأحرف لتفادي الالتباس)
     exists = db.scalar(
         select(User).where(func.lower(User.username) == payload.username.lower())

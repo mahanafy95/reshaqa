@@ -1,11 +1,14 @@
 """راوتر تسجيل الأكل — CRUD + بحث المكتبة + تقدير + باركود + ملصق + اقتراحات."""
 from datetime import date as date_type
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+import re
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..core.deps import get_current_user
+from ..core.ratelimit import limiter
 from ..database import get_db
 from ..models.enums import FoodSource, Meal
 from ..models.favorite import Favorite
@@ -133,11 +136,16 @@ def _build_reply(items: list[ParsedFoodItem], total: float, logged: bool) -> str
 
 
 @router.post("/parse", response_model=ParseResponse)
+@limiter.limit("30/minute")
 def parse_meal(
-    payload: ParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    request: Request,
+    payload: ParseRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """يفهم كلام حر عن الأكل، يطلّع الأصناف والسعرات (من المكتبة/المقدّر المحلي)، ويسجّلها عند التأكيد."""
-    raw_items = meal_parser.parse_text(payload.text, payload.default_meal.value)
+    # حد أقصى للأصناف في الطلب الواحد (يمنع إغراق قاعدة البيانات)
+    raw_items = meal_parser.parse_text(payload.text, payload.default_meal.value)[:25]
     out: list[ParsedFoodItem] = []
     for raw in raw_items:
         match = db.scalar(
@@ -191,6 +199,8 @@ def parse_meal(
 def lookup_barcode(
     code: str, current_user: User = Depends(get_current_user)
 ):
+    if not re.fullmatch(r"[0-9]{6,14}", code):
+        raise HTTPException(status_code=422, detail="باركود غير صالح.")
     result = barcode_svc.fetch_barcode(code)
     if result is None:
         raise HTTPException(
