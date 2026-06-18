@@ -17,7 +17,33 @@ class AppState extends ChangeNotifier {
   bool isPremium = false;
   bool busy = false;
 
+  // هوية المستخدم الحالي (من /auth/me) — للعرض في الإعدادات وربط البريد.
+  int? userId;
+  String? username;
+  String? email;
+
+  bool _unauthHooked = false;
+
+  /// يربط الخروج التلقائي عند انتهاء/إلغاء الجلسة (401 من اعتراض Dio).
+  void _hookUnauthorized() {
+    if (_unauthHooked) return;
+    _unauthHooked = true;
+    ApiClient.onUnauthorized = () {
+      if (status == AuthStatus.unauthenticated) return; // يمنع التكرار
+      logout();
+    };
+  }
+
+  /// يخزّن بيانات المستخدم من رد /auth/me.
+  void _applyMe(Map<String, dynamic> me) {
+    isPremium = me['is_premium'] == true;
+    userId = (me['id'] as num?)?.toInt();
+    username = me['username'] as String?;
+    email = me['email'] as String?;
+  }
+
   Future<void> bootstrap() async {
+    _hookUnauthorized();
     final token = await ApiClient.instance.getToken();
     if (token == null || token.isEmpty) {
       status = AuthStatus.unauthenticated;
@@ -25,8 +51,7 @@ class AppState extends ChangeNotifier {
       return;
     }
     try {
-      final me = await Api.me();
-      isPremium = me['is_premium'] == true;
+      _applyMe(await Api.me());
       profile = await Api.getProfile();
       status = profile == null ? AuthStatus.needsProfile : AuthStatus.ready;
       if (status == AuthStatus.ready) await refreshHome();
@@ -40,16 +65,23 @@ class AppState extends ChangeNotifier {
   /// يحدّث حالة الاشتراك (بعد شراء/استعادة).
   Future<void> refreshPremium() async {
     try {
-      final me = await Api.me();
-      isPremium = me['is_premium'] == true;
+      _applyMe(await Api.me());
+      notifyListeners();
+    } catch (_) {/* تجاهل */}
+  }
+
+  /// يعيد تحميل بيانات المستخدم (بعد إضافة/تغيير البريد مثلاً).
+  Future<void> refreshMe() async {
+    try {
+      _applyMe(await Api.me());
       notifyListeners();
     } catch (_) {/* تجاهل */}
   }
 
   Future<void> login(String u, String p) async {
+    _hookUnauthorized();
     await Api.login(u, p);
-    final me = await Api.me();
-    isPremium = me['is_premium'] == true;
+    _applyMe(await Api.me());
     profile = await Api.getProfile();
     status = profile == null ? AuthStatus.needsProfile : AuthStatus.ready;
     if (status == AuthStatus.ready) await refreshHome();
@@ -57,15 +89,19 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> register(String u, String p, {String? email}) async {
+    _hookUnauthorized();
     await Api.register(u, p, email: email);
+    try {
+      _applyMe(await Api.me());
+    } catch (_) {/* تجاهل */}
     status = AuthStatus.needsProfile;
     notifyListeners();
   }
 
   Future<void> googleLogin(String idToken) async {
+    _hookUnauthorized();
     await Api.googleLogin(idToken);
-    final me = await Api.me();
-    isPremium = me['is_premium'] == true;
+    _applyMe(await Api.me());
     profile = await Api.getProfile();
     status = profile == null ? AuthStatus.needsProfile : AuthStatus.ready;
     if (status == AuthStatus.ready) await refreshHome();
@@ -115,6 +151,9 @@ class AppState extends ChangeNotifier {
     targets = null;
     water = null;
     isPremium = false;
+    userId = null;
+    username = null;
+    email = null;
     status = AuthStatus.unauthenticated;
     notifyListeners();
   }

@@ -12,18 +12,41 @@ class LockGate extends StatefulWidget {
   State<LockGate> createState() => _LockGateState();
 }
 
-class _LockGateState extends State<LockGate> {
+class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
   bool _checking = true;
   bool _unlocked = false;
+  bool _lockEnabled = false;
+  bool _authInProgress = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _maybeLock();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_lockEnabled) return;
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // لمّا التطبيق يروح للخلفية، نقفل تاني ونطلب التحقق عند الرجوع.
+      if (!_authInProgress && _unlocked) {
+        setState(() => _unlocked = false);
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_unlocked) _tryUnlock();
+    }
   }
 
   Future<void> _maybeLock() async {
     final enabled = await BiometricService.isLockEnabled();
+    _lockEnabled = enabled;
     if (!enabled) {
       setState(() {
         _unlocked = true;
@@ -36,8 +59,14 @@ class _LockGateState extends State<LockGate> {
   }
 
   Future<void> _tryUnlock() async {
-    final ok = await BiometricService.authenticate();
-    if (mounted) setState(() => _unlocked = ok);
+    if (_authInProgress) return; // نتجنّب طلب التحقق مرتين في نفس الوقت
+    _authInProgress = true;
+    try {
+      final ok = await BiometricService.authenticate();
+      if (mounted) setState(() => _unlocked = ok);
+    } finally {
+      _authInProgress = false;
+    }
   }
 
   @override

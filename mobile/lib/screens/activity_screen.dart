@@ -39,6 +39,28 @@ class _ActivityScreenState extends State<ActivityScreen> {
     if (result == true) _load();
   }
 
+  Future<void> _delete(int id) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تأكيد حذف النشاط'),
+        content: const Text('متأكد إنك عايز تمسح النشاط ده؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await Api.deleteActivity(id);
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,10 +96,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           ].join(' • ')),
                           trailing: IconButton(
                             icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                            onPressed: () async {
-                              await Api.deleteActivity(a['id']);
-                              _load();
-                            },
+                            onPressed: () => _delete(a['id']),
                           ),
                         ),
                       )),

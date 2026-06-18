@@ -2,7 +2,6 @@ import 'package:home_widget/home_widget.dart';
 
 /// تحديث الـ Home screen widget: المتبقي من السعرات + إضافة سريعة.
 class WidgetService {
-  static const _appGroup = 'group.reshaqa';
   static const _widgetName = 'ReshaqaWidgetProvider';
 
   static Future<void> update({
@@ -22,9 +21,5 @@ class WidgetService {
     } catch (_) {
       // الـ widget اختياري — نتجاهل الفشل بصمت
     }
-  }
-
-  static void registerClickListener(void Function(Uri?) onClick) {
-    HomeWidget.widgetClicked.listen(onClick);
   }
 }

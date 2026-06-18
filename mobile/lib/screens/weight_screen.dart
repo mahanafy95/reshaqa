@@ -1,9 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../services/api.dart';
+import '../state/app_state.dart';
 import '../widgets/common.dart';
 
 class WeightScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class WeightScreen extends StatefulWidget {
 
 class _WeightScreenState extends State<WeightScreen> {
   Map<String, dynamic>? _trend;
+  List<Map<String, dynamic>> _waists = [];
   bool _loading = true;
 
   @override
@@ -26,6 +29,9 @@ class _WeightScreenState extends State<WeightScreen> {
     setState(() => _loading = true);
     try {
       _trend = await Api.weightTrend();
+    } catch (_) {}
+    try {
+      _waists = ((await Api.waists()) as List?)?.cast<Map<String, dynamic>>() ?? [];
     } catch (_) {} finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -59,12 +65,51 @@ class _WeightScreenState extends State<WeightScreen> {
     }
   }
 
+  Future<void> _addWaist() async {
+    final c = TextEditingController();
+    final cm = await showDialog<double>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('محيط الخصر النهاردة'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'محيط الخصر (سم)', suffixText: 'سم'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, double.tryParse(c.text)), child: const Text('سجّل')),
+        ],
+      ),
+    );
+    if (cm == null) return;
+    try {
+      await Api.addWaist(cm);
+      if (!mounted) return;
+      showSnack(context, 'اتسجّل محيط خصرك 👍');
+      await context.read<AppState>().refreshHome();
+      _load();
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final points = (_trend?['points'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final plateau = _trend?['plateau'];
     return Scaffold(
-      appBar: AppBar(title: const Text('الوزن')),
+      appBar: AppBar(
+        title: const Text('الوزن'),
+        actions: [
+          IconButton(
+            onPressed: _addWaist,
+            icon: const Icon(Icons.straighten),
+            tooltip: 'سجّل محيط الخصر',
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addWeight, icon: const Icon(Icons.add), label: const Text('سجّل وزن'), backgroundColor: AppColors.teal),
       body: _loading
@@ -109,6 +154,30 @@ class _WeightScreenState extends State<WeightScreen> {
                       Expanded(child: Text(plateau['message_ar'] ?? '', style: const TextStyle(color: AppColors.orange))),
                     ]),
                   ),
+                const SizedBox(height: 12),
+                SectionCard(
+                  title: 'محيط الخصر',
+                  child: _waists.isEmpty
+                      ? const Text('سجّل محيط خصرك من الزرار فوق عشان نتابع نسبة الدهون 🙂',
+                          textAlign: TextAlign.center)
+                      : Column(
+                          children: [
+                            for (final w in _waists.take(8))
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${(w['waist_cm'] as num?)?.toStringAsFixed(1) ?? '—'} سم',
+                                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    Text('${w['date'] ?? ''}',
+                                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                ),
               ],
             ),
     );

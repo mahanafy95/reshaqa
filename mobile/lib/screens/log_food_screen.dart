@@ -336,7 +336,7 @@ class _ManualTabState extends State<_ManualTab> {
           const SizedBox(width: 8),
           Expanded(
             child: DropdownButtonFormField<String>(
-              value: _unit,
+              initialValue: _unit,
               decoration: const InputDecoration(labelText: 'الوحدة'),
               items: foodUnits.map((u) => DropdownMenuItem(value: u.key, child: Text(u.label))).toList(),
               onChanged: (v) => setState(() => _unit = v ?? 'g'),
@@ -347,7 +347,7 @@ class _ManualTabState extends State<_ManualTab> {
         Row(children: [
           Expanded(
             child: DropdownButtonFormField<String>(
-              value: _sugarKey,
+              initialValue: _sugarKey,
               decoration: const InputDecoration(labelText: '🍬 سكر/محلّي'),
               items: sugarTypes.map((s) => DropdownMenuItem(value: s.key, child: Text(s.label, overflow: TextOverflow.ellipsis))).toList(),
               onChanged: (v) => setState(() => _sugarKey = v ?? 'none'),
@@ -367,7 +367,7 @@ class _ManualTabState extends State<_ManualTab> {
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<String>(
-                value: _sugarUnit,
+                initialValue: _sugarUnit,
                 decoration: const InputDecoration(labelText: 'وحدة'),
                 items: sugarUnits.map((u) => DropdownMenuItem(value: u.key, child: Text(u.label, overflow: TextOverflow.ellipsis))).toList(),
                 onChanged: (v) => setState(() => _sugarUnit = v ?? 'tsp'),
@@ -741,6 +741,7 @@ class _FavoritesTabState extends State<_FavoritesTab> {
   }
 
   Future<void> _load() async {
+    setState(() => _loading = true);
     try {
       _favs = await Api.favorites();
     } catch (_) {} finally {
@@ -748,34 +749,163 @@ class _FavoritesTabState extends State<_FavoritesTab> {
     }
   }
 
+  Future<void> _addFavorite() async {
+    final body = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => const _AddFavoriteDialog(),
+    );
+    if (body == null || !mounted) return;
+    try {
+      await Api.addFavorite(body);
+      if (!mounted) return;
+      showSnack(context, 'اتضافت للمفضلة 👍');
+      _load();
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
+  Future<void> _deleteFavorite(Map f) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف من المفضلة؟'),
+        content: Text('هتشيل «${f['name_ar']}» من المفضلة.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('احذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await Api.deleteFavorite(f['id']);
+      if (!mounted) return;
+      showSnack(context, 'اتحذفت من المفضلة 👍');
+      _load();
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_favs.isEmpty) return const Center(child: Text('لسه مفيش مفضلات. ضيف أكلاتك المتكررة هنا للإضافة السريعة 🙂'));
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _favs.length,
-      itemBuilder: (_, i) {
-        final f = _favs[i];
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.star, color: AppColors.orange),
-            title: Text(f['name_ar']),
-            subtitle: Text('${f['calories']} سعرة'),
-            trailing: const Icon(Icons.add_circle, color: AppColors.teal),
-            onTap: () async {
-              try {
-                await Api.logFavorite(f['id'], {'date': widget.date, 'meal': widget.meal});
-                if (context.mounted) showSnack(context, 'اتسجّل 👍');
-              } catch (e) {
-                if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
-              }
-            },
-          ),
-        );
-      },
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.teal,
+        onPressed: _addFavorite,
+        icon: const Icon(Icons.add),
+        label: const Text('أضف للمفضلة'),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _favs.isEmpty
+              ? const Center(child: Text('لسه مفيش مفضلات. ضيف أكلاتك المتكررة هنا للإضافة السريعة 🙂'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _favs.length,
+                  itemBuilder: (_, i) {
+                    final f = _favs[i];
+                    return Dismissible(
+                      key: ValueKey(f['id']),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (_) async {
+                        await _deleteFavorite(f);
+                        return false;
+                      },
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 24),
+                        decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.star, color: AppColors.orange),
+                          title: Text(f['name_ar']),
+                          subtitle: Text('${f['calories']} سعرة'),
+                          trailing: const Icon(Icons.add_circle, color: AppColors.teal),
+                          onLongPress: () => _deleteFavorite(f),
+                          onTap: () async {
+                            try {
+                              await Api.logFavorite(f['id'], {'date': widget.date, 'meal': widget.meal});
+                              if (context.mounted) showSnack(context, 'اتسجّل 👍');
+                            } catch (e) {
+                              if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
+}
+
+/// نافذة إضافة عنصر مخصّص للمفضلة (اسم + سعرات، والماكروز اختيارية).
+class _AddFavoriteDialog extends StatefulWidget {
+  const _AddFavoriteDialog();
+  @override
+  State<_AddFavoriteDialog> createState() => _AddFavoriteDialogState();
+}
+
+class _AddFavoriteDialogState extends State<_AddFavoriteDialog> {
+  final _name = TextEditingController();
+  final _cal = TextEditingController();
+  final _protein = TextEditingController();
+  final _carbs = TextEditingController();
+  final _fat = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('أضف للمفضلة'),
+      content: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('اكتب أكلتك المتكررة عشان تسجّلها بضغطة واحدة بعد كده',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          TextField(controller: _name, decoration: const InputDecoration(labelText: 'الاسم')),
+          _numField(_cal, 'سعرات'),
+          _numField(_protein, 'بروتين (اختياري)'),
+          _numField(_carbs, 'نشويات (اختياري)'),
+          _numField(_fat, 'دهون (اختياري)'),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        ElevatedButton(
+          onPressed: () {
+            final name = _name.text.trim();
+            final cal = double.tryParse(_cal.text);
+            if (name.isEmpty || cal == null) {
+              showSnack(context, 'اكتب الاسم والسعرات على الأقل', error: true);
+              return;
+            }
+            Navigator.pop(context, {
+              'ref_type': 'custom',
+              'name_ar': name,
+              'calories': cal,
+              'protein': double.tryParse(_protein.text) ?? 0,
+              'carbs': double.tryParse(_carbs.text) ?? 0,
+              'fat': double.tryParse(_fat.text) ?? 0,
+            });
+          },
+          child: const Text('أضف'),
+        ),
+      ],
+    );
+  }
+
+  Widget _numField(TextEditingController c, String label) => TextField(
+        controller: c,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(labelText: label),
+      );
 }
 
 // ============ الوصفات ============
@@ -819,6 +949,38 @@ class _RecipesTabState extends State<_RecipesTab> {
     }
   }
 
+  Future<void> _editRecipe(Map recipe) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeBuilderScreen(recipe: recipe)));
+    _load();
+  }
+
+  Future<void> _deleteRecipe(Map recipe) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف الوصفة؟'),
+        content: Text('هتشيل وصفة «${recipe['name_ar']}» نهائياً.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('احذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await Api.deleteRecipe(recipe['id']);
+      if (!mounted) return;
+      showSnack(context, 'اتحذفت الوصفة 👍');
+      _load();
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -839,13 +1001,38 @@ class _RecipesTabState extends State<_RecipesTab> {
                   itemCount: _recipes.length,
                   itemBuilder: (_, i) {
                     final r = _recipes[i];
-                    return Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.soup_kitchen, color: AppColors.teal),
-                        title: Text(r['name_ar']),
-                        subtitle: Text('${r['servings']} أنفار • نصيب الفرد ${r['per_serving_calories']} سعرة'),
-                        trailing: const Icon(Icons.add_circle, color: AppColors.teal),
-                        onTap: () => _logPortion(r),
+                    return Dismissible(
+                      key: ValueKey(r['id']),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (_) async {
+                        await _deleteRecipe(r);
+                        return false;
+                      },
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 24),
+                        decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.soup_kitchen, color: AppColors.teal),
+                          title: Text(r['name_ar']),
+                          subtitle: Text('${r['servings']} أنفار • نصيب الفرد ${r['per_serving_calories']} سعرة'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, color: AppColors.textMuted),
+                                tooltip: 'تعديل',
+                                onPressed: () => _editRecipe(r),
+                              ),
+                              const Icon(Icons.add_circle, color: AppColors.teal),
+                            ],
+                          ),
+                          onTap: () => _logPortion(r),
+                          onLongPress: () => _deleteRecipe(r),
+                        ),
                       ),
                     );
                   },

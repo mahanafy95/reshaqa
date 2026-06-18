@@ -23,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifications = false;
   bool _lock = false;
   bool _loading = true;
+  bool _restoring = false;
   String _version = '';
   static const _kNotif = 'reshaqa_notifications';
 
@@ -83,27 +84,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           SectionCard(
             title: 'الاشتراك',
-            child: app.isPremium
-                ? const Row(children: [
-                    Text('💎', style: TextStyle(fontSize: 22)),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text('مشترك في Premium — كل المميزات مفتوحة. شكراً لدعمك 💚',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                  ])
-                : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    const Text('افتح التقارير المفصّلة + PDF، الوصفات بلا حدود + الباركود، '
-                        'ومزامنة الصحة مع Premium.',
-                        style: TextStyle(color: AppColors.textMuted)),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      icon: const Text('💎', style: TextStyle(fontSize: 16)),
-                      label: const Text('اشترك في Premium'),
-                      onPressed: () => Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const PaywallScreen())),
-                    ),
-                  ]),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              app.isPremium
+                  ? const Row(children: [
+                      Text('💎', style: TextStyle(fontSize: 22)),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text('مشترك في Premium — كل المميزات مفتوحة. شكراً لدعمك 💚',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ])
+                  : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      const Text('افتح التقارير المفصّلة + PDF، الوصفات بلا حدود + الباركود، '
+                          'ومزامنة الصحة مع Premium.',
+                          style: TextStyle(color: AppColors.textMuted)),
+                      const SizedBox(height: 10),
+                      ElevatedButton.icon(
+                        icon: const Text('💎', style: TextStyle(fontSize: 16)),
+                        label: const Text('اشترك في Premium'),
+                        onPressed: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const PaywallScreen())),
+                      ),
+                    ]),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                icon: const Icon(Icons.restore, size: 20),
+                label: const Text('استعادة المشتريات'),
+                onPressed: _restoring ? null : () => _restorePurchases(context),
+              ),
+            ]),
           ),
           const SizedBox(height: 12),
           SectionCard(
@@ -139,6 +148,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _info('الوزن المستهدف', '${app.profile!['goal_weight_kg']} كجم'),
                 _info('النطاق الصحي', '${app.profile!['healthy_min_kg']} - ${app.profile!['healthy_max_kg']} كجم'),
               ],
+              _info('البريد الإلكتروني', app.email ?? 'مش مضاف'),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.alternate_email),
+                label: Text(app.email == null ? 'إضافة البريد' : 'تغيير البريد'),
+                onPressed: () => _editEmail(context),
+              ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 icon: const Icon(Icons.edit),
@@ -161,7 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, minimumSize: const Size.fromHeight(50)),
             icon: const Icon(Icons.logout),
             label: const Text('تسجيل الخروج'),
-            onPressed: () => context.read<AppState>().logout(),
+            onPressed: () => _confirmLogout(context),
           ),
           const SizedBox(height: 10),
           TextButton.icon(
@@ -176,6 +192,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _editEmail(BuildContext context) async {
+    final app = context.read<AppState>();
+    final ctrl = TextEditingController(text: app.email ?? '');
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(app.email == null ? 'إضافة البريد' : 'تغيير البريد'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'البريد الإلكتروني',
+            hintText: 'example@mail.com',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.isEmpty) return;
+    if (!email.contains('@') || !email.contains('.')) {
+      if (!context.mounted) return;
+      showSnack(context, 'البريد الإلكتروني مش مظبوط', error: true);
+      return;
+    }
+    try {
+      await Api.setEmail(email);
+      await app.refreshMe();
+    } catch (e) {
+      if (!context.mounted) return;
+      showSnack(context, ApiClient.errorMessage(e), error: true);
+      return;
+    }
+    if (!context.mounted) return;
+    showSnack(context, 'تم حفظ البريد الإلكتروني ✅');
+  }
+
+  Future<void> _restorePurchases(BuildContext context) async {
+    final app = context.read<AppState>();
+    setState(() => _restoring = true);
+    try {
+      await Api.billingStatus();
+      await app.refreshPremium();
+    } catch (e) {
+      if (!context.mounted) return;
+      showSnack(context, ApiClient.errorMessage(e), error: true);
+      return;
+    } finally {
+      if (mounted) setState(() => _restoring = false);
+    }
+    if (!context.mounted) return;
+    showSnack(context,
+        app.isPremium ? 'اشتراكك Premium شغّال ✅' : 'مفيش اشتراك Premium على الحساب ده');
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final app = context.read<AppState>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تأكيد الخروج'),
+        content: const Text('متأكد إنك عايز تسجّل الخروج؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('تسجيل الخروج'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await app.logout();
   }
 
   Future<void> _confirmDelete(BuildContext context) async {

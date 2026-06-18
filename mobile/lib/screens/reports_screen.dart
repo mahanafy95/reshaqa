@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../services/api.dart';
 import '../state/app_state.dart';
@@ -113,6 +114,20 @@ class _WeeklyView extends StatefulWidget {
 class _WeeklyViewState extends State<_WeeklyView> {
   Map<String, dynamic>? _r;
   bool _loading = true;
+  bool _pdfBusy = false;
+
+  Future<void> _sharePdfWeekly() async {
+    setState(() => _pdfBusy = true);
+    try {
+      final bytes = await Api.weeklyPdf();
+      if (!mounted) return;
+      await _sharePdf(context, bytes, 'تقرير_اسبوعي.pdf');
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    } finally {
+      if (mounted) setState(() => _pdfBusy = false);
+    }
+  }
 
   @override
   void initState() {
@@ -176,12 +191,12 @@ class _WeeklyViewState extends State<_WeeklyView> {
         ),
         const SizedBox(height: 12),
         ElevatedButton.icon(
-          icon: const Icon(Icons.share),
+          icon: _pdfBusy
+              ? const SizedBox(
+                  width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.share),
           label: const Text('شارك PDF (للطبيب)'),
-          onPressed: () async {
-            final bytes = await Api.weeklyPdf();
-            if (context.mounted) await _sharePdf(context, bytes, 'تقرير_اسبوعي.pdf');
-          },
+          onPressed: _pdfBusy ? null : _sharePdfWeekly,
         ),
       ],
     );
@@ -205,6 +220,21 @@ class _MonthlyView extends StatefulWidget {
 class _MonthlyViewState extends State<_MonthlyView> {
   Map<String, dynamic>? _r;
   bool _loading = true;
+  bool _pdfBusy = false;
+
+  Future<void> _sharePdfMonthly() async {
+    setState(() => _pdfBusy = true);
+    try {
+      final now = DateTime.now();
+      final bytes = await Api.monthlyPdf(now.year, now.month);
+      if (!mounted) return;
+      await _sharePdf(context, bytes, 'تقرير_شهري.pdf');
+    } catch (e) {
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    } finally {
+      if (mounted) setState(() => _pdfBusy = false);
+    }
+  }
 
   @override
   void initState() {
@@ -264,13 +294,12 @@ class _MonthlyViewState extends State<_MonthlyView> {
         ),
         const SizedBox(height: 12),
         ElevatedButton.icon(
-          icon: const Icon(Icons.share),
+          icon: _pdfBusy
+              ? const SizedBox(
+                  width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.share),
           label: const Text('شارك PDF (للطبيب)'),
-          onPressed: () async {
-            final now = DateTime.now();
-            final bytes = await Api.monthlyPdf(now.year, now.month);
-            if (context.mounted) await _sharePdf(context, bytes, 'تقرير_شهري.pdf');
-          },
+          onPressed: _pdfBusy ? null : _sharePdfMonthly,
         ),
       ],
     );

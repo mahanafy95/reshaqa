@@ -17,7 +17,11 @@ class _Ingredient {
 }
 
 class RecipeBuilderScreen extends StatefulWidget {
-  const RecipeBuilderScreen({super.key});
+  const RecipeBuilderScreen({super.key, this.recipe});
+
+  /// لو متبعتة: بنفتح الشاشة في وضع التعديل ونملا الحقول من الوصفة الموجودة.
+  final Map? recipe;
+
   @override
   State<RecipeBuilderScreen> createState() => _RecipeBuilderScreenState();
 }
@@ -27,6 +31,46 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   final _servings = TextEditingController(text: '4');
   final List<_Ingredient> _ingredients = [_Ingredient()];
   bool _busy = false;
+
+  bool get _isEdit => widget.recipe != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.recipe;
+    if (r == null) return;
+    // وضع التعديل — نملا الحقول من الوصفة الموجودة.
+    _name.text = (r['name_ar'] ?? '').toString();
+    _servings.text = (r['servings'] as num?)?.toStringAsFixed(0) ?? '4';
+    final ings = (r['ingredients'] as List?) ?? [];
+    if (ings.isNotEmpty) {
+      _ingredients
+        ..clear()
+        ..addAll(ings.map((raw) {
+          final ing = raw as Map;
+          final amount = (ing['amount'] as num?)?.toDouble() ?? 0;
+          final factor = amount > 0 ? amount / 100 : 1.0;
+          final e = _Ingredient();
+          e.name.text = (ing['name_ar'] ?? '').toString();
+          e.grams.text = amount.toStringAsFixed(0);
+          e.isOil = ing['is_oil'] == true;
+          // المخزّن إجمالي للكمية — نرجّعه لقيم كل 100جم عشان حقول الواجهة.
+          final cal = (ing['calories'] as num?)?.toDouble() ?? 0;
+          e.cal100.text = (cal > 0 && factor > 0) ? (cal / factor).round().toString() : '';
+          e.p100.text = _per100(ing['protein'], factor);
+          e.c100.text = _per100(ing['carbs'], factor);
+          e.f100.text = _per100(ing['fat'], factor);
+          return e;
+        }));
+    }
+  }
+
+  /// يرجّع قيمة الماكرو لكل 100جم من الإجمالي المخزّن (فاضي لو صفر).
+  String _per100(dynamic total, double factor) {
+    final v = (total as num?)?.toDouble() ?? 0;
+    if (v <= 0 || factor <= 0) return '';
+    return (v / factor).toStringAsFixed(1);
+  }
 
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) {
@@ -48,13 +92,18 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
     }
     setState(() => _busy = true);
     try {
-      await Api.createRecipe({
+      final body = {
         'name_ar': _name.text.trim(),
         'servings': double.tryParse(_servings.text) ?? 1,
         'ingredients': ings,
-      });
+      };
+      if (_isEdit) {
+        await Api.updateRecipe(widget.recipe!['id'], body);
+      } else {
+        await Api.createRecipe(body);
+      }
       if (mounted) {
-        showSnack(context, 'اتحفظت الوصفة 👍');
+        showSnack(context, _isEdit ? 'اتعدّلت الوصفة 👍' : 'اتحفظت الوصفة 👍');
         Navigator.pop(context);
       }
     } catch (e) {
@@ -67,7 +116,7 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('وصفة جديدة')),
+      appBar: AppBar(title: Text(_isEdit ? 'تعديل الوصفة' : 'وصفة جديدة')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -89,7 +138,9 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _busy ? null : _save,
-            child: _busy ? const CircularProgressIndicator(color: Colors.white) : const Text('احفظ الوصفة'),
+            child: _busy
+                ? const CircularProgressIndicator(color: Colors.white)
+                : Text(_isEdit ? 'احفظ التعديلات' : 'احفظ الوصفة'),
           ),
         ],
       ),

@@ -33,8 +33,28 @@ class ApiClient {
         }
         handler.next(options);
       },
+      onError: (err, handler) async {
+        // 401 على نقطة مش تسجيل دخول = التوكن انتهى/اتلغى → خروج تلقائي.
+        // (نستثني login/register/google/reset عشان "باسورد غلط" مش معناه انتهاء جلسة.)
+        if (err.response?.statusCode == 401 && !_isAuthAttempt(err.requestOptions.path)) {
+          await clearToken();
+          onUnauthorized?.call();
+        }
+        handler.next(err);
+      },
     ));
   }
+
+  /// يُستدعى لما تنتهي/تُلغى جلسة وسط الاستخدام — يربطه AppState بـ logout().
+  static void Function()? onUnauthorized;
+
+  static bool _isAuthAttempt(String path) =>
+      path.contains('/auth/login') ||
+      path.contains('/auth/register') ||
+      path.contains('/auth/token') ||
+      path.contains('/auth/google') ||
+      path.contains('/auth/forgot-password') ||
+      path.contains('/auth/reset-password');
 
   static final ApiClient instance = ApiClient._();
 

@@ -133,6 +133,8 @@ class Api {
   static Future<List<dynamic>> recipes() async => (await _d.get('/recipes')).data;
   static Future<Map<String, dynamic>> createRecipe(Map<String, dynamic> body) async =>
       (await _d.post('/recipes', data: body)).data;
+  static Future<Map<String, dynamic>> updateRecipe(int id, Map<String, dynamic> body) async =>
+      (await _d.put('/recipes/$id', data: body)).data;
   static Future<Map<String, dynamic>> logRecipe(int id, Map<String, dynamic> body) async =>
       (await _d.post('/recipes/$id/log', data: body)).data;
   static Future<void> deleteRecipe(int id) async => await _d.delete('/recipes/$id');
@@ -152,6 +154,7 @@ class Api {
   static Future<Map<String, dynamic>> weightTrend() async => (await _d.get('/weight/trend')).data;
   static Future<Map<String, dynamic>> addWaist(double cm) async =>
       (await _d.post('/waist', data: {'waist_cm': cm})).data;
+  static Future<List<dynamic>> waists() async => (await _d.get('/waist')).data;
   static Future<Map<String, dynamic>> addWater(int ml) async =>
       (await _d.post('/water', data: {'ml': ml})).data;
   static Future<Map<String, dynamic>> water([String? on]) async =>

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../services/api.dart';
 import '../services/update_service.dart';
@@ -210,7 +211,7 @@ class _TodayLogCard extends StatelessWidget {
   final List<dynamic> foods;
   static const _meals = {'breakfast': 'فطار', 'lunch': 'غدا', 'dinner': 'عشا', 'snack': 'سناك'};
 
-  List<Widget> _section(String mk) {
+  List<Widget> _section(BuildContext context, String mk) {
     final items = foods.where((f) => f['meal'] == mk).toList();
     if (items.isEmpty) return const [];
     final sub = items.fold<double>(0, (s, x) => s + ((x['calories'] as num?)?.toDouble() ?? 0));
@@ -223,14 +224,109 @@ class _TodayLogCard extends StatelessWidget {
         ]),
       ),
       for (final f in items)
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Expanded(child: Text('${f['name_ar']}', overflow: TextOverflow.ellipsis)),
-            Text('${(f['calories'] as num?)?.round() ?? 0} سعرة', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
+        InkWell(
+          onTap: () => _edit(context, f),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(children: [
+              Expanded(child: Text('${f['name_ar']}', overflow: TextOverflow.ellipsis)),
+              Text('${(f['calories'] as num?)?.round() ?? 0} سعرة', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18, color: AppColors.danger),
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.only(right: 6),
+                tooltip: 'حذف',
+                onPressed: () => _delete(context, f),
+              ),
+            ]),
+          ),
         ),
     ];
+  }
+
+  Future<void> _delete(BuildContext context, Map<String, dynamic> f) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الأكل'),
+        content: Text('متأكد إنك عايز تمسح "${f['name_ar']}" من سجل النهاردة؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      await Api.deleteFood(f['id'] as int);
+      if (!context.mounted) return;
+      await context.read<AppState>().refreshHome();
+      if (!context.mounted) return;
+      showSnack(context, 'اتمسح 👍');
+    } catch (e) {
+      if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
+  Future<void> _edit(BuildContext context, Map<String, dynamic> f) async {
+    final amountCtrl = TextEditingController(text: '${(f['amount'] as num?)?.round() ?? 100}');
+    final calCtrl = TextEditingController(text: '${(f['calories'] as num?)?.round() ?? 0}');
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('تعديل ${f['name_ar']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'الكمية (جم)'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: calCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'السعرات'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (saved != true || !context.mounted) return;
+    final body = <String, dynamic>{
+      'name_ar': f['name_ar'],
+      'meal': f['meal'],
+      'amount': double.tryParse(amountCtrl.text) ?? (f['amount'] as num?)?.toDouble() ?? 100,
+      'calories': double.tryParse(calCtrl.text) ?? (f['calories'] as num?)?.toDouble() ?? 0,
+      'protein': (f['protein'] as num?)?.toDouble() ?? 0,
+      'carbs': (f['carbs'] as num?)?.toDouble() ?? 0,
+      'fat': (f['fat'] as num?)?.toDouble() ?? 0,
+    };
+    try {
+      await Api.updateFood(f['id'] as int, body);
+      if (!context.mounted) return;
+      await context.read<AppState>().refreshHome();
+      if (!context.mounted) return;
+      showSnack(context, 'اتعدّل 👍');
+    } catch (e) {
+      if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
   }
 
   @override
@@ -239,7 +335,7 @@ class _TodayLogCard extends StatelessWidget {
       title: 'سجل أكل النهاردة',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [for (final mk in _meals.keys) ..._section(mk)],
+        children: [for (final mk in _meals.keys) ..._section(context, mk)],
       ),
     );
   }
