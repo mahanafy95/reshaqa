@@ -180,6 +180,13 @@ class Api {
   static Future<Map<String, dynamic>> appVersion() async => (await _d.get('/app/version')).data;
   static String get downloadUrl => '$kApiBaseUrl/app/download';
 
+  // ---------- الإبلاغ عن مشكلة ----------
+  static Future<Map<String, dynamic>> reportIssue(String message, {String? context}) async =>
+      (await _d.post('/issues', data: {'message': message, if (context != null) 'context': context})).data;
+  static Future<List<dynamic>> issues() async => (await _d.get('/issues')).data;
+  static Future<Map<String, dynamic>> updateIssueStatus(int id, String status) async =>
+      (await _d.patch('/issues/$id', data: {'status': status})).data;
+
   // ---------- التقارير ----------
   static Future<Map<String, dynamic>> weeklyReport([String? weekOf]) async =>
       (await _d.get('/reports/weekly', queryParameters: weekOf != null ? {'week_of': weekOf} : null)).data;

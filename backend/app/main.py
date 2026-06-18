@@ -20,6 +20,7 @@ from .routers import (
     favorites,
     foods,
     health,
+    issues,
     profile,
     recipes,
     reports,
@@ -125,6 +126,7 @@ app.include_router(reports.router)
 app.include_router(app_update.router)
 app.include_router(billing.router)
 app.include_router(social.router)
+app.include_router(issues.router)
 app.include_router(admin.router)
 
 

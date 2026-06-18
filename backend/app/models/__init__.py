@@ -12,6 +12,7 @@ from .enums import (
 from .favorite import Favorite
 from .food import FoodLibrary, FoodLogged
 from .health import HealthToken
+from .issue_report import IssueReport
 from .password_reset import PasswordReset
 from .profile import Profile
 from .recipe import Recipe, RecipeIngredient
@@ -37,6 +38,7 @@ __all__ = [
     "FoodLibrary",
     "FoodLogged",
     "HealthToken",
+    "IssueReport",
     "Recipe",
     "RecipeIngredient",
     "Friendship",

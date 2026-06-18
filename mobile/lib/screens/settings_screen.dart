@@ -161,6 +161,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 label: const Text('تعديل بياناتي'),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SetupProfileScreen())),
               ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.bug_report_outlined),
+                label: const Text('🐞 الإبلاغ عن مشكلة'),
+                onPressed: () => _reportIssue(context),
+              ),
             ]),
           ),
           const SizedBox(height: 12),
@@ -235,6 +241,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     if (!context.mounted) return;
     showSnack(context, 'تم حفظ البريد الإلكتروني ✅');
+  }
+
+  Future<void> _reportIssue(BuildContext context) async {
+    final ctrl = TextEditingController();
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('الإبلاغ عن مشكلة'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLines: 5,
+          maxLength: 2000,
+          keyboardType: TextInputType.multiline,
+          decoration: const InputDecoration(
+            hintText: 'اكتب المشكلة اللي واجهتك...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('إرسال')),
+        ],
+      ),
+    );
+    if (send != true) return;
+    final message = ctrl.text.trim();
+    if (message.length < 3) {
+      if (!context.mounted) return;
+      showSnack(context, 'اكتب تفاصيل المشكلة الأول (3 أحرف على الأقل)', error: true);
+      return;
+    }
+    try {
+      await Api.reportIssue(message, context: 'mobile settings');
+    } catch (e) {
+      if (!context.mounted) return;
+      showSnack(context, ApiClient.errorMessage(e), error: true);
+      return;
+    }
+    if (!context.mounted) return;
+    showSnack(context, 'وصلنا بلاغك، شكراً! 🙏');
   }
 
   Future<void> _restorePurchases(BuildContext context) async {

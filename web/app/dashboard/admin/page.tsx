@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, BASE } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 import { Button, Card, Field, Spinner, StatRow } from "@/components/ui";
 
 type UserRow = {
@@ -16,6 +17,56 @@ type UserRow = {
   foods_count: number;
   weights_count: number;
   last_food_date: string | null;
+};
+
+type IssueStatus = "new" | "seen" | "resolved";
+
+type IssueRow = {
+  id: number;
+  user_id: number;
+  username: string;
+  message: string;
+  context: string | null;
+  status: IssueStatus;
+  created_at: string;
+};
+
+// نداءات بلاغات المشاكل: لا توجد لها دوال في مساعد الـ api، فنستخدم نفس نمط الجلب
+// (نفس الـ BASE وترويسة المصادقة Bearer) المستخدَم في lib/api.ts.
+async function issuesReq<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    let detail: unknown;
+    try {
+      detail = (await res.json()).detail;
+    } catch {
+      /* تجاهل */
+    }
+    const message = typeof detail === "string" ? detail : "حصل خطأ. حاول تاني.";
+    throw new ApiError(res.status, message, detail);
+  }
+  if (res.status === 204) return null as T;
+  return res.json();
+}
+
+const ISSUE_STATUS_AR: Record<IssueStatus, string> = {
+  new: "جديد",
+  seen: "تمت المشاهدة",
+  resolved: "تم الحل",
+};
+
+const ISSUE_STATUS_BADGE: Record<IssueStatus, string> = {
+  new: "bg-red-100 text-red-700",
+  seen: "bg-amber-100 text-amber-700",
+  resolved: "bg-teal/15 text-teal",
 };
 
 function fmtDate(s?: string | null) {
@@ -39,6 +90,9 @@ export default function AdminPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ username: "", password: "", is_admin: false });
   const [adding, setAdding] = useState(false);
+  const [issues, setIssues] = useState<IssueRow[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issueBusy, setIssueBusy] = useState<number | null>(null);
 
   async function load(query = "") {
     setLoading(true);
@@ -54,8 +108,36 @@ export default function AdminPage() {
     }
   }
 
+  async function loadIssues() {
+    setIssuesLoading(true);
+    try {
+      const list = await issuesReq<IssueRow[]>("/issues");
+      setIssues(list);
+    } catch {
+      /* لو مفيش صلاحية أو فشل الجلب، نسيب القائمة فاضية */
+    } finally {
+      setIssuesLoading(false);
+    }
+  }
+
+  async function setIssueStatus(id: number, status: IssueStatus) {
+    setIssueBusy(id);
+    try {
+      const updated = await issuesReq<IssueRow>(`/issues/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      setIssues((prev) => prev.map((it) => (it.id === id ? updated : it)));
+    } catch (e) {
+      flash(e instanceof ApiError ? e.message : "فشل تحديث حالة البلاغ.");
+    } finally {
+      setIssueBusy(null);
+    }
+  }
+
   useEffect(() => {
     load();
+    loadIssues();
   }, []);
 
   async function openDetail(id: number) {
@@ -368,6 +450,69 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-bold text-lg mb-4">
+          🐞 بلاغات المشاكل{" "}
+          <span className="text-muted font-normal text-base">({issues.length})</span>
+        </h2>
+
+        {issuesLoading ? (
+          <Spinner />
+        ) : issues.length === 0 ? (
+          <div className="py-6 text-center text-muted text-sm">لا توجد بلاغات حالياً.</div>
+        ) : (
+          <ul className="space-y-3">
+            {issues.map((it) => (
+              <li
+                key={it.id}
+                className={`rounded-xl border p-4 ${
+                  it.status === "new"
+                    ? "border-red-200 bg-red-50/60"
+                    : "border-gray-100 bg-white"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-ink">{it.username}</span>
+                    <span
+                      className={`text-[11px] rounded px-1.5 py-0.5 font-semibold ${ISSUE_STATUS_BADGE[it.status]}`}
+                    >
+                      {ISSUE_STATUS_AR[it.status]}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted">{fmtDate(it.created_at)}</span>
+                </div>
+
+                <p className="text-sm text-ink whitespace-pre-wrap break-words mb-2">
+                  {it.message}
+                </p>
+
+                {it.context && (
+                  <div className="text-xs text-muted mb-3">السياق: {it.context}</div>
+                )}
+
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setIssueStatus(it.id, "seen")}
+                    disabled={issueBusy === it.id || it.status === "seen"}
+                    className="text-xs rounded-lg border border-amber-500 text-amber-600 px-2 py-1 hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    تمت المشاهدة
+                  </button>
+                  <button
+                    onClick={() => setIssueStatus(it.id, "resolved")}
+                    disabled={issueBusy === it.id || it.status === "resolved"}
+                    className="text-xs rounded-lg border border-teal text-teal px-2 py-1 hover:bg-teal/5 disabled:opacity-50"
+                  >
+                    تم الحل
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       {detailLoading && <Spinner />}
