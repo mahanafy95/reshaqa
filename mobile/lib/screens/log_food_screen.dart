@@ -4,15 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../core/units.dart';
 import '../services/api.dart';
+import '../state/app_state.dart';
 import '../widgets/common.dart';
 import 'meal_chat_tab.dart';
 import 'paywall_screen.dart';
 import 'recipe_builder_screen.dart';
+import 'reports_screen.dart' show PremiumLock;
 
 class LogFoodScreen extends StatefulWidget {
   const LogFoodScreen({super.key});
@@ -501,6 +504,15 @@ class _BarcodeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // مسح الباركود ميزة Premium — نوضّح ده للمستخدم المجاني بدل ما يحس إنه عطل.
+    final isPremium = context.watch<AppState>().isPremium;
+    if (!isPremium) {
+      return const PremiumLock(
+        title: 'مسح الباركود ميزة Premium 💎',
+        message: 'مسح باركود المنتج وجلب قيمه الغذائية تلقائياً من مميزات الاشتراك. '
+            'اشترك عشان تفتحها — أو سجّل أكلك بالكتابة أو يدوي، ده مجاني تماماً ✅',
+      );
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
