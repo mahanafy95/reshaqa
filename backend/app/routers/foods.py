@@ -125,6 +125,9 @@ def _fmt_qty(it: ParsedFoodItem) -> str:
     q = int(it.qty) if it.qty == int(it.qty) else it.qty
     if it.unit:
         return f"{q} {it.unit}"
+    # صنف معدود بدون وحدة (زي «بيضتين» أو «3 تفاح») — نوضّح العدد مع الجرامات
+    if isinstance(q, int) and q >= 2:
+        return f"عدد {q} ({round(it.grams)} جم)"
     return f"{round(it.grams)} جم"
 
 

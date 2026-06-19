@@ -51,16 +51,17 @@ def _validate_goal(payload: ProfileIn) -> None:
             )
 
 
-def _upsert_today_weight(db: Session, user_id: int, weight_kg: float) -> None:
-    """يسجّل/يحدّث وزن اليوم ليكون لدى محرك الاتجاه بيانات."""
-    today = date.today()
-    existing = db.scalar(
-        select(WeightLog).where(WeightLog.user_id == user_id, WeightLog.date == today)
+def _seed_initial_weight(db: Session, user_id: int, weight_kg: float) -> None:
+    """يزرع نقطة وزن أولية لمحرك الاتجاه فقط لو المستخدم لسه ماسجّلش أي وزن.
+
+    لا يكتب فوق وزن سجّله المستخدم بنفسه، ولا يتكرّر مع كل تعديل للملف الشخصي،
+    حتى لا نلوّث اتجاه الوزن (مثلاً لو المستخدم بيدخل تواريخ قديمة).
+    """
+    has_any = db.scalar(
+        select(WeightLog).where(WeightLog.user_id == user_id).limit(1)
     )
-    if existing is None:
-        db.add(WeightLog(user_id=user_id, date=today, weight_kg=weight_kg))
-    else:
-        existing.weight_kg = weight_kg
+    if has_any is None:
+        db.add(WeightLog(user_id=user_id, date=date.today(), weight_kg=weight_kg))
 
 
 @router.get("", response_model=ProfileOut)
@@ -95,7 +96,7 @@ def upsert_profile(
     profile.goal_weight_kg = payload.goal_weight_kg
     profile.goal_rate = payload.goal_rate
 
-    _upsert_today_weight(db, current_user.id, payload.weight_kg)
+    _seed_initial_weight(db, current_user.id, payload.weight_kg)
 
     db.commit()
     db.refresh(profile)
