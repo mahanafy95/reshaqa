@@ -170,6 +170,8 @@ class Api {
       (await _d.post('/weight', data: {'weight_kg': kg, if (date != null) 'date': date})).data;
   static Future<List<dynamic>> weights() async => (await _d.get('/weight')).data;
   static Future<Map<String, dynamic>> weightTrend() async => (await _d.get('/weight/trend')).data;
+  /// توقّع زمن الوصول لوزن الهدف بناءً على اتجاه القياسات.
+  static Future<Map<String, dynamic>> weightForecast() async => (await _d.get('/weight/forecast')).data;
   static Future<Map<String, dynamic>> addWaist(double cm) async =>
       (await _d.post('/waist', data: {'waist_cm': cm})).data;
   static Future<List<dynamic>> waists() async => (await _d.get('/waist')).data;

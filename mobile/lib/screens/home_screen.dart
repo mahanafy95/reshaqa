@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
@@ -8,6 +9,7 @@ import '../services/update_service.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
 import 'activity_screen.dart';
+import 'onboarding_screen.dart';
 import 'assistant_screen.dart';
 import 'community_screen.dart';
 import 'log_food_screen.dart';
@@ -17,8 +19,29 @@ import 'settings_screen.dart';
 import 'water_screen.dart';
 import 'weight_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeOnboard());
+  }
+
+  /// يعرض شاشة الترحيب مرة واحدة لأول مستخدم جديد (علم محفوظ في الجهاز).
+  Future<void> _maybeOnboard() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('seen_onboarding') == true || !mounted) return;
+      await Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const OnboardingScreen()));
+    } catch (_) {/* تجاهل — مش حاجة حرجة */}
+  }
 
   @override
   Widget build(BuildContext context) {

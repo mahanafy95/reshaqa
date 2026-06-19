@@ -16,6 +16,7 @@ class WeightScreen extends StatefulWidget {
 
 class _WeightScreenState extends State<WeightScreen> {
   Map<String, dynamic>? _trend;
+  Map<String, dynamic>? _forecast;
   List<Map<String, dynamic>> _waists = [];
   bool _loading = true;
 
@@ -29,6 +30,9 @@ class _WeightScreenState extends State<WeightScreen> {
     setState(() => _loading = true);
     try {
       _trend = await Api.weightTrend();
+    } catch (_) {}
+    try {
+      _forecast = await Api.weightForecast();
     } catch (_) {}
     try {
       _waists = ((await Api.waists()) as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -144,6 +148,37 @@ class _WeightScreenState extends State<WeightScreen> {
                 else
                   const SectionCard(child: Text('سجّل وزنك مرتين على الأقل عشان نرسم اتجاهك 🙂', textAlign: TextAlign.center)),
                 const SizedBox(height: 12),
+                if (_forecast?['message_ar'] != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: (_forecast!['on_track'] == true ? AppColors.teal : AppColors.blue)
+                          .withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: (_forecast!['on_track'] == true ? AppColors.teal : AppColors.blue)
+                            .withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          _forecast!['reached'] == true
+                              ? Icons.emoji_events
+                              : Icons.trending_up,
+                          color: _forecast!['on_track'] == true ? AppColors.teal : AppColors.blue,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(_forecast!['message_ar'].toString(),
+                              style: const TextStyle(fontWeight: FontWeight.w600, height: 1.4)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (plateau != null && plateau['is_plateau'] == true)
                   Container(
                     padding: const EdgeInsets.all(14),
