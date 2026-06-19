@@ -6,6 +6,11 @@ import '../core/api_client.dart';
 class Api {
   static final Dio _d = ApiClient.instance.dio;
 
+  /// مهلة استقبال أطول للنداءات اللي بتمرّ على الذكاء الاصطناعي (محادثة/تحليل أكل/تصوير).
+  /// الـ LLM ممكن ياخد وقت في توليد الرد (وأحياناً بنرجع لمزوّد احتياطي)، فالمهلة
+  /// الافتراضية (20ث) كانت بتقطع وتطلّع «خطأ غير متوقع». 90ث تغطّي الحالات البطيئة.
+  static final Options _aiOpts = Options(receiveTimeout: const Duration(seconds: 90));
+
   // ---------- المصادقة ----------
   static Future<String> register(String username, String password, {String? email}) async {
     final r = await _d.post('/auth/register', data: {
@@ -109,7 +114,9 @@ class Api {
   static Future<List<dynamic>> librarySearch(String q, {String? region}) async =>
       (await _d.get('/foods/library/search', queryParameters: {'q': q, if (region != null) 'region': region})).data;
   static Future<Map<String, dynamic>> estimate(String name, double amount) async =>
-      (await _d.get('/foods/estimate', queryParameters: {'name': name, 'amount': amount})).data;
+      (await _d.get('/foods/estimate',
+              queryParameters: {'name': name, 'amount': amount}, options: _aiOpts))
+          .data;
   static Future<Map<String, dynamic>> barcode(String code) async =>
       (await _d.get('/foods/barcode/$code')).data;
   static Future<Map<String, dynamic>> saveBarcode(Map<String, dynamic> body) async =>
@@ -125,7 +132,7 @@ class Api {
     final form = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath, filename: 'label.jpg'),
     });
-    return (await _d.post('/foods/label-image', data: form)).data;
+    return (await _d.post('/foods/label-image', data: form, options: _aiOpts)).data;
   }
   static Future<List<dynamic>> suggest(String q) async =>
       (await _d.get('/foods/suggest', queryParameters: {'q': q})).data;
@@ -136,7 +143,7 @@ class Api {
         if (date != null) 'date': date,
         'default_meal': defaultMeal,
         'confirm': confirm,
-      })).data;
+      }, options: _aiOpts)).data;
 
   // ---------- الوصفات ----------
   static Future<List<dynamic>> recipes() async => (await _d.get('/recipes')).data;
@@ -190,8 +197,26 @@ class Api {
   static String get downloadUrl => '$kApiBaseUrl/app/download';
 
   // ---------- المساعد الذكي ----------
-  static Future<Map<String, dynamic>> assistantChat(List<Map<String, String>> messages) async =>
-      (await _d.post('/assistant/chat', data: {'messages': messages})).data;
+  /// محادثة المساعد. [date] = تاريخ اليوم المحلي (لتسجيل وجبة لو المستخدم قال «ضيف/سجّل»).
+  /// الرد ممكن يحتوي على logged/logged_items لو اتسجّلت وجبة.
+  static Future<Map<String, dynamic>> assistantChat(
+    List<Map<String, String>> messages, {
+    String? date,
+    String? defaultMeal,
+  }) async =>
+      (await _d.post('/assistant/chat', data: {
+        'messages': messages,
+        if (date != null) 'date': date,
+        if (defaultMeal != null) 'default_meal': defaultMeal,
+      }, options: _aiOpts)).data;
+
+  /// يرجّع محادثة المستخدم المحفوظة (لاستعادتها عند فتح الشاشة).
+  static Future<List<dynamic>> assistantHistory({int limit = 100}) async =>
+      ((await _d.get('/assistant/history', queryParameters: {'limit': limit})).data['messages']
+          as List<dynamic>);
+
+  /// يمسح محادثة المستخدم مع المساعد.
+  static Future<void> clearAssistantHistory() async => await _d.delete('/assistant/history');
 
   // ---------- الإبلاغ عن مشكلة ----------
   static Future<Map<String, dynamic>> reportIssue(String message, {String? context}) async =>

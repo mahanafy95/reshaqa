@@ -14,6 +14,7 @@
 import base64
 import json
 import logging
+import math
 import re
 import time
 
@@ -45,6 +46,10 @@ _OPENROUTER_FALLBACK = [
 ]
 _OPENROUTER_MODELS_TTL = 3600.0  # ساعة — نكاشّ القائمة الحيّة عشان منرهقش الـ API.
 _openrouter_models_cache: "tuple[float, list[str]] | None" = None
+# مهلة كل موديل OpenRouter + أقصى عدد موديلات نجرّبها — عشان نحدّ زمن الانتظار الأسوأ
+# (المستخدم بيشوف «خطأ» لو الرد عدّى مهلة العميل). 3 موديلات × 18ث ≈ 54ث كحد أقصى.
+_OPENROUTER_TIMEOUT = 18.0
+_OPENROUTER_MAX_TRY = 3
 
 
 def _discover_free_models() -> list[str]:
@@ -58,7 +63,7 @@ def _discover_free_models() -> list[str]:
     if _openrouter_models_cache and now - _openrouter_models_cache[0] < _OPENROUTER_MODELS_TTL:
         return _openrouter_models_cache[1]
     try:
-        resp = httpx.get(_OPENROUTER_MODELS_URL, timeout=15.0)
+        resp = httpx.get(_OPENROUTER_MODELS_URL, timeout=12.0)
         if resp.status_code != 200:
             raise RuntimeError(f"models list {resp.status_code}")
         free: list[str] = []
@@ -124,7 +129,7 @@ def _gemini_complete(
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
             },
-            timeout=25.0,
+            timeout=20.0,
         )
         if resp.status_code != 200:
             logger.warning("Gemini رجّع %s: %s", resp.status_code, resp.text[:200])
@@ -154,8 +159,8 @@ def _openrouter_complete(
         "HTTP-Referer": "https://reshaqa.app",
         "X-Title": "Reshaqa",
     }
-    # نجرّب كل موديل مجاني بالترتيب؛ لو رجّع خطأ أو نص فارغ ننتقل للي بعده.
-    for model in _openrouter_models():
+    # نجرّب أوّل عدد محدود من الموديلات (لحدّ زمن الانتظار)؛ لو خطأ/فارغ ننتقل للي بعده.
+    for model in _openrouter_models()[:_OPENROUTER_MAX_TRY]:
         try:
             resp = httpx.post(
                 _OPENROUTER_URL,
@@ -166,7 +171,7 @@ def _openrouter_complete(
                     "max_tokens": max_tokens,
                     "temperature": temperature,
                 },
-                timeout=25.0,
+                timeout=_OPENROUTER_TIMEOUT,
             )
             if resp.status_code != 200:
                 logger.warning(
@@ -288,7 +293,7 @@ def _gemini_chat(
                 "contents": contents,
                 "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
             },
-            timeout=25.0,
+            timeout=20.0,
         )
         if resp.status_code != 200:
             logger.warning("Gemini chat رجّع %s: %s", resp.status_code, resp.text[:200])
@@ -316,7 +321,7 @@ def _openrouter_chat(
         "HTTP-Referer": "https://reshaqa.app",
         "X-Title": "Reshaqa",
     }
-    for model in _openrouter_models():
+    for model in _openrouter_models()[:_OPENROUTER_MAX_TRY]:
         try:
             resp = httpx.post(
                 _OPENROUTER_URL,
@@ -327,7 +332,7 @@ def _openrouter_chat(
                     "max_tokens": max_tokens,
                     "temperature": temperature,
                 },
-                timeout=25.0,
+                timeout=_OPENROUTER_TIMEOUT,
             )
             if resp.status_code != 200:
                 logger.warning(
@@ -381,10 +386,12 @@ def _strip_json_fences(text: str) -> str:
 
 
 def _coerce_number(value, *, min_value: float | None = None) -> float | None:
-    """يحوّل قيمة لرقم موجب آمن، أو None لو مش رقم صالح (يرفض bool)."""
+    """يحوّل قيمة لرقم آمن، أو None لو مش رقم صالح (يرفض bool وl=NaN/Infinity)."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     num = float(value)
+    if not math.isfinite(num):  # يرفض inf/-inf/nan (يمنع تخزين قيم سعرات فاسدة)
+        return None
     if min_value is not None and num < min_value:
         return None
     return num
@@ -447,6 +454,88 @@ def parse_meal_ai(text: str) -> dict | None:
         return {"is_question": is_question, "items": items}
     except Exception:
         logger.exception("فشل تحليل رد الـ AI كـ JSON")
+        return None
+
+
+# ---------- استخراج وجبة للتسجيل من سياق المحادثة (لمّا المستخدم يقول «ضيف/سجّل») ----------
+_VALID_MEALS = ("breakfast", "lunch", "dinner", "snack")
+_LOG_EXTRACT_SYSTEM = (
+    "إنت محلّل وجبات لتطبيق تغذية مصري. هتقرا سجلّ محادثة بين مستخدم ومساعد، والمستخدم في "
+    "آخر رسالة طلب يسجّل/يضيف أكل في يومه (زي «ضيفهم» أو «سجّل اللي فات» أو «ضيف كله»). "
+    "مهمتك تستخرج الأصناف اللي عايز يضيفها فعلاً — سواء قالها بنفسه أو كان بيشير لأصناف "
+    "المساعد اقترحها قبل كده (لو قال «ضيفهم/دول/كله»). قدّر وزن كل صنف بالجرام بشكل واقعي، "
+    "وقدّر السعرات لكل 100 جرام، وحدّد نوع الوجبة لو واضح من السياق "
+    "(breakfast/lunch/dinner/snack). "
+    "مهم: متسجّلش أصناف اتسجّلت قبل كده في المحادثة (لو فيه رسالة من المساعد بتقول «سجّلت ✅» "
+    "لأصناف معيّنة، متكررهاش) — استخرج بس اللي طلبه المستخدم في آخر رسالة. "
+    "لو مفيش أكل جديد واضح للتسجيل خلّي items فاضية. "
+    "قدّر كمان البروتين والكارب والدهون لكل 100 جرام (بالجرام). "
+    "رُدّ بـ JSON فقط بدون أي شرح بالشكل ده بالظبط: "
+    '{"meal": "lunch", "items": [{"name_ar": "اسم الأكلة", "grams": رقم, '
+    '"kcal_per_100": رقم, "protein_per_100": رقم, "carbs_per_100": رقم, "fat_per_100": رقم}]}'
+)
+
+
+def extract_meal_to_log(messages: list[dict]) -> dict | None:
+    """يستخرج من سياق المحادثة الأصناف اللي المستخدم عايز يسجّلها + نوع الوجبة.
+
+    يرجّع {"meal": "lunch"|None, "items": [{name_ar, grams, kcal_per_100}]} أو None عند
+    الفشل/التعطّل. لو المستخدم طلب التسجيل بس مفيش أكل واضح، items هتبقى فاضية.
+    لا يرفع استثناء أبداً.
+    """
+    if not settings.ai_enabled:
+        return None
+    convo = _normalize_chat_messages(messages)
+    if not convo:
+        return None
+    transcript = "\n".join(
+        f"{'المستخدم' if m['role'] == 'user' else 'المساعد'}: {m['content']}"
+        for m in convo[-12:]
+    )
+    raw = ai_complete(
+        f"سجلّ المحادثة:\n{transcript}\n\n"
+        "استخرج الأصناف اللي المستخدم عايز يضيفها لليوم دلوقتي، وقدّر جراماتها وسعراتها لكل "
+        "100 جرام، وحدّد نوع الوجبة. رُدّ بـ JSON فقط.",
+        system=_LOG_EXTRACT_SYSTEM,
+        max_tokens=600,
+        temperature=0.1,
+    )
+    if not raw:
+        return None
+    try:
+        data = json.loads(_strip_json_fences(raw))
+        if not isinstance(data, dict):
+            return None
+        meal = data.get("meal")
+        if meal not in _VALID_MEALS:
+            meal = None
+        raw_items = data.get("items") or []
+        if not isinstance(raw_items, list):
+            return None
+        items: list[dict] = []
+        for it in raw_items:
+            if not isinstance(it, dict):
+                continue
+            name = it.get("name_ar")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            grams = _coerce_number(it.get("grams"))
+            if grams is None or grams <= 0:
+                continue
+            kcal = _coerce_number(it.get("kcal_per_100"), min_value=0)
+            items.append(
+                {
+                    "name_ar": name.strip(),
+                    "grams": grams,
+                    "kcal_per_100": kcal or 0.0,
+                    "protein_per_100": _coerce_number(it.get("protein_per_100"), min_value=0) or 0.0,
+                    "carbs_per_100": _coerce_number(it.get("carbs_per_100"), min_value=0) or 0.0,
+                    "fat_per_100": _coerce_number(it.get("fat_per_100"), min_value=0) or 0.0,
+                }
+            )
+        return {"meal": meal, "items": items}
+    except Exception:
+        logger.exception("فشل استخراج الوجبة للتسجيل من المحادثة")
         return None
 
 

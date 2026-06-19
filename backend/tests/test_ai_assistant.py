@@ -20,6 +20,26 @@ def test_looks_like_question_question_mark_only():
     assert looks_like_question("كشري؟") is True
 
 
+# ---------- كشف نيّة التسجيل wants_to_log (heuristic، بدون شبكة) ----------
+def test_wants_to_log_true_for_add_commands():
+    from app.services.meal_parser import wants_to_log
+
+    assert wants_to_log("ضيفهم") is True
+    assert wants_to_log("ايوه ضيف كله") is True
+    assert wants_to_log("سجّلهم في الغدا") is True   # مع تشكيل
+    assert wants_to_log("اكتبهم عندي") is True
+    assert wants_to_log("أضفهم لليوم") is True
+
+
+def test_wants_to_log_false_for_normal_chat():
+    from app.services.meal_parser import wants_to_log
+
+    assert wants_to_log("ايه أحسن أكل للعشا؟") is False
+    assert wants_to_log("نفسي اخس ٥ كيلو") is False
+    assert wants_to_log("كشري وفراخ") is False
+    assert wants_to_log("") is False
+
+
 # ---------- المسار بدون AI (الافتراضي في الاختبارات) ----------
 def test_parse_question_returns_empty_items_and_reply_no_ai(client):
     """سؤال بدون AI → لا أصناف ملفّقة، ورد ودّي غير فارغ."""

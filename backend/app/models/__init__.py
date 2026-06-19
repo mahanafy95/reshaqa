@@ -9,6 +9,7 @@ from .enums import (
     Sex,
     TargetMode,
 )
+from .assistant import AssistantMessage
 from .favorite import Favorite
 from .food import FoodLibrary, FoodLogged
 from .health import HealthToken
@@ -37,6 +38,7 @@ __all__ = [
     "DailyTarget",
     "FoodLibrary",
     "FoodLogged",
+    "AssistantMessage",
     "HealthToken",
     "IssueReport",
     "Recipe",

@@ -296,3 +296,81 @@ def test_estimate_calories_ai_none_on_bad_json(monkeypatch):
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
     monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: "لا شيء")
     assert ai.estimate_calories_ai("صنف", 100) is None
+
+
+# ---------- extract_meal_to_log (تسجيل وجبة من سياق المحادثة) ----------
+def test_extract_meal_to_log_none_when_disabled(monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+    assert ai.extract_meal_to_log([{"role": "user", "content": "ضيفهم"}]) is None
+
+
+def test_extract_meal_to_log_parses_items_and_meal(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    payload = {
+        "meal": "lunch",
+        "items": [
+            {"name_ar": "كشري", "grams": 300, "kcal_per_100": 160},
+            {"name_ar": "سلطة", "grams": 100, "kcal_per_100": 40},
+        ],
+    }
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: json.dumps(payload))
+    out = ai.extract_meal_to_log(
+        [{"role": "user", "content": "أكلت كشري وسلطة"}, {"role": "user", "content": "ضيفهم"}]
+    )
+    assert out["meal"] == "lunch"
+    assert out["items"] == [
+        {"name_ar": "كشري", "grams": 300.0, "kcal_per_100": 160.0,
+         "protein_per_100": 0.0, "carbs_per_100": 0.0, "fat_per_100": 0.0},
+        {"name_ar": "سلطة", "grams": 100.0, "kcal_per_100": 40.0,
+         "protein_per_100": 0.0, "carbs_per_100": 0.0, "fat_per_100": 0.0},
+    ]
+
+
+def test_extract_meal_to_log_parses_macros_when_provided(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    payload = {
+        "meal": "breakfast",
+        "items": [{"name_ar": "بيض", "grams": 100, "kcal_per_100": 155,
+                   "protein_per_100": 13, "carbs_per_100": 1.1, "fat_per_100": 11}],
+    }
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: json.dumps(payload))
+    out = ai.extract_meal_to_log([{"role": "user", "content": "ضيف بيضة"}])
+    assert out["items"][0] == {
+        "name_ar": "بيض", "grams": 100.0, "kcal_per_100": 155.0,
+        "protein_per_100": 13.0, "carbs_per_100": 1.1, "fat_per_100": 11.0,
+    }
+
+
+def test_extract_meal_to_log_rejects_naninf(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    # JSON بـ Infinity (json.loads بيقبلها افتراضياً) → لازم تترفض في _coerce_number
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k:
+                        '{"meal":"lunch","items":[{"name_ar":"رز","grams":Infinity,"kcal_per_100":130}]}')
+    out = ai.extract_meal_to_log([{"role": "user", "content": "ضيف"}])
+    assert out["items"] == []  # الجرامات Infinity → الصنف اتساقط
+
+
+def test_extract_meal_to_log_rejects_bad_meal_and_invalid_items(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    payload = {
+        "meal": "brunch",  # غير صالح → None
+        "items": [
+            {"name_ar": "", "grams": 100},          # اسم فاضي → يُسقَط
+            {"name_ar": "رز", "grams": 0},           # جرامات صفر → يُسقَط
+            {"name_ar": "فراخ", "grams": 200},       # صالح (بدون kcal → 0)
+        ],
+    }
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: json.dumps(payload))
+    out = ai.extract_meal_to_log([{"role": "user", "content": "ضيفهم"}])
+    assert out["meal"] is None
+    assert out["items"] == [
+        {"name_ar": "فراخ", "grams": 200.0, "kcal_per_100": 0.0,
+         "protein_per_100": 0.0, "carbs_per_100": 0.0, "fat_per_100": 0.0}
+    ]
+
+
+def test_extract_meal_to_log_none_on_bad_json(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: "مش JSON")
+    assert ai.extract_meal_to_log([{"role": "user", "content": "ضيفهم"}]) is None

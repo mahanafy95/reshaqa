@@ -21,14 +21,42 @@ class _AssistantScreenState extends State<AssistantScreen> {
   /// المحادثة في الذاكرة: كل عنصر {'role': 'user'|'assistant', 'content': str}.
   final List<Map<String, String>> _msgs = [];
   bool _sending = false;
+  bool _loadingHistory = true;
 
   // أمثلة سريعة تظهر في الحالة الفارغة.
   static const _examples = [
     'اعملي نظام تخسيس',
     'اكل ايه قبل الجيم؟',
-    'نصيحة عشان أتحفّز',
+    'أكلت طبق كشري وسلطة — ضيفهم',
     'وصفة عشا خفيفة وصحية',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  /// يستعيد المحادثة المحفوظة من السيرفر عند فتح الشاشة (تستمر بين الجلسات وعبر الأجهزة).
+  Future<void> _loadHistory() async {
+    try {
+      final hist = await Api.assistantHistory();
+      if (!mounted) return;
+      setState(() {
+        _msgs
+          ..clear()
+          ..addAll(hist.map((m) => {
+                'role': (m['role'] ?? 'assistant').toString(),
+                'content': (m['content'] ?? '').toString(),
+              }));
+        _loadingHistory = false;
+      });
+      _scrollToEnd();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingHistory = false); // نبدأ فاضي لو فشل التحميل
+    }
+  }
 
   @override
   void dispose() {
@@ -46,6 +74,46 @@ class _AssistantScreenState extends State<AssistantScreen> {
     });
   }
 
+  // تاريخ اليوم المحلي (YYYY-MM-DD) — يُمرَّر عشان تسجيل الوجبة يكون في اليوم الصح.
+  String _todayIso() {
+    final n = DateTime.now();
+    final mm = n.month.toString().padLeft(2, '0');
+    final dd = n.day.toString().padLeft(2, '0');
+    return '${n.year}-$mm-$dd';
+  }
+
+  // نوع وجبة افتراضي حسب الوقت لو الـ AI ماحددش (الفطار/الغدا/العشا/سناك).
+  String _mealForNow() {
+    final h = DateTime.now().hour;
+    if (h < 11) return 'breakfast';
+    if (h < 16) return 'lunch';
+    if (h < 21) return 'dinner';
+    return 'snack';
+  }
+
+  Future<void> _clearChat() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('مسح المحادثة؟'),
+        content: const Text('هتتمسح كل الرسائل مع المساعد. مش هيأثّر على أكلك المسجّل.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('مسح')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await Api.clearAssistantHistory();
+      if (!mounted) return;
+      setState(() => _msgs.clear());
+    } catch (e) {
+      if (!mounted) return;
+      showSnack(context, ApiClient.errorMessage(e), error: true);
+    }
+  }
+
   Future<void> _send([String? preset]) async {
     final text = (preset ?? _input.text).trim();
     if (text.isEmpty || _sending) return;
@@ -56,17 +124,22 @@ class _AssistantScreenState extends State<AssistantScreen> {
     });
     _scrollToEnd();
 
-    // نرسل آخر ~8 أدوار فقط (مع الرسالة الجديدة).
-    final recent = _msgs.length > 8 ? _msgs.sublist(_msgs.length - 8) : List<Map<String, String>>.from(_msgs);
+    // نرسل آخر ~10 أدوار فقط (مع الرسالة الجديدة) — كفاية للسياق وتسجيل الوجبة.
+    final recent = _msgs.length > 10 ? _msgs.sublist(_msgs.length - 10) : List<Map<String, String>>.from(_msgs);
     try {
-      final res = await Api.assistantChat(recent);
+      final res = await Api.assistantChat(recent, date: _todayIso(), defaultMeal: _mealForNow());
       if (!mounted) return;
       final reply = (res['reply'] ?? '').toString();
+      final logged = res['logged'] == true;
       setState(() {
         _msgs.add({'role': 'assistant', 'content': reply});
         _sending = false;
       });
       _scrollToEnd();
+      if (logged) {
+        final cals = (res['logged_total_calories'] ?? 0);
+        showSnack(context, 'اتسجّلت في يومك ✅ (~${(cals as num).round()} سعرة)');
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _sending = false);
@@ -77,11 +150,23 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('المساعد الذكي 🤖')),
+      appBar: AppBar(
+        title: const Text('المساعد الذكي 🤖'),
+        actions: [
+          if (_msgs.isNotEmpty)
+            IconButton(
+              tooltip: 'مسح المحادثة',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _sending ? null : _clearChat,
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
-            child: _msgs.isEmpty
+            child: _loadingHistory
+                ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
+                : _msgs.isEmpty
                 ? _EmptyState(examples: _examples, onPick: _send)
                 : ListView.builder(
                     controller: _scroll,
@@ -206,7 +291,8 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'اسألني عن التغذية، اللياقة، الوصفات، أو أي حاجة تحفّزك على هدفك 💚',
+            'اسألني عن التغذية، اللياقة، الوصفات، أو أي حاجة تحفّزك على هدفك 💚\n'
+            'وتقدر كمان تقولي «ضيف اللي أكلته» وأنا أسجّله في يومك.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textMuted),
           ),

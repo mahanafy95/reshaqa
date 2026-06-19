@@ -59,7 +59,7 @@ const post = <T,>(p: string, body?: unknown) =>
   req<T>(p, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 const put = <T,>(p: string, body?: unknown) =>
   req<T>(p, { method: "PUT", body: body ? JSON.stringify(body) : undefined });
-const del = (p: string) => req<null>(p, { method: "DELETE" });
+const del = <T = null,>(p: string) => req<T>(p, { method: "DELETE" });
 
 export const api = {
   // المصادقة
@@ -131,9 +131,23 @@ export const api = {
       confirm: opts?.confirm ?? false,
     }),
 
-  // المساعد الذكي (محادثة حرة)
-  assistantChat: (messages: { role: string; content: string }[]) =>
-    post<{ reply: string }>("/assistant/chat", { messages }),
+  // المساعد الذكي (محادثة حرة + حفظ المحادثة + تسجيل وجبة بالأمر)
+  assistantChat: (
+    messages: { role: string; content: string }[],
+    opts?: { date?: string; default_meal?: string },
+  ) =>
+    post<{
+      reply: string;
+      logged?: boolean;
+      logged_items?: { name_ar: string; grams: number; calories: number; meal: string }[];
+      logged_total_calories?: number;
+      meal?: string | null;
+    }>("/assistant/chat", { messages, date: opts?.date, default_meal: opts?.default_meal }),
+  assistantHistory: (limit = 100) =>
+    get<{ messages: { role: string; content: string; created_at: string }[] }>(
+      `/assistant/history?limit=${limit}`,
+    ),
+  clearAssistantHistory: () => del<{ cleared: number }>("/assistant/history"),
 
   // الوصفات والمفضلة
   recipes: () => get<any[]>("/recipes"),
