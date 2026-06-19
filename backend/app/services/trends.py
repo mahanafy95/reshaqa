@@ -36,6 +36,34 @@ def trailing_moving_average(
     return result
 
 
+@dataclass
+class ForecastResult:
+    slope_kg_per_week: float | None
+    on_track: bool                 # هل يتحرك ناحية الهدف فعلاً؟
+    reached: bool                  # وصل الهدف (±0.3 كجم)
+    eta_weeks: float | None        # الأسابيع المتوقعة للوصول
+    eta_days: int | None
+
+
+def forecast_to_goal(points: list["WeightPoint"], goal_kg: float | None) -> ForecastResult:
+    """يتوقّع زمن الوصول لوزن الهدف بناءً على ميل آخر القياسات (انحدار خطي).
+
+    on_track=False لو الاتجاه بعيد عن الهدف أو الوزن شبه ثابت أو البيانات قليلة.
+    """
+    slope = linear_slope_kg_per_week(points)
+    if slope is None or goal_kg is None or not points:
+        return ForecastResult(slope, False, False, None, None)
+    current = sorted(points, key=lambda p: p.day)[-1].weight_kg
+    diff = goal_kg - current  # موجب = محتاج يزيد، سالب = محتاج ينقص
+    if abs(diff) <= 0.3:
+        return ForecastResult(slope, True, True, 0.0, 0)
+    moving_toward = (diff > 0 and slope > 0) or (diff < 0 and slope < 0)
+    if not moving_toward or abs(slope) < 0.05:
+        return ForecastResult(slope, False, False, None, None)
+    eta_weeks = abs(diff) / abs(slope)
+    return ForecastResult(slope, True, False, round(eta_weeks, 1), int(round(eta_weeks * 7)))
+
+
 def linear_slope_kg_per_week(points: list[WeightPoint]) -> float | None:
     """ميل خط الانحدار للوزن مقابل الزمن (كجم/أسبوع). None لو أقل من نقطتين."""
     if len(points) < 2:

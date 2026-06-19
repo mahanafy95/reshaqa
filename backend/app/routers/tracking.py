@@ -1,7 +1,9 @@
 """راوتر المتابعة — الوزن (بالاتجاه)، الوسط، المياه، النشاط، الحالة المزاجية."""
 from datetime import date as date_type
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -23,9 +25,26 @@ from ..schemas.tracking import (
     WeightOut,
     WeightTrendOut,
 )
-from ..services.trends import WeightPoint, detect_plateau, trailing_moving_average
+from ..services.trends import (
+    WeightPoint,
+    detect_plateau,
+    forecast_to_goal,
+    trailing_moving_average,
+)
 
 router = APIRouter(tags=["المتابعة"])
+
+
+class WeightForecastOut(BaseModel):
+    has_goal: bool
+    goal_weight_kg: float | None = None
+    current_weight_kg: float | None = None
+    slope_kg_per_week: float | None = None
+    on_track: bool = False
+    reached: bool = False
+    eta_weeks: float | None = None
+    eta_date: date_type | None = None
+    message_ar: str
 
 
 def _today(d: date_type | None) -> date_type:
@@ -83,6 +102,51 @@ def weight_trend(
         current_trend_kg=trend[-1].trend_kg if trend else None,
         slope_kg_per_week=plateau.slope_kg_per_week if plateau else None,
         plateau=plateau.__dict__ if plateau else None,
+    )
+
+
+@router.get("/weight/forecast", response_model=WeightForecastOut)
+def weight_forecast(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> WeightForecastOut:
+    """توقّع زمن الوصول لوزن الهدف بناءً على اتجاه قياساتك (تحفيز أسبوعي)."""
+    profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
+    goal = profile.goal_weight_kg if profile else None
+
+    rows = db.scalars(
+        select(WeightLog).where(WeightLog.user_id == current_user.id).order_by(WeightLog.date.asc())
+    ).all()
+    by_day: dict[date_type, float] = {r.date: r.weight_kg for r in rows}
+    points = [WeightPoint(day=d, weight_kg=w) for d, w in sorted(by_day.items())]
+    current = points[-1].weight_kg if points else None
+
+    if goal is None:
+        return WeightForecastOut(
+            has_goal=False, current_weight_kg=current,
+            message_ar="حدّد وزن هدفك من ملفك الشخصي عشان نقدر نتوقّعلك وصولك ليه 🎯",
+        )
+
+    fc = forecast_to_goal(points, goal)
+    eta_date = (date_type.today() + timedelta(days=fc.eta_days)) if fc.eta_days else None
+
+    if fc.slope_kg_per_week is None:
+        msg = "سجّل وزنك كذا مرة على مدى أيام وهنوريك متوقّع توصل هدفك إمتى 📈"
+    elif fc.reached:
+        msg = "مبروووك! وصلت وزن هدفك تقريباً 🎉 حافظ عليه."
+    elif fc.on_track and fc.eta_weeks:
+        wk = fc.eta_weeks
+        wk_txt = f"{wk:g} أسبوع" if wk >= 1 else "أقل من أسبوع"
+        date_txt = f" (حوالي {eta_date})" if eta_date else ""
+        msg = f"بمعدّلك الحالي ({fc.slope_kg_per_week:g} كجم/أسبوع) متوقّع توصل هدفك خلال ~{wk_txt}{date_txt} 💪"
+    elif abs(fc.slope_kg_per_week) < 0.05:
+        msg = "وزنك ثابت تقريباً — لو عايز تتحرّك ناحية هدفك عدّل سعراتك أو نشاطك شوية."
+    else:
+        msg = "اتجاهك الحالي بعيد عن هدفك — راجع نظامك وهنوصل سوا 🙏"
+
+    return WeightForecastOut(
+        has_goal=True, goal_weight_kg=goal, current_weight_kg=current,
+        slope_kg_per_week=fc.slope_kg_per_week, on_track=fc.on_track, reached=fc.reached,
+        eta_weeks=fc.eta_weeks, eta_date=eta_date, message_ar=msg,
     )
 
 
