@@ -47,3 +47,10 @@ services:
       # مفتاح مجاني من https://aistudio.google.com/apikey (بدون فيزا). فاضي = محلّل محلي.
       - key: GEMINI_API_KEY
         sync: false
+      # احتياطي مجاني عبر OpenRouter — مفتاح واحد بيفتح موديلات مجانية صينية (DeepSeek/Qwen/GLM)
+      # وغيرها. مفتاح من https://openrouter.ai/keys . ملاحظة: Grok مش مجاني فاتشال متعمّد.
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # قائمة الموديلات المجانية بالترتيب (مفصولة بفواصل) — نجرّبها واحدة تلو الأخرى.
+      - key: OPENROUTER_MODELS
+        value: deepseek/deepseek-chat-v3-0324:free,qwen/qwen-2.5-72b-instruct:free,z-ai/glm-4.5-air:free,meta-llama/llama-3.3-70b-instruct:free,google/gemini-2.0-flash-exp:free

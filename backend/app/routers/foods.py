@@ -4,7 +4,7 @@ from datetime import date as date_type
 import re
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from sqlalchemy import or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -39,6 +39,57 @@ from ..services.estimator import get_estimator
 
 router = APIRouter(prefix="/foods", tags=["تسجيل الأكل"])
 
+# أقصى نسبة طول مسموح بها بين اسم المكتبة والاستعلام عند المطابقة الجزئية (احتواء).
+# يمنع «نص رغيف عيش» من مطابقة «ساندويتش فلافل بالعيش» (اسم أطول بكتير وغير متعلّق).
+_MATCH_LEN_RATIO = 2.5
+
+
+def _match_library(db: Session, name: str) -> FoodLibrary | None:
+    """يلاقي أقرب صنف مكتبة لاسم مُدخل — مع تجنّب مطابقة استعلام قصير لاسم أطول غير متعلّق.
+
+    الأولوية:
+      1) تطابق تام للاسم (تجاهل حالة الأحرف/المسافات).
+      2) اسم يبدأ بالاستعلام.
+      3) أقصر اسم مكتبة يحتوي الاستعلام، بشرط ألا يتجاوز طوله ~2.5 ضعف طول الاستعلام
+         (إلا لو كان يبدأ بالاستعلام).
+    لو مفيش تطابق جيد، يرجّع None (فيستخدم المقدّر).
+    """
+    q = (name or "").strip()
+    if not q:
+        return None
+    ql = q.lower()
+
+    # 1) تطابق تام (lower) — أدق ما يكون
+    exact = db.scalar(
+        select(FoodLibrary)
+        .where(func.lower(FoodLibrary.name_ar) == ql)
+        .order_by(func.length(FoodLibrary.name_ar))
+        .limit(1)
+    )
+    if exact is not None:
+        return exact
+
+    # 2) اسم يبدأ بالاستعلام (نختار الأقصر)
+    starts = db.scalar(
+        select(FoodLibrary)
+        .where(func.lower(FoodLibrary.name_ar).like(f"{ql}%"))
+        .order_by(func.length(FoodLibrary.name_ar))
+        .limit(1)
+    )
+    if starts is not None:
+        return starts
+
+    # 3) أقصر اسم يحتوي الاستعلام، مع حدّ على فرق الطول
+    contains = db.scalar(
+        select(FoodLibrary)
+        .where(func.lower(FoodLibrary.name_ar).like(f"%{ql}%"))
+        .order_by(func.length(FoodLibrary.name_ar))
+        .limit(1)
+    )
+    if contains is not None and len(contains.name_ar.strip()) <= len(q) * _MATCH_LEN_RATIO:
+        return contains
+    return None
+
 
 def _owned_log(db: Session, user_id: int, food_id: int) -> FoodLogged:
     item = db.scalar(
@@ -59,11 +110,23 @@ def search_library(
     db: Session = Depends(get_db),
 ):
     stmt = select(FoodLibrary)
-    if q.strip():
-        stmt = stmt.where(FoodLibrary.name_ar.ilike(f"%{q.strip()}%"))
+    query = q.strip()
+    if query:
+        stmt = stmt.where(FoodLibrary.name_ar.ilike(f"%{query}%"))
     if region:
         stmt = stmt.where(FoodLibrary.region == region)
-    stmt = stmt.order_by(FoodLibrary.name_ar).limit(limit)
+    if query:
+        # الأقرب أولاً: تطابق تام ثم اسم يبدأ بالاستعلام ثم الأقصر، فالأبجدي.
+        ql = query.lower()
+        rank = case(
+            (func.lower(FoodLibrary.name_ar) == ql, 0),
+            (func.lower(FoodLibrary.name_ar).like(f"{ql}%"), 1),
+            else_=2,
+        )
+        stmt = stmt.order_by(rank, func.length(FoodLibrary.name_ar), FoodLibrary.name_ar)
+    else:
+        stmt = stmt.order_by(FoodLibrary.name_ar)
+    stmt = stmt.limit(limit)
     return db.scalars(stmt).all()
 
 
@@ -86,10 +149,8 @@ def estimate_food(
     db: Session = Depends(get_db),
 ):
     """تقدير سعرات أكلة بالاسم — يجرّب المكتبة أولاً ثم heuristic (لا يطلب رقماً)."""
-    # محاولة مطابقة المكتبة أولاً (أدق)
-    match = db.scalar(
-        select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{name.strip()}%")).limit(1)
-    )
+    # محاولة مطابقة المكتبة أولاً (أدق) — مطابقة محكمة تتجنّب التطابق الجزئي الخاطئ
+    match = _match_library(db, name)
     if match is not None:
         f = amount / 100.0
         return EstimateOut(
@@ -150,15 +211,23 @@ _QUESTION_FALLBACK_REPLY = (
 
 
 def _price_item(
-    db: Session, name_ar: str, qty: float, unit_ar: str | None, grams: float, meal: Meal
+    db: Session,
+    name_ar: str,
+    qty: float,
+    unit_ar: str | None,
+    grams: float,
+    meal: Meal,
+    ai_kcal_per_100: float | None = None,
 ) -> ParsedFoodItem:
-    """يسعّر صنفاً واحداً بعدد جرامات معروف عبر نفس مسار المكتبة/المقدّر المحلي.
+    """يسعّر صنفاً واحداً بعدد جرامات معروف.
 
-    السعرات دايماً محسوبة محليًا (مش من أي LLM).
+    الأولوية:
+      1) تطابق مكتبة محكم (أدق + يشمل بروتين/نشويات/دهون) → سعرات المكتبة.
+      2) لو الـ AI أعطى تقدير سعرات/100جم لهذا الصنف (من parse_meal_ai) نستخدمه مباشرة
+         بدل المقدّر «الغبي».
+      3) وإلا المقدّر المحلي (المدعوم بالـ AI أو الـ heuristic).
     """
-    match = db.scalar(
-        select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{name_ar.strip()}%")).limit(1)
-    )
+    match = _match_library(db, name_ar)
     if match is not None:
         f = grams / 100.0
         return ParsedFoodItem(
@@ -168,6 +237,17 @@ def _price_item(
             confidence="high", source=FoodSource.library, matched_library_id=match.id,
             note_ar="من مكتبة الأكلات.",
         )
+
+    # لا يوجد تطابق مكتبة واثق → لو الـ AI أعطى سعرات/100جم واقعية لهذا الصنف، نستخدمها
+    if ai_kcal_per_100 is not None and ai_kcal_per_100 >= 0:
+        f = grams / 100.0
+        return ParsedFoodItem(
+            name_ar=name_ar.strip() or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
+            calories=round(ai_kcal_per_100 * f), confidence="medium",
+            source=FoodSource.estimated,
+            note_ar="تقدير من المساعد الذكي — راجعه وعدّله لو محتاج.",
+        )
+
     est = get_estimator().estimate(name_ar, grams)
     return ParsedFoodItem(
         name_ar=est.name_ar or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
@@ -204,10 +284,19 @@ def parse_meal(
                 return ParseResponse(
                     items=[], total_calories=0, logged=False, logged_ids=[], reply_ar=reply,
                 )
-            # أصناف من الـ AI — نسعّرها بنفس المسار المحلي (السعرات محليًا دايماً)
+            # أصناف من الـ AI — نسعّرها: تطابق مكتبة واثق أولاً، وإلا تقدير الـ AI (kcal_per_100)
             for it in ai.get("items", [])[:25]:
+                ai_kcal = it.get("kcal_per_100")
+                ai_kcal_f = (
+                    float(ai_kcal)
+                    if isinstance(ai_kcal, (int, float)) and not isinstance(ai_kcal, bool)
+                    else None
+                )
                 out.append(
-                    _price_item(db, it["name_ar"], 1.0, None, float(it["grams"]), default_meal)
+                    _price_item(
+                        db, it["name_ar"], 1.0, None, float(it["grams"]), default_meal,
+                        ai_kcal_per_100=ai_kcal_f,
+                    )
                 )
         else:
             # فشل الـ AI → رجوع للـ heuristic
@@ -256,9 +345,7 @@ def _parse_heuristic_items(db: Session, text: str, default_meal: str) -> list[Pa
     raw_items = meal_parser.parse_text(text, default_meal)[:25]
     out: list[ParsedFoodItem] = []
     for raw in raw_items:
-        match = db.scalar(
-            select(FoodLibrary).where(FoodLibrary.name_ar.ilike(f"%{raw.name_ar.strip()}%")).limit(1)
-        )
+        match = _match_library(db, raw.name_ar)
         lib_hu = match.household_unit_ar if match else None
         lib_hg = match.household_grams if match else None
         grams = meal_parser.resolve_grams(raw.qty, raw.unit_ar, lib_hu, lib_hg, raw.name_ar)

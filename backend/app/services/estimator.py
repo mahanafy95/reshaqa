@@ -1,8 +1,9 @@
 """خدمة تقدير السعرات — قابلة للتبديل (heuristic / LLM / nutrition API).
 
 الهدف: إعطاء تقدير تقريبي لأي أكلة بالاسم دون مطالبة المستخدم برقم.
-المزوّد الافتراضي (none) يستخدم heuristic بالكلمات المفتاحية. مزوّدو LLM/API
-يحاولون أولاً ثم يرجعون للـ heuristic عند أي فشل (لا يفشل التقدير أبداً).
+المزوّد الافتراضي (none) يستخدم heuristic بالكلمات المفتاحية. لو الـ AI مفعّل
+(GEMINI أو OpenRouter) نجرّب تقدير حقيقي من الـ AI أولاً (يعرف إن الخيار ~15
+والعسل ~300/100جم...) ثم نرجع للـ heuristic عند أي فشل (لا يفشل التقدير أبداً).
 """
 from dataclasses import dataclass
 
@@ -20,17 +21,24 @@ class EstimateResult:
     per100_calories: float
     confidence: str          # high | medium | low
     note_ar: str
-    provider: str            # heuristic | openai | nutrition_api
+    provider: str            # heuristic | ai | openai | nutrition_api
 
 
 # جدول heuristic: (كلمات مفتاحية, سعرات/100جم, بروتين, نشويات, دهون)
+# مرتّب: الأكثر تحديداً أولاً (مقلي/حلويات) ثم العام، عشان «بطاطس مقلية» متتطابقش كخضار.
 _KEYWORD_TABLE: list[tuple[tuple[str, ...], float, float, float, float]] = [
     (("زيت", "سمن", "زبدة"), 890, 0, 0, 99),
+    (("عسل", "دبس", "مربى"), 300, 0.3, 80, 0),
+    (("سكر",), 400, 0, 100, 0),
     (("مقلي", "مقلية", "محمر", "محمرة", "قلي"), 320, 8, 28, 19),
-    (("مشوي", "مشوية", "مسلوق", "مسلوقة", "صدر"), 165, 26, 2, 6),
-    (("سلطة", "خضار", "خضروات", "سبانخ", "خس"), 45, 2, 6, 1.5),
-    (("شوربة", "حساء", "شربة"), 60, 3, 7, 2),
     (("حلو", "حلاو", "حلويات", "كيك", "تورتة", "بسكويت", "شوكولاتة", "جاتوه"), 400, 5, 55, 18),
+    (("مكسرات", "لوز", "عين جمل", "كاجو", "فول سوداني"), 580, 18, 20, 50),
+    (("بيتزا", "برجر", "ساندويتش", "شاورما", "حواوشي"), 260, 12, 26, 12),
+    # بطاطس/بطاطا (قبل «مشوي/مسلوق» العام عشان «بطاطس مسلوقة» متتحسبش كلحم مسلوق)
+    (("بطاطس مسلوقة", "بطاطا مسلوقة", "بطاطس مسلوق", "بطاطا مسلوق"), 87, 2, 20, 0.1),
+    (("بطاطس", "بطاطا"), 90, 2, 20, 0.1),
+    (("مشوي", "مشوية", "مسلوق", "مسلوقة", "صدر"), 165, 26, 2, 6),
+    (("شوربة", "حساء", "شربة"), 60, 3, 7, 2),
     (("عصير", "مشروب غازي", "كولا", "صودا"), 45, 0.3, 11, 0),
     (("مشروب", "شاي", "قهوة", "نسكافيه"), 35, 0.5, 7, 0.5),
     (("رز", "أرز", "مكرونة", "عيش", "خبز", "معكرونة", "برغل", "فريك"), 180, 5, 35, 2.5),
@@ -38,13 +46,31 @@ _KEYWORD_TABLE: list[tuple[tuple[str, ...], float, float, float, float]] = [
     (("جبنة", "جبن", "لبنة"), 280, 16, 4, 22),
     (("لبن", "حليب", "زبادي"), 65, 3.4, 5, 3.2),
     (("فول", "عدس", "حمص", "فاصوليا", "بقول"), 120, 8, 16, 2.5),
-    (("فاكهة", "فواكه", "تفاح", "موز", "برتقال", "عنب", "بطيخ", "مانجو"), 60, 0.8, 15, 0.2),
-    (("مكسرات", "لوز", "عين جمل", "كاجو", "فول سوداني"), 580, 18, 20, 50),
-    (("بيتزا", "برجر", "ساندويتش", "شاورما", "حواوشي"), 260, 12, 26, 12),
+    # ---- خضروات بسيطة (~20 سعرة/100جم) ----
+    (
+        (
+            "خيار", "خيارة", "طماطم", "طماطه", "بندورة", "جزر", "فلفل", "بصل", "ثوم",
+            "كوسة", "كوسا", "باذنجان", "بزنجان", "ملفوف", "كرنب", "قرنبيط", "زهرة",
+            "فجل", "بقدونس", "كزبرة", "جرجير", "خس", "سبانخ", "بامية", "فاصوليا خضراء",
+            "سلطة", "خضار", "خضروات", "ورقيات",
+        ),
+        22, 1.2, 4.5, 0.2,
+    ),
+    # ---- فواكه (~50 سعرة/100جم) ----
+    (
+        (
+            "تفاح", "تفاحة", "موز", "موزة", "برتقال", "برتقالة", "يوسفي", "ليمون",
+            "فراولة", "فراوله", "عنب", "مانجو", "مانجه", "خوخ", "مشمش", "كمثرى",
+            "جوافة", "رمان", "تين", "كيوي", "أناناس", "بطيخ", "شمام", "كانتالوب",
+            "بلح", "تمر", "فاكهة", "فواكه",
+        ),
+        52, 0.7, 13, 0.2,
+    ),
 ]
 
-# تقدير افتراضي متوازن لأي أكلة غير معروفة
-_DEFAULT = (160.0, 7.0, 18.0, 6.5)
+# تقدير افتراضي لأي أكلة غير معروفة — أقل من السابق (160) وأقرب لأكلة متوسطة خفيفة،
+# مع ثقة منخفضة وملاحظة واضحة تطلب التعديل اليدوي.
+_DEFAULT = (120.0, 5.0, 16.0, 4.0)
 
 
 class HeuristicEstimator:
@@ -73,25 +99,59 @@ class HeuristicEstimator:
             per100_calories=per100[0],
             confidence=confidence,
             note_ar=note,
-            provider=self.provider,
+            provider="heuristic",
         )
 
 
-class _FallbackEstimator(HeuristicEstimator):
-    """قاعدة لمزوّدين خارجيين — يحاولون ثم يرجعون للـ heuristic عند الفشل."""
+class _AIEstimator(HeuristicEstimator):
+    """مُقدّر مدعوم بالذكاء الاصطناعي — يجرّب الـ AI أولاً ثم يرجع للـ heuristic عند الفشل."""
 
-    provider = "heuristic"
+    provider = "ai"
 
     def estimate(self, name_ar: str, amount_g: float) -> EstimateResult:
-        # محاولة المزوّد الخارجي هنا مستقبلاً (LLM/API). في حال غياب المفتاح أو الفشل:
-        return super().estimate(name_ar, amount_g)
+        text = (name_ar or "").strip()
+        # استيراد كسول لتجنّب أي مشاكل ترتيب استيراد دائري
+        from . import ai_assistant
+
+        try:
+            ai = ai_assistant.estimate_calories_ai(text, amount_g)
+        except Exception:
+            ai = None
+
+        if ai is not None:
+            try:
+                per100_cal = float(ai["kcal_per_100"])
+                p = float(ai.get("protein", 0) or 0)
+                c = float(ai.get("carbs", 0) or 0)
+                f = float(ai.get("fat", 0) or 0)
+            except (KeyError, TypeError, ValueError):
+                per100_cal = None
+            else:
+                if per100_cal >= 0:
+                    factor = amount_g / 100.0
+                    return EstimateResult(
+                        name_ar=text,
+                        amount_g=amount_g,
+                        calories=round(per100_cal * factor),
+                        protein=round(p * factor, 1),
+                        carbs=round(c * factor, 1),
+                        fat=round(f * factor, 1),
+                        per100_calories=per100_cal,
+                        confidence="medium",
+                        note_ar="تقدير من المساعد الذكي — راجعه وعدّله لو محتاج.",
+                        provider=self.provider,
+                    )
+
+        # غياب المفتاح أو فشل الـ AI → الرجوع للـ heuristic المحلي
+        return super().estimate(text, amount_g)
 
 
 def get_estimator():
-    """يُرجع المُقدِّر حسب الإعدادات (قابل للتبديل)."""
-    provider = settings.CALORIE_ESTIMATOR_PROVIDER
-    if provider == "openai" and settings.OPENAI_API_KEY:
-        return _FallbackEstimator()
-    if provider == "nutrition_api" and settings.NUTRITION_API_KEY:
-        return _FallbackEstimator()
+    """يُرجع المُقدِّر حسب الإعدادات (قابل للتبديل).
+
+    لو الـ AI مفعّل (GEMINI/OpenRouter) نستخدم مُقدّراً مدعوماً بالـ AI (مع رجوع للـ heuristic)؛
+    وإلا نستخدم الـ heuristic المحلي المجاني.
+    """
+    if settings.ai_enabled:
+        return _AIEstimator()
     return HeuristicEstimator()

@@ -1,7 +1,10 @@
 """اختبارات تسجيل الأكل والمكتبة والتقدير والاقتراحات."""
 from datetime import date
 
+import app.routers.foods as foods_router
+from app.config import settings
 from app.models.food import FoodLibrary
+from app.routers.foods import _match_library
 from tests.conftest import auth_headers
 
 TODAY = "2026-06-17"
@@ -12,6 +15,9 @@ def _seed_lib(db):
         FoodLibrary(name_ar="رز أبيض مطبوخ", calories_per_100=130, protein=2.7, carbs=28, fat=0.3, region="generic"),
         FoodLibrary(name_ar="صدر دجاج مشوي", calories_per_100=165, protein=31, carbs=0, fat=3.6, region="generic"),
         FoodLibrary(name_ar="كشري", calories_per_100=150, protein=5, carbs=28, fat=2.5, region="eg"),
+        # العطل القديم: «نص رغيف عيش» كان بيتطابق مع ساندويتش فلافل بالعيش (اسم أطول بكتير)
+        FoodLibrary(name_ar="ساندويتش فلافل بالعيش", calories_per_100=290, protein=8, carbs=35, fat=12, region="eg"),
+        FoodLibrary(name_ar="عيش بلدي", calories_per_100=250, protein=8, carbs=50, fat=1.5, region="eg"),
     ])
     db.commit()
 
@@ -120,3 +126,91 @@ def test_parse_meal_confirm_logs_to_day(client, db_session):
 
 def test_parse_meal_requires_auth(client):
     assert client.post("/foods/parse", json={"text": "تفاحة"}).status_code == 401
+
+
+# ---------- مطابقة المكتبة المحكمة (إصلاح التطابق الجزئي الخاطئ) ----------
+def test_match_library_short_query_does_not_match_longer_unrelated(db_session):
+    """«نص رغيف عيش» المفروض ما يتطابقش مع «ساندويتش فلافل بالعيش» (أطول بكتير)."""
+    _seed_lib(db_session)
+    match = _match_library(db_session, "نص رغيف عيش")
+    if match is not None:
+        assert "فلافل" not in match.name_ar
+
+
+def test_match_library_prefers_exact_then_prefix(db_session):
+    _seed_lib(db_session)
+    # تطابق تام
+    assert _match_library(db_session, "كشري").name_ar == "كشري"
+    # «عيش» القصيرة تفضّل «عيش بلدي» (تبدأ بالاستعلام) على ساندويتش الفلافل الأطول
+    m = _match_library(db_session, "عيش")
+    assert m is not None and m.name_ar == "عيش بلدي"
+
+
+def test_match_library_none_for_unknown(db_session):
+    _seed_lib(db_session)
+    assert _match_library(db_session, "كافيار بلوجا فاخر") is None
+
+
+def test_estimate_short_query_not_matched_to_long_falafel(client, db_session):
+    """عبر الـ API: «نص رغيف عيش» ما يطلّعش سعرات ساندويتش الفلافل."""
+    _seed_lib(db_session)
+    h = auth_headers(client, "fmatch1")
+    r = client.get("/foods/estimate?name=نص رغيف عيش&amount=45", headers=h)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # لو طابق المكتبة لازم ما يكونش الفلافل؛ لو ما طابقش بيرجع تقدير
+    assert "فلافل" not in body["name_ar"]
+
+
+def test_estimate_cucumber_not_160(client, db_session):
+    """عبر الـ API بدون AI: «خيارة» مش بتطلّع ~160 سعرة زي العطل القديم."""
+    _seed_lib(db_session)
+    h = auth_headers(client, "fmatch2")
+    r = client.get("/foods/estimate?name=خيارة&amount=100", headers=h)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["source"] == "estimated"
+    assert body["calories"] < 60
+
+
+def test_parse_uses_ai_kcal_per_100_when_no_library_match(client, db_session, monkeypatch):
+    """صنف من الـ AI بدون تطابق مكتبة → نسعّره بـ kcal_per_100 من الـ AI مش بالمقدّر الغبي."""
+    _seed_lib(db_session)
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        foods_router.ai_assistant,
+        "parse_meal_ai",
+        lambda text: {
+            "is_question": False,
+            "items": [{"name_ar": "خيار", "grams": 100, "kcal_per_100": 15}],
+        },
+    )
+    monkeypatch.setattr(foods_router.ai_assistant, "meal_reply", lambda *a, **k: None)
+    h = auth_headers(client, "faikcal")
+    r = client.post("/foods/parse", json={"text": "اكلت خيار"}, headers=h)
+    assert r.status_code == 200, r.text
+    items = r.json()["items"]
+    assert len(items) == 1
+    # 15 سعرة/100جم * 100جم = 15 (مش 120 الافتراضي ولا 160 القديم)
+    assert items[0]["calories"] == 15
+
+
+def test_parse_ai_item_prefers_confident_library_over_ai_kcal(client, db_session, monkeypatch):
+    """لو فيه تطابق مكتبة واثق نستخدم سعرات المكتبة حتى لو الـ AI بعت kcal_per_100."""
+    _seed_lib(db_session)
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        foods_router.ai_assistant,
+        "parse_meal_ai",
+        lambda text: {
+            "is_question": False,
+            "items": [{"name_ar": "كشري", "grams": 100, "kcal_per_100": 999}],
+        },
+    )
+    monkeypatch.setattr(foods_router.ai_assistant, "meal_reply", lambda *a, **k: None)
+    h = auth_headers(client, "failib")
+    r = client.post("/foods/parse", json={"text": "اكلت كشري"}, headers=h)
+    assert r.status_code == 200, r.text
+    item = r.json()["items"][0]
+    assert item["source"] == "library"
+    assert item["calories"] == 150  # من المكتبة مش 999 من الـ AI

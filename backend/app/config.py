@@ -86,6 +86,18 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-1.5-flash"
 
+    # احتياطي مجاني عبر OpenRouter — مفتاح واحد يفتح موديلات مجانية (DeepSeek/Qwen/GLM الصينية وغيرها).
+    # مفتاح من https://openrouter.ai/keys . لو فاضي، نكتفي بـ Gemini أو المحلّل المحلي.
+    OPENROUTER_API_KEY: str = ""
+    # قائمة الموديلات المجانية بالترتيب (مفصولة بفواصل) — نجرّبها واحدة تلو الأخرى.
+    OPENROUTER_MODELS: str = (
+        "deepseek/deepseek-chat-v3-0324:free,"
+        "qwen/qwen-2.5-72b-instruct:free,"
+        "z-ai/glm-4.5-air:free,"
+        "meta-llama/llama-3.3-70b-instruct:free,"
+        "google/gemini-2.0-flash-exp:free"
+    )
+
     @model_validator(mode="after")
     def _enforce_secure_secret(self):
         # في الإنتاج: ارفض التشغيل بمفتاح JWT افتراضي/فارغ (يمنع تزوير التوكنات)
@@ -135,9 +147,14 @@ class Settings(BaseSettings):
         return bool(self.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON.strip())
 
     @property
+    def openrouter_models_list(self) -> list[str]:
+        """قائمة موديلات OpenRouter المنظّفة (بدون فراغات أو عناصر فارغة)."""
+        return [m.strip() for m in self.OPENROUTER_MODELS.split(",") if m.strip()]
+
+    @property
     def ai_enabled(self) -> bool:
-        """هل المساعد الذكي (Gemini) مفعّل؟ (وإلا نرجع للمحلّل المحلي المجاني)."""
-        return bool(self.GEMINI_API_KEY.strip())
+        """هل المساعد الذكي مفعّل؟ (Gemini أو OpenRouter — وإلا نرجع للمحلّل المحلي المجاني)."""
+        return bool(self.GEMINI_API_KEY.strip()) or bool(self.OPENROUTER_API_KEY.strip())
 
     @property
     def sqlalchemy_url(self) -> str:
