@@ -14,10 +14,11 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..core.billing import is_user_premium
 from ..core.deps import get_current_user
 from ..core.ratelimit import limiter
 from ..database import get_db
@@ -45,6 +46,14 @@ _DEDUP_WINDOW_SECONDS = 120
 _AI_OFF_REPLY = (
     "المساعد الذكي لسه مش مفعّل — فعّل المفتاح المجاني وهبقى أرد عليك في أي حاجة 🙏"
 )
+
+
+def _limit_reply() -> str:
+    return (
+        f"وصلت لحد محادثات المساعد المجانية النهاردة ({settings.FREE_ASSISTANT_DAILY_LIMIT} رسالة) 🌙\n"
+        "تقدر تكمّل بكرة، أو تشترك في Premium للاستخدام غير المحدود 💎. "
+        "وتقدر دايماً تسجّل أكلك بالكتابة أو يدوي مجاناً."
+    )
 
 # أقصى عدد رسائل محفوظة لكل مستخدم (نقصّ الأقدم عشان منكبّرش الجدول بلا حدود).
 _HISTORY_KEEP = 400
@@ -94,6 +103,7 @@ class ChatResponse(BaseModel):
     logged_items: list[LoggedItem] = []
     logged_total_calories: float = 0
     meal: str | None = None
+    limit_reached: bool = False  # وصل المستخدم المجاني للحد اليومي
 
 
 class HistoryMessage(BaseModel):
@@ -131,6 +141,26 @@ def _build_profile_summary(db: Session, user: User) -> str | None:
 def _store_message(db: Session, user_id: int, role: str, content: str) -> None:
     """يضيف رسالة لمحادثة المستخدم (بدون commit — الراوتر بيعمل commit مرة واحدة)."""
     db.add(AssistantMessage(user_id=user_id, role=role, content=content[:8000]))
+
+
+def _used_today(db: Session, user_id: int) -> int:
+    """عدد رسائل المستخدم للمساعد النهاردة (UTC) — لحساب الحد اليومي المجاني."""
+    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+    return db.scalar(
+        select(func.count(AssistantMessage.id)).where(
+            AssistantMessage.user_id == user_id,
+            AssistantMessage.role == "user",
+            AssistantMessage.created_at >= start,
+        )
+    ) or 0
+
+
+def _daily_limit_reached(db: Session, user: User) -> bool:
+    """True لو المستخدم المجاني وصل لحد رسائل المساعد اليومي (Premium غير محدود)."""
+    limit = settings.FREE_ASSISTANT_DAILY_LIMIT
+    if limit <= 0 or is_user_premium(db, user.id):
+        return False
+    return _used_today(db, user.id) >= limit
 
 
 def _prune_history(db: Session, user_id: int) -> None:
@@ -255,10 +285,16 @@ def chat(
     logged_total = 0.0
     logged_meal: str | None = None
     reply: str | None = None
+    limit_reached = False
+
+    # الحد اليومي للمستخدم المجاني — لو وصله، نرجّع رسالة ترقية بدون نداء AI ولا تسجيل.
+    if _daily_limit_reached(db, current_user):
+        limit_reached = True
+        reply = _limit_reply()
 
     # فعل التسجيل: لو المستخدم طلب يضيف/يسجّل أكل، نستخرجه من سياق المحادثة ونسجّله فعلاً.
     # نحفظ الرسائل بعد ما نخلّص (مرة واحدة) عشان نتجنّب نمط add/rollback/re-add الهشّ.
-    if last_user and settings.ai_enabled and meal_parser.wants_to_log(last_user["content"]):
+    if not limit_reached and last_user and settings.ai_enabled and meal_parser.wants_to_log(last_user["content"]):
         try:
             extracted = ai_assistant.extract_meal_to_log(messages)
             if extracted and extracted.get("items"):
@@ -275,7 +311,7 @@ def chat(
             db.rollback()  # نمسح أي صفوف FoodLogged أُضيفت جزئياً
             logged, logged_items, logged_total, logged_meal, reply = False, [], 0.0, None, None
 
-    if reply is None:
+    if reply is None and not limit_reached:
         reply = ai_assistant.chat_reply(messages, profile_summary) or _AI_OFF_REPLY
 
     # حفظ المحادثة (رسالة المستخدم + ردّ المساعد) مرة واحدة بعد اكتمال المعالجة.
@@ -291,6 +327,7 @@ def chat(
         logged_items=logged_items,
         logged_total_calories=logged_total,
         meal=logged_meal,
+        limit_reached=limit_reached,
     )
 
 

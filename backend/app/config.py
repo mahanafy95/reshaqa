@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
 
+    # حد رسائل المساعد الذكي اليومي للمستخدم المجاني (Premium = غير محدود). 0 = بلا حد.
+    # يحمي الحصص المجانية ويخلّي الاستخدام غير المحدود ميزة اشتراك.
+    FREE_ASSISTANT_DAILY_LIMIT: int = 20
+
     # مزوّد مجاني سريع وموثوق — Groq (باقة مجانية سخيّة، بدون فيزا).
     # مفتاح من https://console.groq.com/keys . يُجرَّب قبل OpenRouter (أعلى حصّة وأسرع).
     GROQ_API_KEY: str = ""

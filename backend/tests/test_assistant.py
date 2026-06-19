@@ -1,7 +1,7 @@
 """اختبارات المساعد الصحي الذكي المحادثي (POST /assistant/chat) — بدون شبكة."""
 import app.routers.assistant as assistant_router
 from app.config import settings
-from tests.conftest import auth_headers
+from tests.conftest import auth_headers, make_premium
 
 
 # ---------- المصادقة مطلوبة ----------
@@ -269,6 +269,61 @@ def test_chat_no_log_when_no_intent(client, monkeypatch):
     body = r.json()
     assert body["logged"] is False
     assert body["reply"] == "نصيحة حلوة 💪"
+
+
+# ---------- الحد اليومي للمستخدم المجاني ----------
+def test_chat_free_daily_limit_blocks_after_limit(client, monkeypatch):
+    """المستخدم المجاني بيتوقف بعد الحد اليومي برسالة ترقية واضحة (بدون نداء AI)."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(settings, "FREE_ASSISTANT_DAILY_LIMIT", 2)
+    monkeypatch.setattr(
+        assistant_router.ai_assistant, "chat_reply",
+        lambda messages, system_extra=None: "رد عادي",
+    )
+    h = auth_headers(client, "limit_free")
+    body = {"messages": [{"role": "user", "content": "نصيحة"}]}
+    r1 = client.post("/assistant/chat", json=body, headers=h)
+    r2 = client.post("/assistant/chat", json=body, headers=h)
+    assert r1.json()["reply"] == "رد عادي"
+    assert r2.json()["reply"] == "رد عادي"
+    assert r1.json()["limit_reached"] is False
+    # الطلب الثالث = تخطّى الحد
+    r3 = client.post("/assistant/chat", json=body, headers=h)
+    assert r3.status_code == 200, r3.text
+    assert r3.json()["limit_reached"] is True
+    assert "وصلت لحد" in r3.json()["reply"]
+
+
+def test_chat_premium_is_unlimited(client, db_session, monkeypatch):
+    """المشترك Premium مفيش عليه حد يومي."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(settings, "FREE_ASSISTANT_DAILY_LIMIT", 1)
+    monkeypatch.setattr(
+        assistant_router.ai_assistant, "chat_reply",
+        lambda messages, system_extra=None: "رد بريميوم",
+    )
+    h = auth_headers(client, "limit_premium")
+    make_premium(db_session, "limit_premium")
+    body = {"messages": [{"role": "user", "content": "نصيحة"}]}
+    for _ in range(3):
+        r = client.post("/assistant/chat", json=body, headers=h)
+        assert r.status_code == 200, r.text
+        assert r.json()["limit_reached"] is False
+        assert r.json()["reply"] == "رد بريميوم"
+
+
+def test_chat_limit_zero_means_unlimited(client, monkeypatch):
+    """FREE_ASSISTANT_DAILY_LIMIT=0 → بلا حد حتى للمجاني."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(settings, "FREE_ASSISTANT_DAILY_LIMIT", 0)
+    monkeypatch.setattr(
+        assistant_router.ai_assistant, "chat_reply", lambda messages, system_extra=None: "رد"
+    )
+    h = auth_headers(client, "limit_zero")
+    body = {"messages": [{"role": "user", "content": "نصيحة"}]}
+    for _ in range(4):
+        r = client.post("/assistant/chat", json=body, headers=h)
+        assert r.json()["limit_reached"] is False
 
 
 def test_chat_dedup_skips_repeated_logging(client, monkeypatch):
