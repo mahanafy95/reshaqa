@@ -59,7 +59,6 @@ def test_parse_uses_ai_items_and_reply_when_enabled(client, monkeypatch):
         "parse_meal_ai",
         lambda text: {"is_question": False, "items": [{"name_ar": "بيض", "grams": 100}]},
     )
-    monkeypatch.setattr(foods_router.ai_assistant, "meal_reply", lambda *a, **k: "جامد! 💪")
     h = auth_headers(client, "aiuser")
     r = client.post(
         "/foods/parse",
@@ -68,7 +67,8 @@ def test_parse_uses_ai_items_and_reply_when_enabled(client, monkeypatch):
     )
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["reply_ar"] == "جامد! 💪"
+    # ردّ ملخّص محلي (وفّرنا نداء AI الإضافي) — يحتوي على الصنف المُحلَّل
+    assert body["reply_ar"] and "بيض" in body["reply_ar"]
     # السعرات لسه محسوبة محليًا (مش من الـ LLM)
     assert len(body["items"]) >= 1
     assert body["total_calories"] > 0

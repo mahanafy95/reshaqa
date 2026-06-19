@@ -330,13 +330,10 @@ def parse_meal(
             logged_ids.append(row.id)
         db.commit()
 
-    # طبقة المحادثة الذكية (Gemini مجاني) فوق الأرقام المحسوبة محليًا — مع رجوع للرد المحلي
+    # ردّ ملخّص محلي للوجبة (بدون نداء AI إضافي) — التحليل والأرقام نفسها هي «الذكاء».
+    # وفّرنا نداء المحادثة الإضافي عشان الحصة المجانية تكفي استخدام العيلة كله؛
+    # الـ AI محجوز للتحليل الدقيق وللإجابة على الأسئلة (general_reply).
     reply = _build_reply(out, total, logged)
-    if settings.ai_enabled and out:
-        summary = "؛ ".join(f"{i.name_ar} {i.calories} سعرة" for i in out)
-        ai_reply = ai_assistant.meal_reply(payload.text, summary, total, logged)
-        if ai_reply:
-            reply = ai_reply
 
     return ParseResponse(
         items=out, total_calories=total, logged=logged,
