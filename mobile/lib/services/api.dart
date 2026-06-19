@@ -118,6 +118,15 @@ class Api {
     final form = FormData.fromMap({'text': text});
     return (await _d.post('/foods/label', data: form)).data;
   }
+
+  /// يرفع صورة الملصق الغذائي ويقراها بالذكاء الاصطناعي (عربي/إنجليزي).
+  /// يرجّع نفس شكل /foods/label (سعرات/بروتين/نشويات/دهون لكل 100جم).
+  static Future<Map<String, dynamic>> labelImage(String filePath) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath, filename: 'label.jpg'),
+    });
+    return (await _d.post('/foods/label-image', data: form)).data;
+  }
   static Future<List<dynamic>> suggest(String q) async =>
       (await _d.get('/foods/suggest', queryParameters: {'q': q})).data;
   static Future<Map<String, dynamic>> parseMeal(String text,

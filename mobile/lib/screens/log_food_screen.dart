@@ -643,17 +643,117 @@ class _SaveBarcodeDialogState extends State<_SaveBarcodeDialog> {
       );
 }
 
-class _ScannerScreen extends StatelessWidget {
+class _ScannerScreen extends StatefulWidget {
   const _ScannerScreen();
+  @override
+  State<_ScannerScreen> createState() => _ScannerScreenState();
+}
+
+class _ScannerScreenState extends State<_ScannerScreen> {
+  bool _handled = false; // عشان نمنع pop مرتين
+
+  void _returnCode(String code) {
+    if (_handled || !mounted) return;
+    _handled = true;
+    Navigator.pop(context, code);
+  }
+
+  Future<void> _manualEntry() async {
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('إدخال الباركود يدويًا'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'رقم الباركود'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              final c = controller.text.trim();
+              Navigator.pop(dialogCtx, c.isEmpty ? null : c);
+            },
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
+    if (code != null && code.isNotEmpty) _returnCode(code);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('امسح الباركود')),
-      body: MobileScanner(
-        onDetect: (capture) {
-          final code = capture.barcodes.firstOrNull?.rawValue;
-          if (code != null) Navigator.pop(context, code);
-        },
+      appBar: AppBar(
+        title: const Text('امسح الباركود'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.keyboard),
+            tooltip: 'إدخال يدوي',
+            onPressed: _manualEntry,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: MobileScanner(
+              onDetect: (capture) {
+                try {
+                  final code = capture.barcodes.firstOrNull?.rawValue;
+                  if (code != null && code.isNotEmpty) _returnCode(code);
+                } catch (_) {
+                  // التقاط فاسد — نتجاهله ونكمل المسح بدل ما نكراش
+                }
+              },
+              errorBuilder: (context, error, child) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.no_photography, size: 64, color: AppColors.textMuted),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'مقدرناش نفتح الكاميرا. اتأكد إنك سمحت بصلاحية الكاميرا، أو دخّل الباركود يدويًا.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.keyboard),
+                          label: const Text('إدخال الباركود يدويًا'),
+                          onPressed: _manualEntry,
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('رجوع'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                icon: const Icon(Icons.keyboard),
+                label: const Text('إدخال الباركود يدويًا'),
+                onPressed: _manualEntry,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -676,20 +776,53 @@ class _CameraTabState extends State<_CameraTab> {
       final picker = ImagePicker();
       final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
       if (img == null) {
-        setState(() => _busy = false);
+        if (mounted) setState(() => _busy = false);
         return;
       }
-      final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
-      final recognized = await recognizer.processImage(InputImage.fromFilePath(img.path));
-      await recognizer.close();
-      final r = await Api.parseLabel(recognized.text);
-      final cal = (r['calories'] as num?)?.toDouble() ?? 0;
+
+      Map<String, dynamic>? result;
+
+      // 1) الذكاء الاصطناعي يقرا الصورة مباشرة (عربي + إنجليزي).
+      try {
+        final r = await Api.labelImage(img.path);
+        if (((r['calories'] as num?)?.toDouble() ?? 0) > 0) {
+          result = r;
+        }
+      } catch (_) {
+        // الـ AI مش متاح أو فشل — نكمل على ML Kit
+      }
+
+      // 2) لو الـ AI رجّع صفر/فشل: نرجع لمسار ML Kit (لاتيني فقط).
+      if (result == null) {
+        try {
+          final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+          final recognized = await recognizer.processImage(InputImage.fromFilePath(img.path));
+          await recognizer.close();
+          if (recognized.text.trim().isNotEmpty) {
+            final r = await Api.parseLabel(recognized.text);
+            if (((r['calories'] as num?)?.toDouble() ?? 0) > 0) {
+              result = r;
+            }
+          }
+        } catch (_) {
+          // فشل OCR — هنعرض رسالة واضحة تحت
+        }
+      }
+
       if (!mounted) return;
+
+      final cal = (result?['calories'] as num?)?.toDouble() ?? 0;
+      if (result == null || cal <= 0) {
+        showSnack(context,
+            'مقدرناش نقرا الملصق — جرّب صورة أوضح أو دخّل القيم يدويًا', error: true);
+        return;
+      }
+
       await widget.onAdd(
         name: 'منتج (من الملصق)', amount: 100, calories: cal,
-        protein: (r['protein'] as num?)?.toDouble() ?? 0,
-        carbs: (r['carbs'] as num?)?.toDouble() ?? 0,
-        fat: (r['fat'] as num?)?.toDouble() ?? 0, source: 'label',
+        protein: (result['protein'] as num?)?.toDouble() ?? 0,
+        carbs: (result['carbs'] as num?)?.toDouble() ?? 0,
+        fat: (result['fat'] as num?)?.toDouble() ?? 0, source: 'label',
       );
     } catch (e) {
       if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);

@@ -458,6 +458,46 @@ async def parse_label(
     )
 
 
+# ---------- قراءة ملصق التغذية من صورة بالرؤية الذكية (Gemini vision) ----------
+@router.post("/label-image", response_model=LabelParseOut)
+@limiter.limit("20/minute")
+async def parse_label_image(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """يقرأ صورة ملصق تغذية بالرؤية الذكية ويرجّع القيم لكل 100 جرام (نفس شكل /label).
+
+    لو المساعد الذكي متعطّل أو فشل: نرجّع 200 بأصفار وملاحظة (تدهور رشيق، من غير 500 أبداً).
+    """
+    content_type = (file.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=415, detail="لازم تبعت صورة (image/*).")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=422, detail="الصورة فاضية.")
+    if len(content) > 6 * 1024 * 1024:  # حد أقصى 6 ميجا للصورة
+        raise HTTPException(status_code=413, detail="الصورة كبيرة جداً (الحد 6 ميجا).")
+
+    values = ai_assistant.read_label_image_ai(content, mime=content_type)
+    if values is None:
+        return LabelParseOut(
+            calories=0, protein=0, carbs=0, fat=0,
+            basis_ar="لكل 100 جرام",
+            note_ar=(
+                "فعّل المساعد الذكي (مفتاح مجاني) عشان نقرا الملصق تلقائيًا، أو دخّل القيم يدويًا."
+            ),
+        )
+
+    return LabelParseOut(
+        calories=values["calories"], protein=values["protein"],
+        carbs=values["carbs"], fat=values["fat"],
+        basis_ar="لكل 100 جرام",
+        note_ar="قرأنا الملصق بالذكاء الاصطناعي — راجع القيم وعدّلها قبل الحفظ.",
+    )
+
+
 # ---------- اقتراحات عند الكتابة ----------
 @router.get("/suggest", response_model=list[SuggestionOut])
 def suggest(

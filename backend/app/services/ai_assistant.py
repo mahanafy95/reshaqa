@@ -11,6 +11,7 @@
 يتعطّل بهدوء (يرجّع None) لو المفاتيح مش مضبوطة أو حصل أي خطأ — والراوتر يرجع للرد المحلي.
 كل المسارات لا ترفع استثناء أبداً لمسار الطلب.
 """
+import base64
 import json
 import logging
 import re
@@ -275,4 +276,73 @@ def estimate_calories_ai(name_ar: str, grams: float) -> dict | None:
         }
     except Exception:
         logger.exception("فشل تحليل رد تقدير السعرات كـ JSON")
+        return None
+
+
+# ---------- قراءة صورة ملصق التغذية بالرؤية الذكية (Gemini vision) ----------
+_LABEL_IMAGE_PROMPT = (
+    "You are reading a packaged-food NUTRITION LABEL photo (Arabic or English). "
+    'Return ONLY JSON {"calories":num,"protein":num,"carbs":num,"fat":num} as per-100g '
+    "values; if a value is missing use 0."
+)
+
+
+def _gemini_read_label_image(image_bytes: bytes, mime: str) -> str | None:
+    """ينادي Gemini generateContent بجزء صورة inline (base64) ويرجّع نص الرد الخام، أو None."""
+    if not settings.GEMINI_API_KEY.strip():
+        return None
+    url = _GEMINI_URL.format(model=settings.GEMINI_MODEL)
+    try:
+        b64 = base64.b64encode(image_bytes).decode("ascii")
+        resp = httpx.post(
+            url,
+            params={"key": settings.GEMINI_API_KEY},
+            json={
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": _LABEL_IMAGE_PROMPT},
+                            {"inline_data": {"mime_type": mime, "data": b64}},
+                        ]
+                    }
+                ],
+                "generationConfig": {"temperature": 0.0, "maxOutputTokens": 200},
+            },
+            timeout=30.0,
+        )
+        if resp.status_code != 200:
+            logger.warning("Gemini vision رجّع %s: %s", resp.status_code, resp.text[:200])
+            return None
+        data = resp.json()
+        parts = data["candidates"][0]["content"]["parts"]
+        text = "".join(p.get("text", "") for p in parts).strip()
+        return text or None
+    except Exception:
+        logger.exception("فشل نداء Gemini vision لقراءة الملصق")
+        return None
+
+
+def read_label_image_ai(image_bytes: bytes, mime: str = "image/jpeg") -> dict | None:
+    """يقرأ صورة ملصق تغذية بالرؤية الذكية ويرجّع القيم لكل 100 جرام.
+
+    يرجّع {"calories", "protein", "carbs", "fat"} (أرقام لكل 100 جرام)، أو None لو
+    المساعد الذكي متعطّل أو فشل النداء/التحليل. لا يرفع استثناء أبداً لمسار الطلب.
+    """
+    if not settings.ai_enabled:
+        return None
+    raw = _gemini_read_label_image(image_bytes, mime)
+    if not raw:
+        return None
+    try:
+        data = json.loads(_strip_json_fences(raw))
+        if not isinstance(data, dict):
+            return None
+        return {
+            "calories": _coerce_number(data.get("calories"), min_value=0) or 0.0,
+            "protein": _coerce_number(data.get("protein"), min_value=0) or 0.0,
+            "carbs": _coerce_number(data.get("carbs"), min_value=0) or 0.0,
+            "fat": _coerce_number(data.get("fat"), min_value=0) or 0.0,
+        }
+    except Exception:
+        logger.exception("فشل تحليل رد قراءة الملصق كـ JSON")
         return None

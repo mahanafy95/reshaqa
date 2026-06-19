@@ -89,6 +89,44 @@ def test_label_parse_endpoint(client):
     assert r.json()["calories"] == 200
 
 
+def test_label_image_endpoint_degrades_when_ai_disabled(client):
+    """رفع صورة لـ /foods/label-image والمساعد الذكي متعطّل → 200 بأصفار + ملاحظة (شكل LabelParseOut)."""
+    h = auth_headers(client, "fu7")
+    fake_image = b"\xff\xd8\xff\xe0fake-jpeg-bytes"
+    r = client.post(
+        "/foods/label-image",
+        files={"file": ("label.jpg", fake_image, "image/jpeg")},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # شكل LabelParseOut كامل
+    assert set(body) == {"calories", "protein", "carbs", "fat", "basis_ar", "note_ar"}
+    assert body["calories"] == 0
+    assert body["protein"] == 0
+    assert body["carbs"] == 0
+    assert body["fat"] == 0
+    assert body["note_ar"]  # ملاحظة إرشادية للتفعيل/الإدخال اليدوي
+
+
+def test_label_image_rejects_non_image(client):
+    h = auth_headers(client, "fu8")
+    r = client.post(
+        "/foods/label-image",
+        files={"file": ("notes.txt", b"hello", "text/plain")},
+        headers=h,
+    )
+    assert r.status_code == 415, r.text
+
+
+def test_label_image_requires_auth(client):
+    r = client.post(
+        "/foods/label-image",
+        files={"file": ("label.jpg", b"\xff\xd8\xff\xe0", "image/jpeg")},
+    )
+    assert r.status_code == 401
+
+
 def test_foods_require_auth(client):
     r = client.get("/foods")
     assert r.status_code == 401
