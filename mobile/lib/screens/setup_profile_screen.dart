@@ -17,8 +17,10 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
   final _height = TextEditingController();
   final _weight = TextEditingController();
   final _goalWeight = TextEditingController();
+  final _allergies = TextEditingController();
   String _sex = 'female';
   String _activity = 'light';
+  String _diet = 'none';
   double _rate = 0.5;
   bool _busy = false;
   String? _error;
@@ -28,6 +30,15 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
     'light': 'نشاط خفيف (مشي بسيط)',
     'moderate': 'نشاط متوسط (تمرين 3-5 أيام)',
     'active': 'نشاط عالٍ (تمرين يومي)',
+  };
+
+  static const _dietLabels = {
+    'none': 'بدون قيود',
+    'halal': 'حلال فقط',
+    'vegetarian': 'نباتي',
+    'vegan': 'نباتي صِرف (فيجان)',
+    'keto': 'كيتو',
+    'low_carb': 'قليل الكارب',
   };
 
   /// تصنيف فوري حسب الطول والوزن المُدخَلين (نفس منطق الخادم).
@@ -72,6 +83,8 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
         'activity_level': _activity,
         'goal_weight_kg': goal,
         'goal_rate': _rate,
+        'dietary_pref': _diet,
+        'allergies': _allergies.text.trim().isEmpty ? null : _allergies.text.trim(),
       });
     } catch (e) {
       setState(() => _error = ApiClient.errorMessage(e));
@@ -115,6 +128,24 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                   .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
                   .toList(),
               onChanged: (v) => setState(() => _activity = v!),
+            ),
+            const SizedBox(height: 16),
+            const Align(alignment: Alignment.centerRight, child: Text('النظام الغذائي (المساعد هيحترمه)')),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _diet,
+              items: _dietLabels.entries
+                  .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                  .toList(),
+              onChanged: (v) => setState(() => _diet = v!),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _allergies,
+              decoration: const InputDecoration(
+                labelText: 'حساسية / أكل تتجنّبه (اختياري)',
+                hintText: 'مثال: مكسرات، لاكتوز',
+              ),
             ),
             const SizedBox(height: 16),
             Builder(builder: (_) {
