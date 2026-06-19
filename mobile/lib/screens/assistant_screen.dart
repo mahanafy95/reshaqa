@@ -221,12 +221,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
         decoration: BoxDecoration(
-          color: mine ? AppColors.teal : Colors.grey.shade200,
+          color: mine ? AppColors.teal : surfaceColor(context),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
           m['content'] ?? '',
-          style: TextStyle(color: mine ? Colors.white : AppColors.textDark),
+          style: TextStyle(color: mine ? Colors.white : Theme.of(context).colorScheme.onSurface),
         ),
       ),
     );
@@ -245,19 +245,19 @@ class _TypingBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: surfaceColor(context),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
+            const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.teal),
             ),
-            SizedBox(width: 10),
-            Text('بيكتب…', style: TextStyle(color: AppColors.textMuted)),
+            const SizedBox(width: 10),
+            Text('بيكتب…', style: TextStyle(color: mutedColor(context))),
           ],
         ),
       ),
@@ -290,11 +290,11 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'اسألني عن التغذية، اللياقة، الوصفات، أو أي حاجة تحفّزك على هدفك 💚\n'
             'وتقدر كمان تقولي «ضيف اللي أكلته» وأنا أسجّله في يومك.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted),
+            style: TextStyle(color: mutedColor(context)),
           ),
           const SizedBox(height: 24),
           Wrap(

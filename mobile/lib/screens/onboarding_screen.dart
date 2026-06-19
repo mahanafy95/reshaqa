@@ -90,7 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         const SizedBox(height: 12),
                         Text(s.body,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 15, color: AppColors.textMuted, height: 1.6)),
+                            style: TextStyle(fontSize: 15, color: mutedColor(context), height: 1.6)),
                       ],
                     ),
                   );

@@ -323,7 +323,7 @@ class _ManualTabState extends State<_ManualTab> {
           decoration: InputDecoration(
             labelText: 'اسم الصنف (السعرات تتجاب لوحدها)',
             prefixIcon: const Icon(Icons.search),
-            suffix: _estimating ? const Text('بنحسب…', style: TextStyle(fontSize: 11, color: AppColors.textMuted)) : null,
+            suffix: _estimating ? Text('بنحسب…', style: TextStyle(fontSize: 11, color: mutedColor(context))) : null,
           ),
         ),
         const SizedBox(height: 10),
@@ -386,7 +386,7 @@ class _ManualTabState extends State<_ManualTab> {
           child: Column(children: [
             Text('$_previewCal', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.teal)),
             Text('سعرة لـ ${unitText(double.tryParse(_amount.text) ?? 0, _unit)}${_sugarCal > 0 ? ' + $_sugarCal سكر' : ''}',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                style: TextStyle(color: mutedColor(context), fontSize: 12)),
           ]),
         ),
         const SizedBox(height: 12),
@@ -538,9 +538,9 @@ class _BarcodeTabState extends State<_BarcodeTab> {
                   onPressed: _busy ? null : _scanAndHandle,
                 ),
                 const SizedBox(height: 8),
-                const Text('لو المنتج مش موجود، هنطلب قيمه مرة واحدة ونفتكره ليك بعد كده 👌',
+                Text('لو المنتج مش موجود، هنطلب قيمه مرة واحدة ونفتكره ليك بعد كده 👌',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    style: TextStyle(color: mutedColor(context), fontSize: 12)),
               ],
             ),
           ),
@@ -648,10 +648,10 @@ class _SaveBarcodeDialogState extends State<_SaveBarcodeDialog> {
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('الباركود: ${widget.code}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              style: TextStyle(color: mutedColor(context), fontSize: 12)),
           const SizedBox(height: 4),
-          const Text('اكتب القيم لكل 100 جم/مل (من جدول التغذية على المنتج)',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text('اكتب القيم لكل 100 جم/مل (من جدول التغذية على المنتج)',
+              style: TextStyle(color: mutedColor(context), fontSize: 12)),
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
           _numField(_cal, 'سعرات / 100'),
           _numField(_carbs, 'نشويات / 100 (اختياري)'),
@@ -765,7 +765,7 @@ class _ScannerScreenState extends State<_ScannerScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.no_photography, size: 64, color: AppColors.textMuted),
+                        Icon(Icons.no_photography, size: 64, color: mutedColor(context)),
                         const SizedBox(height: 16),
                         const Text(
                           'مقدرناش نفتح الكاميرا. اتأكد إنك سمحت بصلاحية الكاميرا، أو دخّل الباركود يدويًا.',
@@ -1048,8 +1048,8 @@ class _AddFavoriteDialogState extends State<_AddFavoriteDialog> {
       title: const Text('أضف للمفضلة'),
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('اكتب أكلتك المتكررة عشان تسجّلها بضغطة واحدة بعد كده',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text('اكتب أكلتك المتكررة عشان تسجّلها بضغطة واحدة بعد كده',
+              style: TextStyle(color: mutedColor(context), fontSize: 12)),
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'الاسم')),
           _numField(_cal, 'سعرات'),
           _numField(_protein, 'بروتين (اختياري)'),
@@ -1204,7 +1204,7 @@ class _RecipesTabState extends State<_RecipesTab> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: AppColors.textMuted),
+                                icon: Icon(Icons.edit_outlined, color: mutedColor(context)),
                                 tooltip: 'تعديل',
                                 onPressed: () => _editRecipe(r),
                               ),

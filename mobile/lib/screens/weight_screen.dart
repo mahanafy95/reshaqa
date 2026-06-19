@@ -129,7 +129,7 @@ class _WeightScreenState extends State<WeightScreen> {
                       Text(
                         'بنتابع وزنك بالاتجاه (المتوسط) مش الرقم اليومي — لأن الوزن بيتذبذب طبيعي.',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                        style: TextStyle(color: mutedColor(context), fontSize: 13),
                       ),
                       if (_trend?['suggested_weigh_in_day_ar'] != null) ...[
                         const SizedBox(height: 6),
@@ -206,7 +206,7 @@ class _WeightScreenState extends State<WeightScreen> {
                                     Text('${(w['waist_cm'] as num?)?.toStringAsFixed(1) ?? '—'} سم',
                                         style: const TextStyle(fontWeight: FontWeight.w600)),
                                     Text('${w['date'] ?? ''}',
-                                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                                        style: TextStyle(color: mutedColor(context), fontSize: 13)),
                                   ],
                                 ),
                               ),

@@ -165,7 +165,7 @@ class _SummaryCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text('${eaten.round()}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text('من ${target.round()}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Text('من ${target.round()}', style: TextStyle(fontSize: 11, color: mutedColor(context))),
                       ],
                     ),
                   ],
@@ -261,7 +261,7 @@ class _StreakCardState extends State<_StreakCard> {
           children: [
             Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            Text(sub, style: TextStyle(color: mutedColor(context), fontSize: 13)),
             if (unlocked.isNotEmpty) ...[
               const SizedBox(height: 10),
               Wrap(
@@ -272,12 +272,12 @@ class _StreakCardState extends State<_StreakCard> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: surfaceColor(context),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppColors.teal.withValues(alpha: 0.3)),
                       ),
                       child: Text('${a['emoji'] ?? '🏅'} ${a['title_ar'] ?? ''}',
-                          style: const TextStyle(fontSize: 12)),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
                     ),
                 ],
               ),
@@ -310,7 +310,7 @@ class _MacrosCard extends StatelessWidget {
               color: colors[m['name_ar']] ?? AppColors.teal,
             ),
           const SizedBox(height: 8),
-          Text(cal['message_ar'] ?? '', style: const TextStyle(color: AppColors.textMuted), textAlign: TextAlign.center),
+          Text(cal['message_ar'] ?? '', style: TextStyle(color: mutedColor(context)), textAlign: TextAlign.center),
         ],
       ),
     );
@@ -342,7 +342,7 @@ class _TodayLogCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Row(children: [
               Expanded(child: Text('${f['name_ar']}', overflow: TextOverflow.ellipsis)),
-              Text('${(f['calories'] as num?)?.round() ?? 0} سعرة', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              Text('${(f['calories'] as num?)?.round() ?? 0} سعرة', style: TextStyle(color: mutedColor(context), fontSize: 12)),
               IconButton(
                 icon: const Icon(Icons.close, size: 18, color: AppColors.danger),
                 visualDensity: VisualDensity.compact,
@@ -559,7 +559,7 @@ class _BodyMetricsCardState extends State<_BodyMetricsCard> {
   Widget _row(String k, String v) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(k, style: const TextStyle(color: AppColors.textMuted)),
+          Text(k, style: TextStyle(color: mutedColor(context))),
           Text(v, style: const TextStyle(fontWeight: FontWeight.w600)),
         ]),
       );
@@ -580,7 +580,7 @@ class _BodyMetricsCardState extends State<_BodyMetricsCard> {
             if (m['lean_mass_kg'] != null)
               _row('الكتلة الصافية / الدهون', '${m['lean_mass_kg']} / ${m['fat_mass_kg']} كجم'),
             const SizedBox(height: 4),
-            Text(m['note_ar'] ?? '', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            Text(m['note_ar'] ?? '', style: TextStyle(color: mutedColor(context), fontSize: 11)),
           ],
         ),
       ),

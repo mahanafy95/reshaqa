@@ -101,7 +101,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 12),
                 const Text('رشاقة', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.teal)),
                 const SizedBox(height: 4),
-                const Text('رحلتك للتخسيس الصحي تبدأ من هنا 💚', style: TextStyle(color: AppColors.textMuted)),
+                Text('رحلتك للتخسيس الصحي تبدأ من هنا 💚', style: TextStyle(color: mutedColor(context))),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _user,
@@ -147,13 +147,13 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 if (_googleAvailable) ...[
                   const SizedBox(height: 6),
-                  const Row(children: [
-                    Expanded(child: Divider()),
+                  Row(children: [
+                    const Expanded(child: Divider()),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text('أو', style: TextStyle(color: AppColors.textMuted)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('أو', style: TextStyle(color: mutedColor(context))),
                     ),
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                   ]),
                   const SizedBox(height: 6),
                   OutlinedButton.icon(

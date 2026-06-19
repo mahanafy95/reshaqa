@@ -14,10 +14,13 @@ class ReshaqaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.watch<AppState>().themeMode;
     return MaterialApp(
       title: 'رشاقة',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: themeMode,
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [

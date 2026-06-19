@@ -113,10 +113,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   SectionCard(
                     title: 'أصدقائي (${friends.length})',
                     child: friends.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             child: Text('لسه مفيش أصدقاء — دوّر وأضف صحابك يشجّعوك 💚',
-                                style: TextStyle(color: AppColors.textMuted)))
+                                style: TextStyle(color: mutedColor(context))))
                         : Column(children: friends.map((f) => _friendRow(f)).toList()),
                   ),
 
@@ -130,8 +130,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   contentPadding: EdgeInsets.zero,
                                   dense: true,
                                   title: Text(f['username'] ?? ''),
-                                  trailing: const Text('في الانتظار…',
-                                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                                  trailing: Text('في الانتظار…',
+                                      style: TextStyle(color: mutedColor(context), fontSize: 12)),
                                 ))
                             .toList(),
                       ),
@@ -155,7 +155,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       trailing: unread > 0
           ? CircleAvatar(radius: 11, backgroundColor: AppColors.orange,
               child: Text('$unread', style: const TextStyle(color: Colors.white, fontSize: 12)))
-          : const Icon(Icons.chevron_left, color: AppColors.textMuted),
+          : Icon(Icons.chevron_left, color: mutedColor(context)),
       onTap: () => _openChat((f['user_id'] as num).toInt(), f['username'] ?? ''),
       onLongPress: () => _confirmRemove((f['user_id'] as num).toInt(), f['username'] ?? ''),
     );
@@ -185,7 +185,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     if (rel == 'friend') {
       trailing = const Text('صديق ✓', style: TextStyle(color: AppColors.teal, fontSize: 13));
     } else if (rel == 'pending_out') {
-      trailing = const Text('مُرسَل…', style: TextStyle(color: AppColors.textMuted, fontSize: 12));
+      trailing = Text('مُرسَل…', style: TextStyle(color: mutedColor(context), fontSize: 12));
     } else if (rel == 'pending_in') {
       trailing = TextButton(onPressed: () => _act(() => Api.acceptFriend(id)), child: const Text('قبول'));
     } else {

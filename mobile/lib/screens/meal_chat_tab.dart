@@ -25,10 +25,10 @@ class MealChatLauncher extends StatelessWidget {
             const SizedBox(height: 12),
             const Text('المساعد الذكي', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'كلّمني بالعامية واكتب أكلت إيه، وأنا أفهمه وأحسب السعرات وأسجّلهولك.\nمثلاً: «فطرت بيضتين وكوباية لبن، وعلى الغدا طبق رز وفرخة».',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted),
+              style: TextStyle(color: mutedColor(context)),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -171,7 +171,7 @@ class _MealChatScreenState extends State<MealChatScreen> {
                       decoration: InputDecoration(
                         hintText: 'اكتب أكلت إيه…',
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: surfaceColor(context),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
@@ -203,10 +203,10 @@ class _MealChatScreenState extends State<MealChatScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.teal : const Color(0xFFEDEDED),
+          color: isUser ? AppColors.teal : surfaceColor(context),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(m.text, style: TextStyle(color: isUser ? Colors.white : AppColors.textDark)),
+        child: Text(m.text, style: TextStyle(color: isUser ? Colors.white : Theme.of(context).colorScheme.onSurface)),
       ),
     );
   }
@@ -219,7 +219,7 @@ class _MealChatScreenState extends State<MealChatScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('راجع/عدّل قبل التسجيل:', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Text('راجع/عدّل قبل التسجيل:', style: TextStyle(color: mutedColor(context), fontSize: 12)),
             const SizedBox(height: 4),
             ..._pending.asMap().entries.map((e) => _pendingRow(e.key, e.value)),
             const Divider(),
@@ -238,7 +238,7 @@ class _MealChatScreenState extends State<MealChatScreen> {
 
   Widget _pendingRow(int i, Map<String, dynamic> it) {
     final conf = it['confidence'] as String? ?? 'medium';
-    final confColor = conf == 'high' ? AppColors.teal : conf == 'low' ? AppColors.textMuted : AppColors.orange;
+    final confColor = conf == 'high' ? AppColors.teal : conf == 'low' ? mutedColor(context) : AppColors.orange;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -254,7 +254,7 @@ class _MealChatScreenState extends State<MealChatScreen> {
             onChanged: (v) => setState(() => it['meal'] = v),
           ),
           Text('${(it['calories'] as num?)?.round() ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold)),
-          const Text(' سعرة', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          Text(' سعرة', style: TextStyle(fontSize: 11, color: mutedColor(context))),
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(32, 32), padding: EdgeInsets.zero),
             onPressed: () => setState(() => _pending.removeAt(i)),

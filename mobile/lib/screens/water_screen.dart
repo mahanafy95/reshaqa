@@ -67,7 +67,7 @@ class _WaterScreenState extends State<WaterScreen> {
                           Column(mainAxisSize: MainAxisSize.min, children: [
                             const Icon(Icons.water_drop, color: AppColors.blue, size: 28),
                             Text('$total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                            Text('من $goal مل', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            Text('من $goal مل', style: TextStyle(color: mutedColor(context), fontSize: 12)),
                           ]),
                         ]),
                       ),
@@ -112,7 +112,7 @@ class _WaterScreenState extends State<WaterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text('هدفك اليومي $goal مل (محسوب من وزنك تلقائياً). خلّينا نفكّرك تشرب على مدار اليوم.',
-                          style: const TextStyle(color: AppColors.textMuted)),
+                          style: TextStyle(color: mutedColor(context))),
                       const SizedBox(height: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue),
@@ -137,7 +137,7 @@ class _WaterScreenState extends State<WaterScreen> {
                       leading: const Icon(Icons.local_drink_outlined, color: AppColors.blue),
                       title: Text(d['name_ar']),
                       subtitle: Text(d['note_ar']),
-                      trailing: Text('${d['approx_calories']} سعرة', style: const TextStyle(color: AppColors.textMuted)),
+                      trailing: Text('${d['approx_calories']} سعرة', style: TextStyle(color: mutedColor(context))),
                     )).toList(),
                   ),
                 ),

@@ -85,7 +85,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Text(
                 _step == 1 ? 'هنبعتلك رمز على إيميلك' : 'اكتب الرمز اللي وصلك وكلمة سر جديدة',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted),
+                style: TextStyle(color: mutedColor(context)),
               ),
               const SizedBox(height: 24),
               if (_step == 1) ...[

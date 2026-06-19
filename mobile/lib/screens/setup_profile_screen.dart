@@ -102,8 +102,8 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('عشان نحسبلك هدف صحي وآمن، محتاجين شوية بيانات 🙂',
-                style: TextStyle(color: AppColors.textMuted)),
+            Text('عشان نحسبلك هدف صحي وآمن، محتاجين شوية بيانات 🙂',
+                style: TextStyle(color: mutedColor(context))),
             const SizedBox(height: 16),
             SegmentedButton<String>(
               segments: const [
@@ -212,7 +212,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                     Text('${info.$1} (BMI ${c.bmi})',
                         style: TextStyle(fontWeight: FontWeight.bold, color: info.$4)),
                     Text('البرنامج المناسب: ${info.$2}',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                        style: TextStyle(color: mutedColor(context), fontSize: 13)),
                   ],
                 ),
               ),

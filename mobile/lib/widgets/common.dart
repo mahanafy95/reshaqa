@@ -22,7 +22,7 @@ class MacroBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text('${eaten.round()} / ${target.round()} جم', style: const TextStyle(color: AppColors.textMuted)),
+              Text('${eaten.round()} / ${target.round()} جم', style: TextStyle(color: mutedColor(context))),
             ],
           ),
           const SizedBox(height: 4),
@@ -83,7 +83,7 @@ class QuickAction extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor(context),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))],
         ),

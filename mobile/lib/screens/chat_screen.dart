@@ -124,9 +124,9 @@ class _ChatScreenState extends State<ChatScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _msgs.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text('ابدأ المحادثة وشجّع صاحبك 💚',
-                            style: TextStyle(color: AppColors.textMuted)))
+                            style: TextStyle(color: mutedColor(context))))
                     : ListView.builder(
                         controller: _scroll,
                         padding: const EdgeInsets.all(12),
@@ -178,13 +178,15 @@ class _ChatScreenState extends State<ChatScreen> {
         decoration: BoxDecoration(
           color: cheer
               ? AppColors.orange.withValues(alpha: 0.15)
-              : (mine ? AppColors.teal : Colors.grey.shade200),
+              : (mine ? AppColors.teal : surfaceColor(context)),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
           m['body']?.toString() ?? '',
           style: TextStyle(
-            color: cheer ? AppColors.textDark : (mine ? Colors.white : AppColors.textDark),
+            color: cheer
+                ? Theme.of(context).colorScheme.onSurface
+                : (mine ? Colors.white : Theme.of(context).colorScheme.onSurface),
             fontWeight: cheer ? FontWeight.bold : FontWeight.normal,
           ),
         ),

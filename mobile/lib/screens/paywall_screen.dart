@@ -125,11 +125,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   child: const Text('استعادة المشتريات'),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'التجديد تلقائي، وتقدر تلغيه في أي وقت من Google Play. التجربة المجانية '
                   'تتحوّل لاشتراك مدفوع لو ملغتهاش قبل ما تخلص. الأسعار بتشمل الضرائب حسب بلدك.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  style: TextStyle(color: mutedColor(context), fontSize: 12),
                 ),
               ],
             ),
@@ -164,7 +164,7 @@ class _PlanCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   if (product.description.isNotEmpty)
                     Text(product.description,
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                        style: TextStyle(color: mutedColor(context), fontSize: 13)),
                 ],
               ),
             ),

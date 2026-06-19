@@ -84,7 +84,7 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
             const SizedBox(height: 16),
             const Text('رشاقة مقفولة', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('افتح ببصمتك أو رقمك السري', style: TextStyle(color: AppColors.textMuted)),
+            Text('افتح ببصمتك أو رقمك السري', style: TextStyle(color: mutedColor(context))),
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),

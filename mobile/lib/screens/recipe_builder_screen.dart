@@ -126,7 +126,7 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
           const SizedBox(height: 16),
           const Text('المكوّنات', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          const Text('اكتب قيم كل 100جم للمكوّن (السعرات أساسية، الماكروز اختيارية).', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text('اكتب قيم كل 100جم للمكوّن (السعرات أساسية، الماكروز اختيارية).', style: TextStyle(color: mutedColor(context), fontSize: 12)),
           const SizedBox(height: 8),
           ..._ingredients.asMap().entries.map((e) => _ingredientCard(e.key, e.value)),
           const SizedBox(height: 8),

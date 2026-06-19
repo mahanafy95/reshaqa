@@ -77,7 +77,7 @@ class PremiumLock extends StatelessWidget {
             const SizedBox(height: 10),
             Text(message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted)),
+                style: TextStyle(color: mutedColor(context))),
             const SizedBox(height: 22),
             ElevatedButton.icon(
               icon: const Text('💎', style: TextStyle(fontSize: 16)),
@@ -178,7 +178,7 @@ class _WeeklyViewState extends State<_WeeklyView> {
                 d['status'] == 'لا يوجد تسجيل'
                     ? d['status']
                     : '${d['status']} • بروتين ${d['protein']} نشويات ${d['carbs']} دهون ${d['fat']}',
-                style: TextStyle(color: _statusColors[d['status']] ?? AppColors.textMuted),
+                style: TextStyle(color: _statusColors[d['status']] ?? mutedColor(context)),
               ),
             )).toList(),
           ),
@@ -205,7 +205,7 @@ class _WeeklyViewState extends State<_WeeklyView> {
   Widget _stat(String k, String v) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(k, style: const TextStyle(color: AppColors.textMuted)),
+          Text(k, style: TextStyle(color: mutedColor(context))),
           Text(v, style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
       );
@@ -308,7 +308,7 @@ class _MonthlyViewState extends State<_MonthlyView> {
   Widget _stat(String k, String v) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(k, style: const TextStyle(color: AppColors.textMuted)),
+          Text(k, style: TextStyle(color: mutedColor(context))),
           Text(v, style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
       );

@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
 import '../services/api.dart';
@@ -16,6 +17,8 @@ class AppState extends ChangeNotifier {
   List<dynamic> todayFoods = [];
   bool isPremium = false;
   bool busy = false;
+  ThemeMode themeMode = ThemeMode.system;
+  static const _kThemeMode = 'theme_mode';
 
   // هوية المستخدم الحالي (من /auth/me) — للعرض في الإعدادات وربط البريد.
   int? userId;
@@ -42,8 +45,31 @@ class AppState extends ChangeNotifier {
     email = me['email'] as String?;
   }
 
+  /// يحمّل وضع الثيم المحفوظ (نظام/فاتح/داكن).
+  Future<void> _loadThemeMode() async {
+    try {
+      final v = (await SharedPreferences.getInstance()).getString(_kThemeMode);
+      themeMode = v == 'light'
+          ? ThemeMode.light
+          : v == 'dark'
+              ? ThemeMode.dark
+              : ThemeMode.system;
+    } catch (_) {/* الافتراضي: نظام */}
+  }
+
+  /// يغيّر وضع الثيم ويحفظه.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    themeMode = mode;
+    notifyListeners();
+    try {
+      final v = mode == ThemeMode.light ? 'light' : mode == ThemeMode.dark ? 'dark' : 'system';
+      await (await SharedPreferences.getInstance()).setString(_kThemeMode, v);
+    } catch (_) {/* تجاهل */}
+  }
+
   Future<void> bootstrap() async {
     _hookUnauthorized();
+    await _loadThemeMode();
     final token = await ApiClient.instance.getToken();
     if (token == null || token.isEmpty) {
       status = AuthStatus.unauthenticated;

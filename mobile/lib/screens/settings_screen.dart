@@ -101,9 +101,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ])
                   : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      const Text('افتح التقارير المفصّلة + PDF، الوصفات بلا حدود + الباركود، '
+                      Text('افتح التقارير المفصّلة + PDF، الوصفات بلا حدود + الباركود، '
                           'ومزامنة الصحة مع Premium.',
-                          style: TextStyle(color: AppColors.textMuted)),
+                          style: TextStyle(color: mutedColor(context))),
                       const SizedBox(height: 10),
                       ElevatedButton.icon(
                         icon: const Text('💎', style: TextStyle(fontSize: 16)),
@@ -137,6 +137,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: _toggleNotifications,
               ),
             ]),
+          ),
+          const SizedBox(height: 12),
+          SectionCard(
+            title: 'المظهر',
+            child: SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(value: ThemeMode.system, label: Text('النظام'), icon: Icon(Icons.settings_suggest_outlined)),
+                ButtonSegment(value: ThemeMode.light, label: Text('فاتح'), icon: Icon(Icons.light_mode_outlined)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('داكن'), icon: Icon(Icons.dark_mode_outlined)),
+              ],
+              selected: {app.themeMode},
+              onSelectionChanged: (s) => app.setThemeMode(s.first),
+            ),
           ),
           const SizedBox(height: 12),
           SectionCard(
@@ -189,10 +202,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           SectionCard(
             title: 'مزامنة الصحة',
-            child: const Text(
+            child: Text(
               'الأولوية لهواوي الصحة ثم Health Connect ثم الإدخال اليدوي. '
               'السعرات المحروقة بتتعرض كنشاط بس وما بتتخصمش من ميزانية الأكل.',
-              style: TextStyle(color: AppColors.textMuted),
+              style: TextStyle(color: mutedColor(context)),
             ),
           ),
           const SizedBox(height: 20),
@@ -210,8 +223,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => _confirmDelete(context),
           ),
           const SizedBox(height: 20),
-          Center(child: Text('رشاقة • نسخة $_version', style: const TextStyle(color: AppColors.textMuted))),
-          const Center(child: Text('أداة توعية وليست بديلاً عن استشارة طبية', style: TextStyle(color: AppColors.textMuted, fontSize: 12))),
+          Center(child: Text('رشاقة • نسخة $_version', style: TextStyle(color: mutedColor(context)))),
+          Center(child: Text('أداة توعية وليست بديلاً عن استشارة طبية', style: TextStyle(color: mutedColor(context), fontSize: 12))),
         ],
       ),
     );
@@ -396,7 +409,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _info(String k, String v) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(k, style: const TextStyle(color: AppColors.textMuted)),
+          Text(k, style: TextStyle(color: mutedColor(context))),
           Text(v, style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
       );
