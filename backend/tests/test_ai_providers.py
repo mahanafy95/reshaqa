@@ -137,6 +137,32 @@ def test_ai_complete_prefers_gemini(monkeypatch):
     assert ai.ai_complete("سؤال") == "رد من Gemini"
 
 
+def test_ai_enabled_with_only_cerebras(monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+    monkeypatch.setattr(settings, "CEREBRAS_API_KEY", "cb-key")
+    assert settings.ai_enabled is True
+
+
+def test_ai_complete_falls_back_to_cerebras(monkeypatch):
+    """Gemini فشل + مفيش Groq → Cerebras ينجح (قبل OpenRouter)."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+    monkeypatch.setattr(settings, "CEREBRAS_API_KEY", "cb-key")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+
+    def fake_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return _Resp(429, text="gemini quota")
+        if "cerebras.ai" in url:
+            return _openrouter_ok("رد من Cerebras")
+        raise AssertionError("ما كانش المفروض نوصل لـ OpenRouter")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert ai.ai_complete("سؤال") == "رد من Cerebras"
+
+
 def test_ai_complete_falls_back_to_groq_before_openrouter(monkeypatch):
     """Gemini فشل → Groq ينجح (قبل OpenRouter)."""
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")

@@ -92,6 +92,12 @@ class Settings(BaseSettings):
     # موديلات Groq بالترتيب (مفصولة بفواصل) — نجرّبها واحدة تلو الأخرى.
     GROQ_MODELS: str = "llama-3.3-70b-versatile,llama-3.1-8b-instant"
 
+    # مزوّد مجاني سريع جداً وموثوق — Cerebras (باقة مجانية سخيّة، بدون فيزا).
+    # مفتاح من https://cloud.cerebras.ai . يُجرَّب بعد Groq وقبل OpenRouter.
+    CEREBRAS_API_KEY: str = ""
+    # موديلات Cerebras بالترتيب (مفصولة بفواصل). عدّلها لو اسم موديل اتغيّر.
+    CEREBRAS_MODELS: str = "llama-3.3-70b,llama3.1-8b"
+
     # احتياطي مجاني عبر OpenRouter — مفتاح واحد يفتح موديلات مجانية (DeepSeek/Qwen/GLM الصينية وغيرها).
     # مفتاح من https://openrouter.ai/keys . لو فاضي، نكتفي بالمزوّدات الأخرى أو المحلّل المحلي.
     OPENROUTER_API_KEY: str = ""
@@ -159,11 +165,17 @@ class Settings(BaseSettings):
         return [m.strip() for m in self.GROQ_MODELS.split(",") if m.strip()]
 
     @property
+    def cerebras_models_list(self) -> list[str]:
+        """قائمة موديلات Cerebras المنظّفة (بدون فراغات أو عناصر فارغة)."""
+        return [m.strip() for m in self.CEREBRAS_MODELS.split(",") if m.strip()]
+
+    @property
     def ai_enabled(self) -> bool:
-        """هل المساعد الذكي مفعّل؟ (أي مزوّد: Gemini/Groq/OpenRouter — وإلا المحلّل المحلي المجاني)."""
+        """هل المساعد الذكي مفعّل؟ (أي مزوّد: Gemini/Groq/Cerebras/OpenRouter — وإلا المحلّل المحلي)."""
         return (
             bool(self.GEMINI_API_KEY.strip())
             or bool(self.GROQ_API_KEY.strip())
+            or bool(self.CEREBRAS_API_KEY.strip())
             or bool(self.OPENROUTER_API_KEY.strip())
         )
 

@@ -26,6 +26,7 @@ logger = logging.getLogger("reshaqa.ai")
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+_CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _GROQ_TIMEOUT = 18.0
 _OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
@@ -194,17 +195,19 @@ def _openrouter_complete(
     return None
 
 
-# ---------- مزوّد Groq (OpenAI-compatible، باقة مجانية سخيّة وسريعة) ----------
-def _groq_messages_complete(messages: list[dict], *, max_tokens: int, temperature: float) -> str | None:
-    """نداء Groq chat/completions بقائمة رسائل (system + المحادثة). يجرّب الموديلات بالترتيب."""
-    api_key = settings.GROQ_API_KEY.strip()
+# ---------- مزوّدات OpenAI-compatible بمفتاح + قائمة موديلات (Groq / Cerebras) ----------
+def _openai_compat_complete(
+    messages: list[dict], *, url: str, api_key: str, models: list[str], label: str,
+    max_tokens: int, temperature: float,
+) -> str | None:
+    """نداء مزوّد OpenAI-compatible (Groq/Cerebras): يجرّب الموديلات بالترتيب، يتعطّل بهدوء."""
     if not api_key:
         return None
     headers = {"Authorization": f"Bearer {api_key}"}
-    for model in settings.groq_models_list:
+    for model in models:
         try:
             resp = httpx.post(
-                _GROQ_URL,
+                url,
                 headers=headers,
                 json={
                     "model": model,
@@ -212,36 +215,47 @@ def _groq_messages_complete(messages: list[dict], *, max_tokens: int, temperatur
                     "max_tokens": max_tokens,
                     "temperature": temperature,
                 },
-                timeout=_GROQ_TIMEOUT,
+                timeout=18.0,
             )
             if resp.status_code != 200:
-                logger.warning("Groq (%s) رجّع %s: %s", model, resp.status_code, resp.text[:200])
+                logger.warning("%s (%s) رجّع %s: %s", label, model, resp.status_code, resp.text[:200])
                 continue
-            data = resp.json()
-            choices = data.get("choices") or []
+            choices = resp.json().get("choices") or []
             if not choices:
                 continue
             text = ((choices[0].get("message") or {}).get("content") or "").strip()
             if text:
                 return text
         except Exception:
-            logger.exception("فشل نداء Groq (%s)", model)
+            logger.exception("فشل نداء %s (%s)", label, model)
             continue
     return None
 
 
-def _groq_complete(prompt: str, system: str | None, *, max_tokens: int, temperature: float) -> str | None:
-    messages = [
-        {"role": "system", "content": system or _SYSTEM},
-        {"role": "user", "content": prompt},
-    ]
-    return _groq_messages_complete(messages, max_tokens=max_tokens, temperature=temperature)
+def _provider_complete(provider: str, prompt: str, system: str | None, *, max_tokens, temperature) -> str | None:
+    messages = [{"role": "system", "content": system or _SYSTEM}, {"role": "user", "content": prompt}]
+    return _provider_messages(provider, messages, max_tokens=max_tokens, temperature=temperature)
 
 
-def _groq_chat(messages: list[dict], system: str, *, max_tokens: int, temperature: float) -> str | None:
+def _provider_chat(provider: str, messages: list[dict], system: str, *, max_tokens, temperature) -> str | None:
     chat_messages = [{"role": "system", "content": system}]
     chat_messages.extend({"role": m["role"], "content": m["content"]} for m in messages)
-    return _groq_messages_complete(chat_messages, max_tokens=max_tokens, temperature=temperature)
+    return _provider_messages(provider, chat_messages, max_tokens=max_tokens, temperature=temperature)
+
+
+def _provider_messages(provider: str, messages: list[dict], *, max_tokens, temperature) -> str | None:
+    if provider == "groq":
+        url, key, models, label = _GROQ_URL, settings.GROQ_API_KEY.strip(), settings.groq_models_list, "Groq"
+    elif provider == "cerebras":
+        url, key, models, label = (
+            _CEREBRAS_URL, settings.CEREBRAS_API_KEY.strip(), settings.cerebras_models_list, "Cerebras",
+        )
+    else:
+        return None
+    return _openai_compat_complete(
+        messages, url=url, api_key=key, models=models, label=label,
+        max_tokens=max_tokens, temperature=temperature,
+    )
 
 
 def ai_complete(
@@ -253,7 +267,7 @@ def ai_complete(
 ) -> str | None:
     """يجرّب المزوّدات بالترتيب ويرجّع أول نص غير فارغ، وإلا None.
 
-    الترتيب: Gemini ثم Groq ثم OpenRouter — لو مزوّد فشل/استنفد حصّته ننتقل للتالي.
+    الترتيب: Gemini ثم Groq ثم Cerebras ثم OpenRouter — أي مزوّد يفشل/يستنفد حصّته ننتقل للتالي.
     لا يرفع استثناء أبداً — كل مزوّد يتعطّل بهدوء.
     """
     if not settings.ai_enabled:
@@ -261,7 +275,10 @@ def ai_complete(
     text = _gemini_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
     if text:
         return text
-    text = _groq_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
+    text = _provider_complete("groq", prompt, system, max_tokens=max_tokens, temperature=temperature)
+    if text:
+        return text
+    text = _provider_complete("cerebras", prompt, system, max_tokens=max_tokens, temperature=temperature)
     if text:
         return text
     return _openrouter_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
@@ -428,7 +445,10 @@ def chat_reply(messages: list[dict], system_extra: str | None = None) -> str | N
     text = _gemini_chat(norm, system, max_tokens=500, temperature=0.6)
     if text:
         return text
-    text = _groq_chat(norm, system, max_tokens=500, temperature=0.6)
+    text = _provider_chat("groq", norm, system, max_tokens=500, temperature=0.6)
+    if text:
+        return text
+    text = _provider_chat("cerebras", norm, system, max_tokens=500, temperature=0.6)
     if text:
         return text
     return _openrouter_chat(norm, system, max_tokens=500, temperature=0.6)
