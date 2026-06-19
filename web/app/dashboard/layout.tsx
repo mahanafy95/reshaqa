@@ -25,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     if (!isAuthed()) {
@@ -32,8 +33,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
     setReady(true);
+    setDark(document.documentElement.classList.contains("dark"));
     api.me().then((u) => setIsAdmin(!!u?.is_admin)).catch(() => {});
   }, [router]);
+
+  function toggleTheme() {
+    const el = document.documentElement;
+    const next = !el.classList.contains("dark");
+    el.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("theme", next ? "dark" : "light");
+    } catch {
+      /* ignore */
+    }
+    setDark(next);
+  }
 
   const nav = isAdmin ? [...NAV, ADMIN_NAV] : NAV;
 
@@ -46,8 +60,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex">
-      <aside className="w-60 bg-white border-l border-gray-100 flex flex-col shrink-0 max-md:hidden">
-        <div className="p-5 text-center border-b border-gray-100">
+      <aside className="w-60 bg-surface border-l border-line flex flex-col shrink-0 max-md:hidden">
+        <div className="p-5 text-center border-b border-line">
           <div className="text-2xl">🥗</div>
           <div className="font-extrabold text-teal text-xl">رشاقة</div>
         </div>
@@ -59,7 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={n.href}
                 href={n.href}
                 className={`flex items-center gap-3 rounded-xl px-4 py-2.5 transition ${
-                  active ? "bg-teal text-white" : "hover:bg-gray-50 text-ink"
+                  active ? "bg-teal text-white" : "hover:bg-soft text-ink"
                 }`}
               >
                 <span>{n.icon}</span>
@@ -68,6 +82,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
+        <button onClick={toggleTheme} className="mx-3 rounded-xl px-4 py-2.5 hover:bg-soft text-ink text-right flex items-center gap-3">
+          <span>{dark ? "☀️" : "🌙"}</span>
+          <span className="font-semibold">{dark ? "الوضع الفاتح" : "الوضع الليلي"}</span>
+        </button>
         <button onClick={logout} className="m-3 rounded-xl px-4 py-2.5 text-red-600 hover:bg-red-50 text-right">
           🚪 تسجيل الخروج
         </button>
@@ -77,9 +95,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden bg-teal text-white px-4 py-3 flex items-center justify-between">
           <span className="font-extrabold text-lg">🥗 رشاقة</span>
-          <button onClick={logout} className="text-sm">خروج</button>
+          <div className="flex items-center gap-3">
+            <button onClick={toggleTheme} aria-label="تبديل الوضع" className="text-lg">{dark ? "☀️" : "🌙"}</button>
+            <button onClick={logout} className="text-sm">خروج</button>
+          </div>
         </header>
-        <nav className="md:hidden flex overflow-x-auto bg-white border-b border-gray-100 px-2 py-2 gap-1">
+        <nav className="md:hidden flex overflow-x-auto bg-surface border-b border-line px-2 py-2 gap-1">
           {nav.map((n) => {
             const active = pathname === n.href;
             return (

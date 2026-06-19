@@ -45,7 +45,7 @@ export default function ActivityPage() {
         <form onSubmit={add}>
           <div className="flex gap-2 flex-wrap mb-2">
             {["مشي", "جري", "جيم", "سباحة", "دراجة"].map((t) => (
-              <button key={t} type="button" onClick={() => setF({ ...f, type_ar: t })} className="rounded-full bg-gray-100 px-3 py-1 text-sm">
+              <button key={t} type="button" onClick={() => setF({ ...f, type_ar: t })} className="rounded-full bg-soft px-3 py-1 text-sm">
                 {t}
               </button>
             ))}
@@ -66,7 +66,7 @@ export default function ActivityPage() {
           <p className="text-muted text-center py-3">مفيش نشاط متسجّل.</p>
         ) : (
           list.map((a) => (
-            <div key={a.id} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+            <div key={a.id} className="flex justify-between items-center py-2 border-b border-line last:border-0">
               <div>
                 <div className="font-semibold">{a.type_ar}</div>
                 <div className="text-muted text-sm">

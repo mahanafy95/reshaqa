@@ -167,7 +167,7 @@ export default function FoodsPage() {
             <button
               key={k}
               onClick={() => setMeal(k)}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold ${meal === k ? "bg-teal text-white" : "bg-gray-100 text-muted"}`}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold ${meal === k ? "bg-teal text-white" : "bg-soft text-muted"}`}
             >
               {v}
             </button>
@@ -185,13 +185,13 @@ export default function FoodsPage() {
             />
             {estimating && <span className="absolute left-3 top-9 text-xs text-muted">بنحسب…</span>}
             {results.length > 0 && (
-              <div className="absolute z-10 left-0 right-0 bg-white border border-gray-100 rounded-xl max-h-52 overflow-auto shadow-lg">
+              <div className="absolute z-10 left-0 right-0 bg-surface border border-line rounded-xl max-h-52 overflow-auto shadow-lg">
                 {results.map((r) => (
                   <button
                     type="button"
                     key={r.id}
                     onClick={() => pickLibrary(r)}
-                    className="w-full text-right px-4 py-2 hover:bg-gray-50 flex justify-between"
+                    className="w-full text-right px-4 py-2 hover:bg-soft flex justify-between"
                   >
                     <span>{r.name_ar}</span>
                     <span className="text-muted text-sm">{r.calories_per_100} /100</span>
@@ -212,7 +212,7 @@ export default function FoodsPage() {
             </Select>
           </div>
 
-          <div className="rounded-xl border border-gray-100 p-3 mb-3">
+          <div className="rounded-xl border border-line p-3 mb-3">
             <div className="grid grid-cols-2 gap-x-3 items-end">
               <Select label="🍬 سكر/مُحلّي المشروب" value={sugarKey} onChange={(e) => setSugarKey(e.target.value)}>
                 {SUGAR_TYPES.map((s) => (
@@ -284,7 +284,7 @@ export default function FoodsPage() {
                     <span className="text-teal text-sm font-semibold">{Math.round(sub)} سعرة</span>
                   </div>
                   {items.map((l) => (
-                    <div key={l.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 px-2">
+                    <div key={l.id} className="flex items-center justify-between py-2 border-b border-line last:border-0 px-2">
                       <div>
                         <div className="font-semibold">{l.name_ar}</div>
                         <div className="text-muted text-sm">

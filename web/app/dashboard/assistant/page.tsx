@@ -118,7 +118,7 @@ export default function AssistantPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col" style={{ minHeight: "60vh" }}>
+      <div className="bg-surface rounded-2xl shadow-sm p-4 flex flex-col" style={{ minHeight: "60vh" }}>
         <div ref={scrollRef} className="flex-1 overflow-auto space-y-3 p-1">
           {loadingHistory ? (
             <div className="h-full flex items-center justify-center text-muted text-sm">…بحمّل محادثتك</div>
@@ -147,7 +147,7 @@ export default function AssistantPage() {
               <div key={i} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line leading-relaxed ${
-                    m.role === "user" ? "bg-teal text-white" : "bg-gray-100 text-ink"
+                    m.role === "user" ? "bg-teal text-white" : "bg-soft text-ink"
                   }`}
                 >
                   {m.content}
@@ -157,7 +157,7 @@ export default function AssistantPage() {
           )}
           {busy && (
             <div className="flex justify-end">
-              <div className="bg-gray-100 text-muted rounded-2xl px-4 py-2.5 text-sm">…بكتب</div>
+              <div className="bg-soft text-muted rounded-2xl px-4 py-2.5 text-sm">…بكتب</div>
             </div>
           )}
         </div>
@@ -171,7 +171,7 @@ export default function AssistantPage() {
             }}
             placeholder="اكتب رسالتك…"
             disabled={busy}
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none focus:border-teal disabled:opacity-60"
+            className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 outline-none focus:border-teal disabled:opacity-60"
           />
           <Button onClick={() => send()} disabled={busy}>
             {busy ? "…" : "ابعت"}

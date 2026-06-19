@@ -27,8 +27,8 @@ export default function DeleteAccountPage() {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 md:p-8">
+    <div dir="rtl" className="min-h-screen bg-soft py-10 px-4">
+      <div className="max-w-md mx-auto bg-surface rounded-2xl shadow-sm p-6 md:p-8">
         <h1 className="text-2xl font-extrabold text-teal mb-3">حذف الحساب 🗑️</h1>
 
         {done ? (
@@ -42,7 +42,7 @@ export default function DeleteAccountPage() {
               الشخصي، سجلّات الأكل والوزن والمياه، والوصفات. الإجراء ده لا يمكن التراجع عنه.
             </p>
 
-            <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600 mb-5">
+            <div className="rounded-xl bg-soft p-4 text-sm text-gray-600 mb-5">
               <p className="font-semibold mb-1">طرق الحذف:</p>
               <ul className="list-disc pr-5 space-y-1">
                 <li>من تطبيق الأندرويد: الإعدادات ← حذف حسابي.</li>

@@ -362,7 +362,7 @@ export default function AdminPage() {
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && load(q)}
             placeholder="ابحث باسم المستخدم…"
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none focus:border-teal"
+            className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 outline-none focus:border-teal"
           />
           <Button onClick={() => load(q)}>بحث</Button>
         </div>
@@ -370,7 +370,7 @@ export default function AdminPage() {
         <div className="overflow-x-auto -mx-2">
           <table className="w-full text-sm min-w-[640px]">
             <thead>
-              <tr className="text-muted text-right border-b border-gray-100">
+              <tr className="text-muted text-right border-b border-line">
                 <th className="py-2 px-2 font-semibold">المستخدم</th>
                 <th className="py-2 px-2 font-semibold">الهدف (سعرات)</th>
                 <th className="py-2 px-2 font-semibold">الوزن</th>
@@ -381,7 +381,7 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <tr key={u.id} className="border-b border-line hover:bg-soft">
                   <td className="py-2 px-2">
                     <button onClick={() => openDetail(u.id)} className="font-bold text-teal hover:underline">
                       {u.username}
@@ -406,7 +406,7 @@ export default function AdminPage() {
                     <div className="flex gap-1.5 flex-wrap">
                       <button
                         onClick={() => renameUser(u)}
-                        className="text-xs rounded-lg border border-gray-300 text-ink px-2 py-1 hover:bg-gray-100"
+                        className="text-xs rounded-lg border border-line text-ink px-2 py-1 hover:bg-soft"
                       >
                         الاسم
                       </button>
@@ -470,7 +470,7 @@ export default function AdminPage() {
                 className={`rounded-xl border p-4 ${
                   it.status === "new"
                     ? "border-red-200 bg-red-50/60"
-                    : "border-gray-100 bg-white"
+                    : "border-line bg-surface"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
@@ -554,7 +554,7 @@ export default function AdminPage() {
               {selected.recent_foods?.length ? (
                 <ul className="text-sm space-y-1 mb-4">
                   {selected.recent_foods.map((f: any, i: number) => (
-                    <li key={i} className="flex justify-between border-b border-gray-50 py-1">
+                    <li key={i} className="flex justify-between border-b border-line py-1">
                       <span>{f.name_ar} <span className="text-muted">({f.amount}جم)</span></span>
                       <span className="text-muted">{Math.round(f.calories)} سعرة · {fmtDate(f.date)}</span>
                     </li>
@@ -567,7 +567,7 @@ export default function AdminPage() {
               {selected.recent_weights?.length ? (
                 <ul className="text-sm space-y-1">
                   {selected.recent_weights.map((w: any, i: number) => (
-                    <li key={i} className="flex justify-between border-b border-gray-50 py-1">
+                    <li key={i} className="flex justify-between border-b border-line py-1">
                       <span>{w.weight_kg} كجم</span>
                       <span className="text-muted">{fmtDate(w.date)}</span>
                     </li>
@@ -579,7 +579,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 mt-5 flex-wrap border-t border-gray-100 pt-4">
+          <div className="flex gap-2 mt-5 flex-wrap border-t border-line pt-4">
             <Button variant="outline" onClick={() => renameUser(selected)}>
               ✏️ تغيير الاسم
             </Button>

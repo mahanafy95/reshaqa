@@ -57,7 +57,7 @@ export default function DashboardHome() {
             <div className="text-muted text-sm">من {Math.round(summary.target_calories)} سعرة</div>
           </div>
           <div className="flex-1 min-w-[160px]">
-            <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-3 rounded-full bg-soft overflow-hidden">
               <div
                 className="h-full rounded-full"
                 style={{

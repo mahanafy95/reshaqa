@@ -47,7 +47,7 @@ export default function ReportsPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-full px-5 py-2 font-semibold ${tab === t ? "bg-teal text-white" : "bg-white text-muted"}`}
+            className={`rounded-full px-5 py-2 font-semibold ${tab === t ? "bg-teal text-white" : "bg-surface text-muted"}`}
           >
             {t === "weekly" ? "أسبوعي" : "شهري"}
           </button>

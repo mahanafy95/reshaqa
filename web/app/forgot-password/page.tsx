@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {step === 1 ? (
-          <form onSubmit={requestCode} className="bg-white rounded-2xl shadow-sm p-6">
+          <form onSubmit={requestCode} className="bg-surface rounded-2xl shadow-sm p-6">
             <Field
               label="البريد الإلكتروني"
               type="email"
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         ) : (
-          <form onSubmit={doReset} className="bg-white rounded-2xl shadow-sm p-6">
+          <form onSubmit={doReset} className="bg-surface rounded-2xl shadow-sm p-6">
             {info && <p className="text-teal text-sm mb-3 text-center">{info}</p>}
             <Field
               label="الرمز (6 أرقام)"

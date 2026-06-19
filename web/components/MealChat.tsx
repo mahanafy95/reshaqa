@@ -15,7 +15,7 @@ type Item = {
 };
 type Msg = { role: "user" | "bot"; text: string };
 
-const CONF: Record<string, string> = { high: "bg-teal/10 text-teal", medium: "bg-amber-100 text-amber-700", low: "bg-gray-100 text-gray-500" };
+const CONF: Record<string, string> = { high: "bg-teal/10 text-teal", medium: "bg-amber-100 text-amber-700", low: "bg-soft text-gray-500" };
 
 export default function MealChat({
   defaultMeal,
@@ -92,7 +92,7 @@ export default function MealChat({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-4">
+    <div className="bg-surface rounded-2xl shadow-sm p-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xl">🤖</span>
         <h2 className="font-bold text-lg">مساعد الأكل — كلّمني بالعامية</h2>
@@ -103,7 +103,7 @@ export default function MealChat({
           <div key={i} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
             <div
               className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line ${
-                m.role === "user" ? "bg-teal text-white" : "bg-gray-100 text-ink"
+                m.role === "user" ? "bg-teal text-white" : "bg-soft text-ink"
               }`}
             >
               {m.text}
@@ -113,10 +113,10 @@ export default function MealChat({
       </div>
 
       {pending.length > 0 && (
-        <div className="rounded-xl border border-gray-100 p-2 mb-3 space-y-1">
+        <div className="rounded-xl border border-line p-2 mb-3 space-y-1">
           <div className="text-xs text-muted mb-1">راجع/عدّل قبل التسجيل:</div>
           {pending.map((it, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm border-b border-gray-50 last:border-0 py-1">
+            <div key={i} className="flex items-center gap-2 text-sm border-b border-line last:border-0 py-1">
               <span className={`text-[10px] rounded px-1.5 py-0.5 ${CONF[it.confidence] || CONF.medium}`}>
                 {it.confidence === "high" ? "مؤكد" : it.confidence === "low" ? "تقديري" : "تقريبي"}
               </span>
@@ -124,7 +124,7 @@ export default function MealChat({
               <select
                 value={it.meal}
                 onChange={(e) => patch(i, { meal: e.target.value })}
-                className="text-xs rounded-lg border border-gray-200 px-1.5 py-1"
+                className="text-xs rounded-lg border border-line px-1.5 py-1"
               >
                 {Object.entries(MEALS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -134,7 +134,7 @@ export default function MealChat({
                 type="number"
                 value={it.calories}
                 onChange={(e) => patch(i, { calories: Number(e.target.value) })}
-                className="w-16 text-xs rounded-lg border border-gray-200 px-1.5 py-1 text-center"
+                className="w-16 text-xs rounded-lg border border-line px-1.5 py-1 text-center"
               />
               <span className="text-muted text-xs">سعرة</span>
               <button onClick={() => setPending((p) => p.filter((_, idx) => idx !== i))} className="text-red-500 text-xs">✕</button>
@@ -153,7 +153,7 @@ export default function MealChat({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="اكتب أكلت إيه…"
-          className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none focus:border-teal"
+          className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 outline-none focus:border-teal"
         />
         <Button onClick={send} disabled={busy}>{busy ? "…" : "ابعت"}</Button>
       </div>

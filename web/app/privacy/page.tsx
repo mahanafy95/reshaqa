@@ -17,8 +17,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function PrivacyPage() {
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm p-6 md:p-8">
+    <div dir="rtl" className="min-h-screen bg-soft py-10 px-4">
+      <div className="max-w-2xl mx-auto bg-surface rounded-2xl shadow-sm p-6 md:p-8">
         <h1 className="text-2xl font-extrabold text-teal mb-1">سياسة الخصوصية — رشاقة 🥗</h1>
         <p className="text-muted text-sm mb-6">آخر تحديث: {UPDATED}</p>
 

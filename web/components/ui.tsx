@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white rounded-2xl shadow-sm p-5 ${className}`}>{children}</div>;
+  return <div className={`bg-surface rounded-2xl shadow-sm p-5 ${className}`}>{children}</div>;
 }
 
 export function Button({
@@ -46,7 +46,7 @@ export function Field({
       <span className="block mb-1 text-sm text-muted">{label}</span>
       <input
         {...props}
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none focus:border-teal"
+        className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 outline-none focus:border-teal"
       />
     </label>
   );
@@ -64,7 +64,7 @@ export function PasswordField({
         <input
           {...props}
           type={show ? "text" : "password"}
-          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 pe-11 outline-none focus:border-teal"
+          className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 pe-11 outline-none focus:border-teal"
         />
         <button
           type="button"
@@ -105,7 +105,7 @@ export function Select({
       <span className="block mb-1 text-sm text-muted">{label}</span>
       <select
         {...props}
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none focus:border-teal"
+        className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 outline-none focus:border-teal"
       >
         {children}
       </select>
@@ -115,7 +115,7 @@ export function Select({
 
 export function StatRow({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+    <div className="flex justify-between py-1.5 border-b border-line last:border-0">
       <span className="text-muted">{k}</span>
       <span className="font-bold">{v}</span>
     </div>
@@ -140,7 +140,7 @@ export function Bar({ label, eaten, target, color }: { label: string; eaten: num
           {Math.round(eaten)} / {Math.round(target)} جم
         </span>
       </div>
-      <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+      <div className="h-2.5 rounded-full bg-soft overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>

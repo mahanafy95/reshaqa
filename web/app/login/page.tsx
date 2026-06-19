@@ -60,7 +60,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-extrabold text-teal mt-2">رشاقة</h1>
           <p className="text-muted mt-1">لوحة تحكم التخسيس الصحي</p>
         </div>
-        <form onSubmit={submit} className="bg-white rounded-2xl shadow-sm p-6">
+        <form onSubmit={submit} className="bg-surface rounded-2xl shadow-sm p-6">
           <Field
             label="اسم المستخدم"
             value={username}

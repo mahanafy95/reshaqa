@@ -96,9 +96,9 @@ export default function GoogleSignIn({
   return (
     <div className="mt-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="h-px flex-1 bg-gray-200" />
+        <div className="h-px flex-1 bg-soft" />
         <span className="text-xs text-muted">أو</span>
-        <div className="h-px flex-1 bg-gray-200" />
+        <div className="h-px flex-1 bg-soft" />
       </div>
       <div className="flex justify-center" ref={btnRef} />
       {!ready && <p className="text-center text-xs text-muted mt-2">جاري تحميل زر جوجل…</p>}

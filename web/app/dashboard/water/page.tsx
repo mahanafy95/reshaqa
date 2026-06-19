@@ -60,7 +60,7 @@ export default function WaterPage() {
               onChange={(e) => setCustomMl(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") addCustom(); }}
               placeholder="كمية يدوية (مل)"
-              className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-center outline-none focus:border-sky"
+              className="flex-1 rounded-xl border border-black/10 bg-surface px-3 py-2 text-center outline-none focus:border-sky"
             />
             <Button onClick={addCustom} className="bg-sky hover:bg-sky/90">أضف</Button>
           </div>

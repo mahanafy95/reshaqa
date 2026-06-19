@@ -203,7 +203,7 @@ export default function RecipesPage() {
         <div className="font-semibold text-sm text-muted mt-2 mb-1">المكوّنات (اكتب الاسم والسعرات تتجاب لوحدها)</div>
         <div className="space-y-3">
           {ings.map((it, idx) => (
-            <div key={idx} className="rounded-xl border border-gray-100 p-3">
+            <div key={idx} className="rounded-xl border border-line p-3">
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <Field
@@ -256,7 +256,7 @@ export default function RecipesPage() {
         </button>
 
         {/* خانة الحليب */}
-        <div className="grid grid-cols-2 gap-x-3 mt-3 items-end border-t border-gray-100 pt-3">
+        <div className="grid grid-cols-2 gap-x-3 mt-3 items-end border-t border-line pt-3">
           <Select label="🥛 الحليب" value={milkKey} onChange={(e) => setMilkKey(e.target.value)}>
             {MILK_TYPES.map((m) => (
               <option key={m.key} value={m.key}>{m.label}</option>
@@ -298,7 +298,7 @@ export default function RecipesPage() {
         ) : (
           <div className="space-y-2">
             {recipes.map((r) => (
-              <div key={r.id} className="rounded-xl border border-gray-100 p-3">
+              <div key={r.id} className="rounded-xl border border-line p-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="font-bold">{r.name_ar}</div>
@@ -321,7 +321,7 @@ export default function RecipesPage() {
       {/* نافذة تسجيل وصفة كأكل */}
       {logFor && (
         <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-20" onClick={() => setLogFor(null)}>
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg mb-3">سجّل "{logFor.name_ar}" كأكل</h3>
             <Field label="أكلت كام نصيب؟" type="number" inputMode="decimal" value={logServings} onChange={(e) => setLogServings(e.target.value)} />
             <Select label="الوجبة" value={logMeal} onChange={(e) => setLogMeal(e.target.value)}>
