@@ -25,7 +25,9 @@ from ..config import settings
 logger = logging.getLogger("reshaqa.ai")
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+_GROQ_TIMEOUT = 18.0
 _OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 # ترتيب تفضيل موديلات المحادثة العامة القوية من بين المجانية المتاحة.
@@ -192,6 +194,56 @@ def _openrouter_complete(
     return None
 
 
+# ---------- مزوّد Groq (OpenAI-compatible، باقة مجانية سخيّة وسريعة) ----------
+def _groq_messages_complete(messages: list[dict], *, max_tokens: int, temperature: float) -> str | None:
+    """نداء Groq chat/completions بقائمة رسائل (system + المحادثة). يجرّب الموديلات بالترتيب."""
+    api_key = settings.GROQ_API_KEY.strip()
+    if not api_key:
+        return None
+    headers = {"Authorization": f"Bearer {api_key}"}
+    for model in settings.groq_models_list:
+        try:
+            resp = httpx.post(
+                _GROQ_URL,
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+                timeout=_GROQ_TIMEOUT,
+            )
+            if resp.status_code != 200:
+                logger.warning("Groq (%s) رجّع %s: %s", model, resp.status_code, resp.text[:200])
+                continue
+            data = resp.json()
+            choices = data.get("choices") or []
+            if not choices:
+                continue
+            text = ((choices[0].get("message") or {}).get("content") or "").strip()
+            if text:
+                return text
+        except Exception:
+            logger.exception("فشل نداء Groq (%s)", model)
+            continue
+    return None
+
+
+def _groq_complete(prompt: str, system: str | None, *, max_tokens: int, temperature: float) -> str | None:
+    messages = [
+        {"role": "system", "content": system or _SYSTEM},
+        {"role": "user", "content": prompt},
+    ]
+    return _groq_messages_complete(messages, max_tokens=max_tokens, temperature=temperature)
+
+
+def _groq_chat(messages: list[dict], system: str, *, max_tokens: int, temperature: float) -> str | None:
+    chat_messages = [{"role": "system", "content": system}]
+    chat_messages.extend({"role": m["role"], "content": m["content"]} for m in messages)
+    return _groq_messages_complete(chat_messages, max_tokens=max_tokens, temperature=temperature)
+
+
 def ai_complete(
     prompt: str,
     system: str | None = None,
@@ -201,12 +253,15 @@ def ai_complete(
 ) -> str | None:
     """يجرّب المزوّدات بالترتيب ويرجّع أول نص غير فارغ، وإلا None.
 
-    الترتيب: Gemini المباشر ثم OpenRouter (كل موديل مجاني بالترتيب).
+    الترتيب: Gemini ثم Groq ثم OpenRouter — لو مزوّد فشل/استنفد حصّته ننتقل للتالي.
     لا يرفع استثناء أبداً — كل مزوّد يتعطّل بهدوء.
     """
     if not settings.ai_enabled:
         return None
     text = _gemini_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
+    if text:
+        return text
+    text = _groq_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
     if text:
         return text
     return _openrouter_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
@@ -371,6 +426,9 @@ def chat_reply(messages: list[dict], system_extra: str | None = None) -> str | N
         return None
     system = _build_chat_system(system_extra)
     text = _gemini_chat(norm, system, max_tokens=500, temperature=0.6)
+    if text:
+        return text
+    text = _groq_chat(norm, system, max_tokens=500, temperature=0.6)
     if text:
         return text
     return _openrouter_chat(norm, system, max_tokens=500, temperature=0.6)

@@ -34,10 +34,41 @@ def test_ai_enabled_with_only_openrouter(monkeypatch):
     assert settings.ai_enabled is True
 
 
-def test_ai_enabled_false_when_both_empty(monkeypatch):
+def test_ai_enabled_with_only_groq(monkeypatch):
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "groq-key")
+    assert settings.ai_enabled is True
+
+
+def test_ai_enabled_false_when_all_empty(monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
     assert settings.ai_enabled is False
+
+
+def test_groq_sends_bearer_and_tries_next_model(monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "groq-secret")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_MODELS", "big/model,small/model")
+    seen: list[str] = []
+    captured: dict = {}
+
+    def fake_post(url, **kwargs):
+        assert "groq.com" in url
+        captured["auth"] = kwargs["headers"]["Authorization"]
+        model = kwargs["json"]["model"]
+        seen.append(model)
+        if model == "big/model":
+            return _Resp(429, text="rate limited")
+        return _openrouter_ok("نجح Groq التاني")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert ai.ai_complete("سؤال") == "نجح Groq التاني"
+    assert seen == ["big/model", "small/model"]
+    assert captured["auth"] == "Bearer groq-secret"
 
 
 def test_openrouter_models_list_trims_and_drops_empty(monkeypatch):
@@ -106,8 +137,26 @@ def test_ai_complete_prefers_gemini(monkeypatch):
     assert ai.ai_complete("سؤال") == "رد من Gemini"
 
 
+def test_ai_complete_falls_back_to_groq_before_openrouter(monkeypatch):
+    """Gemini فشل → Groq ينجح (قبل OpenRouter)."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "groq-key")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+
+    def fake_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return _Resp(429, text="gemini quota")
+        if "groq.com" in url:
+            return _openrouter_ok("رد من Groq")
+        raise AssertionError("ما كانش المفروض نوصل لـ OpenRouter")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert ai.ai_complete("سؤال") == "رد من Groq"
+
+
 def test_ai_complete_falls_back_to_openrouter(monkeypatch):
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")  # مفيش Groq
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
     monkeypatch.setattr(settings, "OPENROUTER_MODELS", "a/m:free")  # تخطّي الاكتشاف (بلا شبكة)
 
