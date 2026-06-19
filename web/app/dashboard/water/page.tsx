@@ -7,6 +7,7 @@ export default function WaterPage() {
   const [water, setWater] = useState<any>(null);
   const [drinks, setDrinks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customMl, setCustomMl] = useState("");
 
   async function load() {
     const [w, d] = await Promise.all([api.water(), api.drinks()]);
@@ -20,6 +21,13 @@ export default function WaterPage() {
 
   async function add(ml: number) {
     setWater(await api.addWater(ml));
+  }
+
+  async function addCustom() {
+    const ml = parseInt(customMl, 10);
+    if (!Number.isFinite(ml) || ml <= 0) return;
+    await add(ml);
+    setCustomMl("");
   }
 
   if (loading) return <Spinner />;
@@ -42,6 +50,19 @@ export default function WaterPage() {
                 +{ml} مل
               </Button>
             ))}
+          </div>
+          <div className="flex gap-2 justify-center mt-3 max-w-xs mx-auto">
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={customMl}
+              onChange={(e) => setCustomMl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addCustom(); }}
+              placeholder="كمية يدوية (مل)"
+              className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-center outline-none focus:border-sky"
+            />
+            <Button onClick={addCustom} className="bg-sky hover:bg-sky/90">أضف</Button>
           </div>
         </div>
       </Card>
