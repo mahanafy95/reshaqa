@@ -18,6 +18,7 @@ from .routers import (
     assistant,
     auth,
     billing,
+    export,
     favorites,
     foods,
     health,
@@ -129,6 +130,7 @@ app.include_router(billing.router)
 app.include_router(social.router)
 app.include_router(issues.router)
 app.include_router(assistant.router)
+app.include_router(export.router)
 app.include_router(admin.router)
 
 
