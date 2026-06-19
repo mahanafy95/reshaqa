@@ -102,6 +102,13 @@ class Api {
   static Future<Map<String, dynamic>> bodyMetrics() async => (await _d.get('/metrics/body')).data;
   /// سلسلة أيام التسجيل المتتالية + الإنجازات (للتحفيز على الرئيسية).
   static Future<Map<String, dynamic>> streak() async => (await _d.get('/streak')).data;
+
+  /// تصدير كل بيانات المستخدم كـ CSV (bytes) — للمشاركة/الحفظ.
+  static Future<List<int>> exportData() async {
+    final r = await _d.get('/export',
+        options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 60)));
+    return (r.data as List).cast<int>();
+  }
   static Future<List<dynamic>> drinkSuggestions() async => (await _d.get('/drinks/suggestions')).data;
 
   // ---------- تسجيل الأكل ----------

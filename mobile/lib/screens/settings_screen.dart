@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
@@ -24,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _lock = false;
   bool _loading = true;
   bool _restoring = false;
+  bool _exporting = false;
   String _version = '';
   static const _kNotif = 'reshaqa_notifications';
 
@@ -112,6 +118,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 label: const Text('استعادة المشتريات'),
                 onPressed: _restoring ? null : () => _restorePurchases(context),
               ),
+              TextButton.icon(
+                icon: const Icon(Icons.open_in_new, size: 20),
+                label: const Text('إدارة الاشتراك في Google Play'),
+                onPressed: _openManageSubscription,
+              ),
             ]),
           ),
           const SizedBox(height: 12),
@@ -163,6 +174,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
+                icon: const Icon(Icons.download_outlined),
+                label: Text(_exporting ? 'بنجهّز ملفك…' : 'صدّر بياناتي (CSV)'),
+                onPressed: _exporting ? null : _exportData,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
                 icon: const Icon(Icons.bug_report_outlined),
                 label: const Text('🐞 الإبلاغ عن مشكلة'),
                 onPressed: () => _reportIssue(context),
@@ -198,6 +215,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _exportData() async {
+    setState(() => _exporting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await Api.exportData();
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/reshaqa_export.csv');
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles([XFile(file.path)], text: 'بياناتي من رشاقة');
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(ApiClient.errorMessage(e))));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _openManageSubscription() async {
+    final uri = Uri.parse('https://play.google.com/store/account/subscriptions');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) showSnack(context, 'مقدرناش نفتح Google Play', error: true);
+    }
   }
 
   Future<void> _editEmail(BuildContext context) async {
