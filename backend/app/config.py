@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     # المساعد الصحي بالذكاء الاصطناعي — Google Gemini (الباقة المجانية، بدون فيزا)
     # مفتاح مجاني من https://aistudio.google.com/apikey . لو فاضي، يفضل المحلّل المحلي (heuristic).
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
 
     # احتياطي مجاني عبر OpenRouter — مفتاح واحد يفتح موديلات مجانية (DeepSeek/Qwen/GLM الصينية وغيرها).
     # مفتاح من https://openrouter.ai/keys . لو فاضي، نكتفي بـ Gemini أو المحلّل المحلي.

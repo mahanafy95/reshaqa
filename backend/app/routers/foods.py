@@ -299,7 +299,12 @@ def parse_meal(
                     )
                 )
         else:
-            # فشل الـ AI → رجوع للـ heuristic
+            # فشل الـ AI → اكشف الأسئلة محليًا الأول (مانلفّقش أصناف من سؤال) ثم heuristic
+            if meal_parser.looks_like_question(payload.text):
+                return ParseResponse(
+                    items=[], total_calories=0, logged=False, logged_ids=[],
+                    reply_ar=_QUESTION_FALLBACK_REPLY,
+                )
             out = _parse_heuristic_items(db, payload.text, default_meal.value)
     else:
         # مفيش AI — اكشف الأسئلة محليًا أولاً عشان مانلفّقش أصناف من سؤال
