@@ -15,6 +15,7 @@ import base64
 import json
 import logging
 import re
+import time
 
 import httpx
 
@@ -24,6 +25,80 @@ logger = logging.getLogger("reshaqa.ai")
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+_OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
+
+# ترتيب تفضيل موديلات المحادثة العامة القوية من بين المجانية المتاحة.
+_OPENROUTER_PREFER = (
+    "llama", "qwen", "deepseek", "gpt-oss", "glm", "mistral", "gemma", "hermes",
+)
+# موديلات متخصّصة (مش مساعد محادثة عام) نتجاهلها عند الاكتشاف التلقائي.
+_OPENROUTER_SKIP = (
+    "rerank", "embed", "content-safety", "guard", "moderation", "safety",
+    "transcribe", "voice", "tts", "whisper", "ocr", "image", "-vl", "vision", "code",
+)
+# قائمة احتياطية محدّثة (تُستخدم فقط لو تعذّر جلب القائمة الحيّة من OpenRouter).
+_OPENROUTER_FALLBACK = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
+    "openai/gpt-oss-120b:free",
+    "google/gemma-4-31b-it:free",
+]
+_OPENROUTER_MODELS_TTL = 3600.0  # ساعة — نكاشّ القائمة الحيّة عشان منرهقش الـ API.
+_openrouter_models_cache: "tuple[float, list[str]] | None" = None
+
+
+def _discover_free_models() -> list[str]:
+    """اجلب الموديلات المجانية المتاحة لحظياً من OpenRouter ورتّبها بالأقوى.
+
+    ده بيخلّي البرنامج 'يتداوى' بنفسه لو OpenRouter غيّر أسماء الموديلات المجانية
+    (زي ما حصل: deepseek-v3/qwen-2.5/glm-4.5/gemini-flash-exp اختفوا). كاش لمدة ساعة.
+    """
+    global _openrouter_models_cache
+    now = time.time()
+    if _openrouter_models_cache and now - _openrouter_models_cache[0] < _OPENROUTER_MODELS_TTL:
+        return _openrouter_models_cache[1]
+    try:
+        resp = httpx.get(_OPENROUTER_MODELS_URL, timeout=15.0)
+        if resp.status_code != 200:
+            raise RuntimeError(f"models list {resp.status_code}")
+        free: list[str] = []
+        for m in resp.json().get("data", []):
+            mid = str(m.get("id", ""))
+            if not mid.endswith(":free"):
+                continue
+            low = mid.lower()
+            if any(s in low for s in _OPENROUTER_SKIP):
+                continue
+            arch = m.get("architecture") or {}
+            out_mods = arch.get("output_modalities")
+            if out_mods and "text" not in out_mods:
+                continue
+            free.append(mid)
+
+        def _score(mid: str) -> int:
+            low = mid.lower()
+            for i, p in enumerate(_OPENROUTER_PREFER):
+                if p in low:
+                    return i
+            return len(_OPENROUTER_PREFER)
+
+        free.sort(key=_score)
+        result = free[:6] or list(_OPENROUTER_FALLBACK)
+        _openrouter_models_cache = (now, result)
+        logger.info("موديلات OpenRouter المجانية المكتشَفة: %s", result)
+        return result
+    except Exception:
+        logger.warning("تعذّر جلب موديلات OpenRouter المجانية — استخدام القائمة الاحتياطية", exc_info=True)
+        _openrouter_models_cache = (now, list(_OPENROUTER_FALLBACK))
+        return list(_OPENROUTER_FALLBACK)
+
+
+def _openrouter_models() -> list[str]:
+    """الموديلات المستخدَمة: قائمة صريحة من البيئة لو موجودة، وإلا اكتشاف تلقائي."""
+    explicit = settings.openrouter_models_list
+    if explicit:
+        return explicit
+    return _discover_free_models()
 
 _SYSTEM = (
     "إنت مساعد تغذية وصحة ودود لتطبيق 'رشاقة'، بتتكلم بالعامية المصرية وباختصار. "
@@ -80,7 +155,7 @@ def _openrouter_complete(
         "X-Title": "Reshaqa",
     }
     # نجرّب كل موديل مجاني بالترتيب؛ لو رجّع خطأ أو نص فارغ ننتقل للي بعده.
-    for model in settings.openrouter_models_list:
+    for model in _openrouter_models():
         try:
             resp = httpx.post(
                 _OPENROUTER_URL,
@@ -241,7 +316,7 @@ def _openrouter_chat(
         "HTTP-Referer": "https://reshaqa.app",
         "X-Title": "Reshaqa",
     }
-    for model in settings.openrouter_models_list:
+    for model in _openrouter_models():
         try:
             resp = httpx.post(
                 _OPENROUTER_URL,

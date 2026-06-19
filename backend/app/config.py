@@ -89,14 +89,10 @@ class Settings(BaseSettings):
     # احتياطي مجاني عبر OpenRouter — مفتاح واحد يفتح موديلات مجانية (DeepSeek/Qwen/GLM الصينية وغيرها).
     # مفتاح من https://openrouter.ai/keys . لو فاضي، نكتفي بـ Gemini أو المحلّل المحلي.
     OPENROUTER_API_KEY: str = ""
-    # قائمة الموديلات المجانية بالترتيب (مفصولة بفواصل) — نجرّبها واحدة تلو الأخرى.
-    OPENROUTER_MODELS: str = (
-        "deepseek/deepseek-chat-v3-0324:free,"
-        "qwen/qwen-2.5-72b-instruct:free,"
-        "z-ai/glm-4.5-air:free,"
-        "meta-llama/llama-3.3-70b-instruct:free,"
-        "google/gemini-2.0-flash-exp:free"
-    )
+    # قائمة موديلات OpenRouter (مفصولة بفواصل). فاضية = اكتشاف تلقائي للموديلات
+    # المجانية المتاحة لحظياً (يتداوى ذاتياً لو OpenRouter غيّر الأسماء). عيّنها فقط
+    # لو عايز تثبّت موديلات بعينها.
+    OPENROUTER_MODELS: str = ""
 
     @model_validator(mode="after")
     def _enforce_secure_secret(self):

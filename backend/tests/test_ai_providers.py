@@ -45,12 +45,46 @@ def test_openrouter_models_list_trims_and_drops_empty(monkeypatch):
     assert settings.openrouter_models_list == ["a/model:free", "b/model:free"]
 
 
-def test_default_openrouter_models_include_free_chinese():
-    models = settings.openrouter_models_list
-    assert any("deepseek" in m for m in models)
-    assert any("qwen" in m for m in models)
-    assert any("glm" in m for m in models)
-    assert all(m.endswith(":free") for m in models)
+def test_default_openrouter_models_empty_means_autodiscover():
+    """الافتراضي فاضي = نكتشف الموديلات المجانية المتاحة لحظياً (يتداوى ذاتياً)."""
+    assert settings.openrouter_models_list == []
+
+
+def test_openrouter_models_uses_explicit_list_when_set(monkeypatch):
+    """لو البيئة عيّنت موديلات صراحةً نستخدمها بدل الاكتشاف التلقائي."""
+    monkeypatch.setattr(settings, "OPENROUTER_MODELS", "x/m:free,y/m:free")
+    assert ai._openrouter_models() == ["x/m:free", "y/m:free"]
+
+
+def test_discover_free_models_ranks_and_filters(monkeypatch):
+    """الاكتشاف يفلتر :free ويستبعد المتخصّص ويرتّب موديلات المحادثة القوية أولاً."""
+    ai._openrouter_models_cache = None
+    payload = {
+        "data": [
+            {"id": "openai/gpt-4o"},                                   # مش :free
+            {"id": "nvidia/nemotron-content-safety:free"},             # متخصّص → يُستبعد
+            {"id": "some/image-gen:free", "architecture": {"output_modalities": ["image"]}},
+            {"id": "qwen/qwen3-coder:free"},                           # code → يُستبعد
+            {"id": "meta-llama/llama-3.3-70b-instruct:free"},
+            {"id": "google/gemma-4-31b-it:free"},
+        ]
+    }
+    monkeypatch.setattr(ai.httpx, "get", lambda *a, **k: _Resp(200, payload))
+    out = ai._discover_free_models()
+    assert out == ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-4-31b-it:free"]
+
+
+def test_discover_free_models_falls_back_on_network_error(monkeypatch):
+    """لو تعذّر جلب القائمة الحيّة → نرجع للقائمة الاحتياطية المحدّثة (مش فاضية)."""
+    ai._openrouter_models_cache = None
+
+    def boom(*a, **k):
+        raise httpx.ConnectError("no network")
+
+    monkeypatch.setattr(ai.httpx, "get", boom)
+    out = ai._discover_free_models()
+    assert out == ai._OPENROUTER_FALLBACK
+    assert out and all(m.endswith(":free") for m in out)
 
 
 # ---------- ai_complete: ترتيب المزوّدات ----------
@@ -75,6 +109,7 @@ def test_ai_complete_prefers_gemini(monkeypatch):
 def test_ai_complete_falls_back_to_openrouter(monkeypatch):
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(settings, "OPENROUTER_MODELS", "a/m:free")  # تخطّي الاكتشاف (بلا شبكة)
 
     def fake_post(url, **kwargs):
         if "generativelanguage" in url:
