@@ -118,7 +118,7 @@ class Api {
               queryParameters: {'name': name, 'amount': amount}, options: _aiOpts))
           .data;
   static Future<Map<String, dynamic>> barcode(String code) async =>
-      (await _d.get('/foods/barcode/$code')).data;
+      (await _d.get('/foods/barcode/$code', options: _aiOpts)).data;
   static Future<Map<String, dynamic>> saveBarcode(Map<String, dynamic> body) async =>
       (await _d.post('/foods/barcode', data: body)).data;
   static Future<Map<String, dynamic>> parseLabel(String text) async {

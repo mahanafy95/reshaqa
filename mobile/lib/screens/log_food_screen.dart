@@ -498,9 +498,16 @@ class _LibraryTabState extends State<_LibraryTab> {
 }
 
 // ============ باركود ============
-class _BarcodeTab extends StatelessWidget {
+class _BarcodeTab extends StatefulWidget {
   const _BarcodeTab({required this.onAdd});
   final AddFn onAdd;
+
+  @override
+  State<_BarcodeTab> createState() => _BarcodeTabState();
+}
+
+class _BarcodeTabState extends State<_BarcodeTab> {
+  bool _busy = false;
 
   @override
   Widget build(BuildContext context) {
@@ -513,69 +520,98 @@ class _BarcodeTab extends StatelessWidget {
             'اشترك عشان تفتحها — أو سجّل أكلك بالكتابة أو يدوي، ده مجاني تماماً ✅',
       );
     }
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.qr_code_scanner, size: 80, color: AppColors.teal),
-            const SizedBox(height: 16),
-            const Text('امسح باركود المنتج عشان نجيب قيمه الغذائية', textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('افتح الماسح'),
-              onPressed: () => _scanAndHandle(context),
+    return Stack(
+      children: [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.qr_code_scanner, size: 80, color: AppColors.teal),
+                const SizedBox(height: 16),
+                const Text('امسح باركود المنتج عشان نجيب قيمه الغذائية', textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('افتح الماسح'),
+                  onPressed: _busy ? null : _scanAndHandle,
+                ),
+                const SizedBox(height: 8),
+                const Text('لو المنتج مش موجود، هنطلب قيمه مرة واحدة ونفتكره ليك بعد كده 👌',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              ],
             ),
-            const SizedBox(height: 8),
-            const Text('لو المنتج مش موجود، هنطلب قيمه مرة واحدة ونفتكره ليك بعد كده 👌',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ],
+          ),
         ),
-      ),
+        if (_busy)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black45,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 12),
+                    Text('بدوّر على المنتج…', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  Future<void> _scanAndHandle(BuildContext context) async {
-    final code = await Navigator.push<String>(
-        context, MaterialPageRoute(builder: (_) => const _ScannerScreen()));
-    if (code == null || !context.mounted) return;
+  // ملاحظة: نستخدم سياق الـ State (الثابت) و mounted الموثوق — مش سياق مُمرَّر بيبور
+  // بعد ما الكاميرا تفتح وترجع (lifecycle)، وده كان بيخلّي المسح ميرجّعش أي نتيجة.
+  Future<void> _scanAndHandle() async {
+    final code = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const _ScannerScreen()));
+    if (code == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
     try {
       final r = await Api.barcode(code);
-      await onAdd(
-        name: r['name_ar'], amount: 100,
-        calories: (r['calories_per_100'] as num).toDouble(),
-        protein: (r['protein'] as num).toDouble(),
-        carbs: (r['carbs'] as num).toDouble(),
-        fat: (r['fat'] as num).toDouble(),
+      if (!mounted) return;
+      await widget.onAdd(
+        name: (r['name_ar'] ?? 'منتج').toString(), amount: 100,
+        calories: (r['calories_per_100'] as num?)?.toDouble() ?? 0,
+        protein: (r['protein'] as num?)?.toDouble() ?? 0,
+        carbs: (r['carbs'] as num?)?.toDouble() ?? 0,
+        fat: (r['fat'] as num?)?.toDouble() ?? 0,
         source: 'barcode',
       );
     } catch (e) {
-      if (!context.mounted) return;
-      final code404 = ApiClient.statusOf(e) == 404;
-      final premiumReq = ApiClient.statusOf(e) == 402;
-      if (premiumReq) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
-      } else if (code404) {
-        // المنتج مش موجود — نطلب من المستخدم قيمه ونحفظه بالباركود
-        await _promptSaveProduct(context, code);
+      if (!mounted) return;
+      final st = ApiClient.statusOf(e);
+      if (st == 402) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaywallScreen()));
+      } else if (st == 404) {
+        await _promptSaveProduct(code);
       } else {
-        showSnack(context, ApiClient.errorMessage(e), error: true);
+        messenger.showSnackBar(SnackBar(
+          content: Text(ApiClient.errorMessage(e)),
+          backgroundColor: AppColors.orange,
+        ));
       }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _promptSaveProduct(BuildContext context, String code) async {
+  Future<void> _promptSaveProduct(String code) async {
     final saved = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => _SaveBarcodeDialog(code: code),
     );
-    if (saved == null || !context.mounted) return;
+    if (saved == null || !mounted) return;
     try {
       await Api.saveBarcode(saved);
-      await onAdd(
+      if (!mounted) return;
+      await widget.onAdd(
         name: saved['name_ar'], amount: 100,
         calories: (saved['calories_per_100'] as num).toDouble(),
         protein: (saved['protein'] as num).toDouble(),
@@ -583,9 +619,9 @@ class _BarcodeTab extends StatelessWidget {
         fat: (saved['fat'] as num).toDouble(),
         source: 'barcode',
       );
-      if (context.mounted) showSnack(context, 'حفظنا المنتج 👌 هيتعرف عليه أي مسح جاي');
+      if (mounted) showSnack(context, 'حفظنا المنتج 👌 هيتعرف عليه أي مسح جاي');
     } catch (e) {
-      if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
     }
   }
 }
