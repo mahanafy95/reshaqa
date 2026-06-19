@@ -52,6 +52,7 @@ class HomeScreen extends StatelessWidget {
             else ...[
               _SummaryCard(summary: s),
               const SizedBox(height: 12),
+              const _StreakCard(),
               _MacrosCard(summary: s),
               const SizedBox(height: 12),
               if (app.todayFoods.isNotEmpty) ...[
@@ -175,6 +176,91 @@ class _SummaryCard extends StatelessWidget {
             child: Text(summary['encouragement_ar'] ?? '', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.tealDark)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// كارت تحفيز — سلسلة أيام التسجيل المتتالية + الإنجازات (يجيب بياناته بنفسه؛ يختفي لو فشل).
+class _StreakCard extends StatefulWidget {
+  const _StreakCard();
+  @override
+  State<_StreakCard> createState() => _StreakCardState();
+}
+
+class _StreakCardState extends State<_StreakCard> {
+  Map<String, dynamic>? _data;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final d = await Api.streak();
+      if (mounted) setState(() { _data = d; _loaded = true; });
+    } catch (_) {
+      if (mounted) setState(() => _loaded = true); // فشل → نخفي الكارت بهدوء
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = _data;
+    if (!_loaded || d == null) return const SizedBox.shrink();
+    final cur = (d['current_streak'] as num?)?.toInt() ?? 0;
+    final longest = (d['longest_streak'] as num?)?.toInt() ?? 0;
+    final unlocked = ((d['achievements'] as List?) ?? [])
+        .where((a) => a is Map && a['unlocked'] == true)
+        .toList();
+
+    final title = cur >= 1
+        ? '🔥 سلسلتك: $cur ${cur == 1 ? "يوم" : "أيام"} متتالية'
+        : '🔥 ابدأ سلسلتك النهاردة';
+    final sub = cur >= 1
+        ? (cur == longest && longest > 1 ? 'ده أطول رقم ليك — كمّل! 💪' : 'أطول سلسلة ليك: $longest يوم')
+        : 'سجّل وجبة النهاردة وابدأ عدّ الأيام المتتالية';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.teal.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.teal.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            if (unlocked.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final a in unlocked)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.teal.withValues(alpha: 0.3)),
+                      ),
+                      child: Text('${a['emoji'] ?? '🏅'} ${a['title_ar'] ?? ''}',
+                          style: const TextStyle(fontSize: 12)),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
