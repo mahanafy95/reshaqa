@@ -1,7 +1,7 @@
 """الملف الشخصي للمستخدم — بيانات الجسم والهدف (أساس حساب السعرات)."""
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, func
+from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
@@ -25,6 +25,11 @@ class Profile(Base):
     # الهدف (اختياري — قد لا يُحدّد المستخدم وزناً مستهدفاً بعد)
     goal_weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     goal_rate: Mapped[float | None] = mapped_column(Float, nullable=True)  # كجم/أسبوع
+
+    # تفضيلات غذائية وحساسية — يحترمها المساعد الذكي في اقتراحاته (مهمة للسوق العربي: حلال).
+    # القيم: none | halal | vegetarian | vegan | keto | low_carb (نص حر مرن).
+    dietary_pref: Mapped[str] = mapped_column(String(20), nullable=False, server_default="none")
+    allergies: Mapped[str | None] = mapped_column(String(200), nullable=True)  # نص حر: «مكسرات، لاكتوز»
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False

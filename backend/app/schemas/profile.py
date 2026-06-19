@@ -1,7 +1,11 @@
 """سكيمات الملف الشخصي."""
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..models.enums import ActivityLevel, Sex
+
+DietaryPref = Literal["none", "halal", "vegetarian", "vegan", "keto", "low_carb"]
 
 
 class ProfileIn(BaseModel):
@@ -14,6 +18,8 @@ class ProfileIn(BaseModel):
     goal_rate: float | None = Field(
         None, ge=0.1, le=1.5, description="معدل النزول المطلوب (كجم/أسبوع)"
     )
+    dietary_pref: DietaryPref = "none"
+    allergies: str | None = Field(None, max_length=200)
 
 
 class ProfileOut(BaseModel):
@@ -26,6 +32,8 @@ class ProfileOut(BaseModel):
     activity_level: ActivityLevel
     goal_weight_kg: float | None
     goal_rate: float | None
+    dietary_pref: str = "none"
+    allergies: str | None = None
     healthy_min_kg: float = 0
     healthy_max_kg: float = 0
     weight_status: str = "normal"  # underweight | normal | overweight

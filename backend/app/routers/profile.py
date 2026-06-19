@@ -95,6 +95,8 @@ def upsert_profile(
     profile.activity_level = payload.activity_level
     profile.goal_weight_kg = payload.goal_weight_kg
     profile.goal_rate = payload.goal_rate
+    profile.dietary_pref = payload.dietary_pref
+    profile.allergies = (payload.allergies or "").strip() or None
 
     _seed_initial_weight(db, current_user.id, payload.weight_kg)
 

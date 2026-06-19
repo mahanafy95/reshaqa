@@ -64,6 +64,14 @@ _MODE_AR = {
     TargetMode.maintain: "تثبيت",
     TargetMode.gain: "زيادة وزن",
 }
+# تفضيلات غذائية — يحترمها المساعد في اقتراحاته ("none" = بدون قيد، فمش بنضيفها).
+_DIET_AR = {
+    "halal": "حلال فقط",
+    "vegetarian": "نباتي",
+    "vegan": "نباتي صِرف (فيجان)",
+    "keto": "كيتو (قليل الكارب جداً)",
+    "low_carb": "قليل الكارب",
+}
 _MEAL_AR = {
     Meal.breakfast: "الفطار",
     Meal.lunch: "الغدا",
@@ -135,6 +143,12 @@ def _build_profile_summary(db: Session, user: User) -> str | None:
     if profile.goal_weight_kg is not None:
         parts.append(f"الوزن المستهدف: {profile.goal_weight_kg:g} كجم")
     parts.append(f"الهدف: {_MODE_AR.get(mode, 'تثبيت')}")
+    diet_ar = _DIET_AR.get(getattr(profile, "dietary_pref", "none") or "none")
+    if diet_ar:
+        parts.append(f"النظام الغذائي: {diet_ar}")
+    allergies = (getattr(profile, "allergies", None) or "").strip()
+    if allergies:
+        parts.append(f"حساسية/يتجنّب: {allergies}")
     return "، ".join(parts)
 
 
