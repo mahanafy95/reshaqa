@@ -131,6 +131,10 @@ export const api = {
       confirm: opts?.confirm ?? false,
     }),
 
+  // المساعد الذكي (محادثة حرة)
+  assistantChat: (messages: { role: string; content: string }[]) =>
+    post<{ reply: string }>("/assistant/chat", { messages }),
+
   // الوصفات والمفضلة
   recipes: () => get<any[]>("/recipes"),
   createRecipe: (b: any) => post<any>("/recipes", b),

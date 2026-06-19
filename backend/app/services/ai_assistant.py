@@ -154,6 +154,148 @@ def general_reply(user_text: str) -> str | None:
     )
 
 
+# ---------- المساعد الذكي المحادثي (متعدد الأدوار) ----------
+# شخصية المساعد الصحي الذكي — محادثة حرة متعددة الأدوار (منفصلة عن تسجيل الوجبات).
+_CHAT_SYSTEM = (
+    "إنت المساعد الصحي الذكي لتطبيق رشاقة. بتتكلم بالعامية المصرية، ودود ومحفّز "
+    "ومختصر-لكن-مفيد. بتساعد المستخدم في الأكل الصحي، التخسيس/الزيادة/التثبيت، الرياضة، "
+    "الوصفات، العادات الصحية، وتحفيزه. ممكن تساعده يفهم سعراته. ماتديش تشخيص أو علاج طبي "
+    "— لو سأل عن حاجة طبية انصحه يستشير دكتور. لو سأل عن أكلة، اديه سعراتها التقريبية ونصيحة."
+)
+
+
+def _build_chat_system(system_extra: str | None) -> str:
+    """يدمج شخصية المساعد مع سياق ملف المستخدم (لو موجود) لتخصيص الرد."""
+    base = _CHAT_SYSTEM
+    if system_extra and system_extra.strip():
+        base = f"{base}\n\nمعلومات عن المستخدم (استعملها لتخصيص ردّك):\n{system_extra.strip()}"
+    return base
+
+
+def _normalize_chat_messages(messages: list[dict]) -> list[dict]:
+    """يطبّع المحادثة لقائمة {role, content} نظيفة (الأدوار user/assistant فقط، نص غير فارغ)."""
+    out: list[dict] = []
+    for m in messages or []:
+        if not isinstance(m, dict):
+            continue
+        role = m.get("role")
+        content = m.get("content")
+        if role not in ("user", "assistant") or not isinstance(content, str):
+            continue
+        text = content.strip()
+        if not text:
+            continue
+        out.append({"role": role, "content": text})
+    return out
+
+
+def _gemini_chat(
+    messages: list[dict], system: str, *, max_tokens: int, temperature: float
+) -> str | None:
+    """نداء Gemini generateContent متعدد الأدوار (contents[] + system_instruction)."""
+    if not settings.GEMINI_API_KEY.strip():
+        return None
+    url = _GEMINI_URL.format(model=settings.GEMINI_MODEL)
+    # نحوّل كل رسالة لشكل Gemini: assistant -> model، user -> user
+    contents = [
+        {
+            "role": "model" if m["role"] == "assistant" else "user",
+            "parts": [{"text": m["content"]}],
+        }
+        for m in messages
+    ]
+    try:
+        resp = httpx.post(
+            url,
+            params={"key": settings.GEMINI_API_KEY},
+            json={
+                "system_instruction": {"parts": [{"text": system}]},
+                "contents": contents,
+                "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+            },
+            timeout=25.0,
+        )
+        if resp.status_code != 200:
+            logger.warning("Gemini chat رجّع %s: %s", resp.status_code, resp.text[:200])
+            return None
+        data = resp.json()
+        parts = data["candidates"][0]["content"]["parts"]
+        text = "".join(p.get("text", "") for p in parts).strip()
+        return text or None
+    except Exception:
+        logger.exception("فشل نداء Gemini chat")
+        return None
+
+
+def _openrouter_chat(
+    messages: list[dict], system: str, *, max_tokens: int, temperature: float
+) -> str | None:
+    """نداء OpenRouter chat/completions متعدد الأدوار (system + نفس المحادثة)."""
+    api_key = settings.OPENROUTER_API_KEY.strip()
+    if not api_key:
+        return None
+    chat_messages = [{"role": "system", "content": system}]
+    chat_messages.extend({"role": m["role"], "content": m["content"]} for m in messages)
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "HTTP-Referer": "https://reshaqa.app",
+        "X-Title": "Reshaqa",
+    }
+    for model in settings.openrouter_models_list:
+        try:
+            resp = httpx.post(
+                _OPENROUTER_URL,
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": chat_messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+                timeout=25.0,
+            )
+            if resp.status_code != 200:
+                logger.warning(
+                    "OpenRouter chat (%s) رجّع %s: %s", model, resp.status_code, resp.text[:200]
+                )
+                continue
+            data = resp.json()
+            choices = data.get("choices") or []
+            if not choices:
+                continue
+            message = choices[0].get("message") or {}
+            text = (message.get("content") or "").strip()
+            if text:
+                return text
+        except Exception:
+            logger.exception("فشل نداء OpenRouter chat (%s)", model)
+            continue
+    return None
+
+
+def chat_reply(messages: list[dict], system_extra: str | None = None) -> str | None:
+    """ردّ محادثة حرّة متعددة الأدوار للمساعد الصحي الذكي.
+
+    `messages` = آخر أدوار المحادثة [{role: 'user'|'assistant', content: str}, ...]
+    وآخر عنصر هو رسالة المستخدم الجديدة. `system_extra` سياق اختياري لتخصيص الرد
+    من ملف المستخدم (الهدف/الوزن/...).
+
+    يجرّب Gemini متعدد الأدوار أولاً، وعند فشله/None يرجع لـ OpenRouter بنفس المحادثة.
+    يرجّع None لو المساعد متعطّل أو فشل كل المزوّدات (الراوتر يرجع لرد ودّي ثابت).
+    لا يرفع استثناء أبداً.
+    """
+    if not settings.ai_enabled:
+        return None
+    norm = _normalize_chat_messages(messages)
+    if not norm:
+        return None
+    system = _build_chat_system(system_extra)
+    text = _gemini_chat(norm, system, max_tokens=500, temperature=0.6)
+    if text:
+        return text
+    return _openrouter_chat(norm, system, max_tokens=500, temperature=0.6)
+
+
 # ---------- أدوات JSON ----------
 def _strip_json_fences(text: str) -> str:
     t = text.strip()

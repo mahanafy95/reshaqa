@@ -189,6 +189,10 @@ class Api {
   static Future<Map<String, dynamic>> appVersion() async => (await _d.get('/app/version')).data;
   static String get downloadUrl => '$kApiBaseUrl/app/download';
 
+  // ---------- المساعد الذكي ----------
+  static Future<Map<String, dynamic>> assistantChat(List<Map<String, String>> messages) async =>
+      (await _d.post('/assistant/chat', data: {'messages': messages})).data;
+
   // ---------- الإبلاغ عن مشكلة ----------
   static Future<Map<String, dynamic>> reportIssue(String message, {String? context}) async =>
       (await _d.post('/issues', data: {'message': message, if (context != null) 'context': context})).data;

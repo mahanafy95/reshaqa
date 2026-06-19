@@ -8,6 +8,7 @@ import '../services/update_service.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
 import 'activity_screen.dart';
+import 'assistant_screen.dart';
 import 'community_screen.dart';
 import 'log_food_screen.dart';
 import 'mood_screen.dart';
@@ -78,6 +79,7 @@ class HomeScreen extends StatelessWidget {
                   QuickAction(icon: Icons.mood, label: 'حاسس بإيه', color: AppColors.orange, onTap: () => _push(context, const MoodScreen())),
                   QuickAction(icon: Icons.bar_chart, label: 'التقارير', onTap: () => _push(context, const ReportsScreen())),
                   QuickAction(icon: Icons.groups, label: 'المجتمع', color: AppColors.blue, onTap: () => _push(context, const CommunityScreen())),
+                  QuickAction(icon: Icons.smart_toy_outlined, label: '🤖 المساعد الذكي', color: AppColors.orange, onTap: () => _push(context, const AssistantScreen())),
                 ],
               ),
             ],

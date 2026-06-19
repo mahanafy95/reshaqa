@@ -15,6 +15,7 @@ from .core.ratelimit import limiter
 from .routers import (
     admin,
     app_update,
+    assistant,
     auth,
     billing,
     favorites,
@@ -127,6 +128,7 @@ app.include_router(app_update.router)
 app.include_router(billing.router)
 app.include_router(social.router)
 app.include_router(issues.router)
+app.include_router(assistant.router)
 app.include_router(admin.router)
 
 
