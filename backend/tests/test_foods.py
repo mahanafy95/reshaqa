@@ -24,6 +24,12 @@ def _seed_lib(db):
         FoodLibrary(name_ar="رز بلبن", calories_per_100=130, protein=3.5, carbs=22, fat=3, region="eg"),
         FoodLibrary(name_ar="بيض مسلوق", calories_per_100=155, protein=13, carbs=1.1, fat=11, region="generic"),
         FoodLibrary(name_ar="بيض مقلي", calories_per_100=200, protein=14, carbs=1, fat=15, region="generic"),
+        FoodLibrary(name_ar="جبنة قريش", calories_per_100=98, protein=11, carbs=3, fat=4, region="eg"),
+        FoodLibrary(name_ar="جبنة بيضاء كاملة الدسم", calories_per_100=260, protein=14, carbs=3, fat=21, region="eg"),
+        FoodLibrary(name_ar="مكرونة بشاميل", calories_per_100=215, protein=8, carbs=20, fat=11, region="eg"),
+        FoodLibrary(name_ar="مكرونة مسلوقة", calories_per_100=158, protein=5.8, carbs=31, fat=0.9, region="generic"),
+        FoodLibrary(name_ar="سمك مقلي", calories_per_100=210, protein=20, carbs=6, fat=12, region="eg"),
+        FoodLibrary(name_ar="سمك مشوي (بلطي)", calories_per_100=128, protein=26, carbs=0, fat=2.7, region="eg"),
     ])
     db.commit()
 
@@ -201,6 +207,9 @@ def test_match_library_generic_alias_picks_base_food(db_session):
     assert _match_library(db_session, "لبن").name_ar == "لبن كامل الدسم"   # مش «لبنة»
     assert _match_library(db_session, "رز").name_ar == "رز أبيض مطبوخ"     # مش «رز بلبن»
     assert _match_library(db_session, "بيض").name_ar == "بيض مسلوق"        # مش «بيض مقلي»
+    assert _match_library(db_session, "جبنة").name_ar == "جبنة بيضاء كاملة الدسم"  # مش «قريش»
+    assert _match_library(db_session, "مكرونة").name_ar == "مكرونة مسلوقة"  # مش «بشاميل»
+    assert _match_library(db_session, "سمك").name_ar == "سمك مشوي (بلطي)"   # مش «مقلي»
 
 
 def test_match_library_word_boundary_not_char_prefix(db_session):
