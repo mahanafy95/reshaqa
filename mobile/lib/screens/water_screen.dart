@@ -94,10 +94,12 @@ class _WaterScreenState extends State<WaterScreen> {
                           style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue),
                           onPressed: () {
                             final ml = int.tryParse(_customMl.text);
-                            if (ml != null && ml > 0) {
-                              _add(ml);
-                              _customMl.clear();
+                            if (ml == null || ml <= 0) {
+                              showSnack(context, 'اكتب كمية صحيحة بالملّي 💧', error: true);
+                              return;
                             }
+                            _add(ml);
+                            _customMl.clear();
                           },
                           child: const Text('أضف'),
                         ),

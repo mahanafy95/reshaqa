@@ -74,6 +74,13 @@ class _MealChatScreenState extends State<MealChatScreen> {
   List<Map<String, dynamic>> _pending = [];
   bool _busy = false;
 
+  @override
+  void dispose() {
+    _input.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
   void _scrollDown() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {

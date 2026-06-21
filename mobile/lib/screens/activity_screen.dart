@@ -121,13 +121,22 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
   static const _common = ['مشي', 'جري', 'سباحة', 'جيم', 'دراجة', 'كرة'];
 
   Future<void> _save() async {
-    if (_type.text.trim().isEmpty) return;
+    if (_type.text.trim().isEmpty) {
+      showSnack(context, 'اكتب نوع النشاط الأول 🏃', error: true);
+      return;
+    }
+    final dur = int.tryParse(_dur.text) ?? 0;
+    final cal = double.tryParse(_cal.text);
+    if (dur <= 0 && cal == null) {
+      showSnack(context, 'ضيف المدة بالدقايق أو السعرات المحروقة', error: true);
+      return;
+    }
     setState(() => _busy = true);
     try {
       await Api.addActivity({
         'type_ar': _type.text.trim(),
-        'duration_min': int.tryParse(_dur.text) ?? 0,
-        'calories_burned': double.tryParse(_cal.text),
+        'duration_min': dur,
+        'calories_burned': cal,
         'source': 'manual',
       });
       if (mounted) Navigator.pop(context, true);

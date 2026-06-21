@@ -101,7 +101,8 @@ class Api {
       (await _d.get('/summary', queryParameters: on != null ? {'on': on} : null)).data;
   static Future<Map<String, dynamic>> bodyMetrics() async => (await _d.get('/metrics/body')).data;
   /// سلسلة أيام التسجيل المتتالية + الإنجازات (للتحفيز على الرئيسية).
-  static Future<Map<String, dynamic>> streak() async => (await _d.get('/streak')).data;
+  static Future<Map<String, dynamic>> streak({String? on}) async =>
+      (await _d.get('/streak', queryParameters: {if (on != null) 'on': on})).data;
 
   /// تصدير كل بيانات المستخدم كـ CSV (bytes) — للمشاركة/الحفظ.
   static Future<List<int>> exportData() async {

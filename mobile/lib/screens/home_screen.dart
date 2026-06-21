@@ -223,7 +223,9 @@ class _StreakCardState extends State<_StreakCard> {
 
   Future<void> _load() async {
     try {
-      final d = await Api.streak();
+      final n = DateTime.now();
+      final on = '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+      final d = await Api.streak(on: on);
       if (mounted) setState(() { _data = d; _loaded = true; });
     } catch (_) {
       if (mounted) setState(() => _loaded = true); // فشل → نخفي الكارت بهدوء
@@ -533,6 +535,15 @@ class _UpdateBannerState extends State<_UpdateBanner> {
             style: TextButton.styleFrom(backgroundColor: Colors.white),
             child: const Text('حدّث الآن'),
           ),
+          if (!info.mandatory)
+            IconButton(
+              tooltip: 'إخفاء',
+              icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+              onPressed: () async {
+                await UpdateService.dismiss(info.versionCode);
+                if (mounted) setState(() => _info = null);
+              },
+            ),
         ],
       ),
     );
