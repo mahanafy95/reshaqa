@@ -277,13 +277,14 @@ def parse_meal(
 
     if settings.ai_enabled:
         ai = ai_assistant.parse_meal_ai(payload.text)
-        if ai is not None:
-            if ai.get("is_question"):
-                # سؤال/طلب — مفيش أصناف، نرجع ردّ المساعد العام
-                reply = ai_assistant.general_reply(payload.text) or _QUESTION_FALLBACK_REPLY
-                return ParseResponse(
-                    items=[], total_calories=0, logged=False, logged_ids=[], reply_ar=reply,
-                )
+        # نثق في «ده سؤال» بس لو المحلّل المحلي وافق — يمنع موديل ضعيف إنه يصنّف أكل واضح
+        # كسؤال ويطنّشه (السبب اللي كان بيخلّي «اكلت بيضتين» مايتسجّلش).
+        if ai is not None and ai.get("is_question") and meal_parser.looks_like_question(payload.text):
+            reply = ai_assistant.general_reply(payload.text) or _QUESTION_FALLBACK_REPLY
+            return ParseResponse(
+                items=[], total_calories=0, logged=False, logged_ids=[], reply_ar=reply,
+            )
+        if ai is not None and not ai.get("is_question"):
             # أصناف من الـ AI — نسعّرها: تطابق مكتبة واثق أولاً، وإلا تقدير الـ AI (kcal_per_100)
             for it in ai.get("items", [])[:25]:
                 ai_kcal = it.get("kcal_per_100")
@@ -298,8 +299,9 @@ def parse_meal(
                         ai_kcal_per_100=ai_kcal_f,
                     )
                 )
-        else:
-            # فشل الـ AI → اكشف الأسئلة محليًا الأول (مانلفّقش أصناف من سؤال) ثم heuristic
+        # لو لسه مفيش أصناف (الـ AI فشل/رجع فاضي/صنّفه سؤال غلط) → اكشف السؤال محليًا، وإلا
+        # ارجع للمحلّل المحلي الحتمي بدل ما نطنّش أكل واضح.
+        if not out:
             if meal_parser.looks_like_question(payload.text):
                 return ParseResponse(
                     items=[], total_calories=0, logged=False, logged_ids=[],

@@ -321,27 +321,63 @@ def _log_priced_items(
     return meal_used, logged_items, round(total)
 
 
+def _heuristic_parse_recognized(db: Session, text: str, meal_str: str) -> list:
+    """تحليل محلي حتمي (بدون AI) يرجّع الأصناف **المعروفة بس** (مكتبة أو كلمات مفتاحية).
+
+    بنستخدم المقدّر الـ heuristic مباشرةً (مش المدعوم بالـ AI) عشان التسجيل يفضل حتمي
+    وسريع، وبنرمي أي صنف ثقته «low» (تقدير افتراضي 120 لأكلة مش معروفة) — وده اللي
+    بيمنع تسجيل حشو زي «سجّلي ده» أو كلمات مش أكل بالغلط.
+    """
+    from ..models.food import FoodLibrary
+    from ..schemas.food import ParsedFoodItem
+    from ..services.estimator import HeuristicEstimator
+
+    est = HeuristicEstimator()
+    out: list = []
+    for r in meal_parser.parse_text(text, meal_str)[:25]:
+        match = db.scalar(
+            select(FoodLibrary).where(func.lower(FoodLibrary.name_ar) == r.name_ar.strip().lower()).limit(1)
+        )
+        if match is not None:
+            grams = meal_parser.resolve_grams(
+                r.qty, r.unit_ar, match.household_unit_ar, match.household_grams, r.name_ar
+            )
+            f = grams / 100.0
+            out.append(ParsedFoodItem(
+                name_ar=match.name_ar, qty=r.qty, unit=r.unit_ar, grams=grams, meal=Meal(r.meal),
+                calories=round(match.calories_per_100 * f), protein=round(match.protein * f, 1),
+                carbs=round(match.carbs * f, 1), fat=round(match.fat * f, 1),
+                confidence="high", source=FoodSource.library,
+            ))
+            continue
+        grams = meal_parser.resolve_grams(r.qty, r.unit_ar, None, None, r.name_ar)
+        e = est.estimate(r.name_ar, grams)
+        if e.confidence == "low":
+            continue  # أكلة غير معروفة (تقدير افتراضي) — منسجّلهاش تلقائيًا عشان منسجّلش حشو
+        out.append(ParsedFoodItem(
+            name_ar=r.name_ar, qty=r.qty, unit=r.unit_ar, grams=grams, meal=Meal(r.meal),
+            calories=e.calories, protein=e.protein, carbs=e.carbs, fat=e.fat,
+            confidence=e.confidence, source=FoodSource.estimated,
+        ))
+    return out
+
+
 def _heuristic_log_fallback(
     db: Session, user: User, messages: list[dict], *, log_date: date_type, default_meal: Meal | None,
 ) -> tuple[Meal | None, list[LoggedItem], float]:
-    """احتياطي مجاني بدون AI: لو فشل استخراج الـ AI (متعطّل/نص تالف)، نحلّل آخر رسائل
-    المستخدم محليًا ونسجّل **بس** الأصناف اللي اتطابقت مع مكتبة الأكلات (مضمونة وآمنة —
-    مش تقديرات افتراضية ولا كلمات حشو)، فمتسجّلش كلام زي «سجّلي» بالغلط.
+    """احتياطي مجاني بدون AI: لو فشل استخراج الـ AI (متعطّل/نص تالف/رجع فاضي)، نحلّل آخر
+    رسائل المستخدم محليًا ونسجّل الأصناف المعروفة بس (مكتبة أو كلمات مفتاحية)، فمتسجّلش
+    كلام زي «سجّلي» بالغلط. ده بيخلّي التسجيل شغّال حتى من غير أي ذكاء اصطناعي.
     """
-    from .foods import _parse_heuristic_items  # استيراد محلي لتفادي حلقة الاستيراد
-
     meal_str = default_meal.value if default_meal else "snack"
     user_texts = [
         m["content"] for m in messages
         if m.get("role") == "user" and isinstance(m.get("content"), str) and m["content"].strip()
     ]
-    # من الأحدث للأقدم: أول رسالة فيها أصناف متطابقة مع المكتبة نسجّلها.
+    # من الأحدث للأقدم: أول رسالة فيها أصناف معروفة نسجّلها.
     for text in reversed(user_texts):
         try:
-            items = [
-                it for it in _parse_heuristic_items(db, text, meal_str)
-                if it.source == FoodSource.library
-            ]
+            items = _heuristic_parse_recognized(db, text, meal_str)
         except Exception:
             logger.exception("فشل التحليل المحلي الاحتياطي لتسجيل الوجبة")
             continue
@@ -383,13 +419,17 @@ def chat(
         log_date = payload.date or date_type.today()
         try:
             meal: Meal | None = None
+            ai_had_items = False
             if settings.ai_enabled:
                 extracted = ai_assistant.extract_meal_to_log(messages)
                 if extracted and extracted.get("items"):
+                    ai_had_items = True
                     meal, logged_items, logged_total = _log_extracted_meal(
                         db, current_user, extracted, log_date=log_date, default_meal=payload.default_meal,
                     )
-            if not logged_items:  # الـ AI ماطلّعش حاجة → احتياطي محلي (مكتبة الأكلات بس)
+            # احتياطي محلي حتمي بس لو الـ AI ماطلّعش أصناف خالص (مش لو طلّعها واترفضت/اتكررت)،
+            # عشان منكسرش منع التكرار ولا نتجاوز رفض القيم الخرافية.
+            if not logged_items and not ai_had_items:
                 meal, logged_items, logged_total = _heuristic_log_fallback(
                     db, current_user, messages, log_date=log_date, default_meal=payload.default_meal,
                 )
