@@ -103,7 +103,9 @@ class _MealChatScreenState extends State<MealChatScreen> {
       final items = (r['items'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList();
       setState(() {
         _msgs.add(_Msg('bot', (r['reply_ar'] as String?) ?? 'فهمت.'));
-        _pending = items;
+        // نجمّع الأصناف عبر الرسائل (بناء الوجبة على مراحل) بدل ما نستبدلها — ولو الرسالة
+        // كانت سؤال (مفيش أصناف) منمسحش اللي راجعه المستخدم لسه.
+        if (items.isNotEmpty) _pending = [..._pending, ...items];
       });
     } catch (e) {
       setState(() => _msgs.add(_Msg('bot', ApiClient.errorMessage(e))));
