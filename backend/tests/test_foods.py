@@ -18,6 +18,12 @@ def _seed_lib(db):
         # العطل القديم: «نص رغيف عيش» كان بيتطابق مع ساندويتش فلافل بالعيش (اسم أطول بكتير)
         FoodLibrary(name_ar="ساندويتش فلافل بالعيش", calories_per_100=290, protein=8, carbs=35, fat=12, region="eg"),
         FoodLibrary(name_ar="عيش بلدي", calories_per_100=250, protein=8, carbs=50, fat=1.5, region="eg"),
+        # أصناف بتختبر إن الكلمة العامة ماتتطابقش بالغلط مع نوع مختلف (لبن→لبنة، بيض→بيض مقلي)
+        FoodLibrary(name_ar="لبن كامل الدسم", calories_per_100=62, protein=3.2, carbs=4.7, fat=3.4, region="generic"),
+        FoodLibrary(name_ar="لبنة", calories_per_100=174, protein=6, carbs=5, fat=14, region="eg"),
+        FoodLibrary(name_ar="رز بلبن", calories_per_100=130, protein=3.5, carbs=22, fat=3, region="eg"),
+        FoodLibrary(name_ar="بيض مسلوق", calories_per_100=155, protein=13, carbs=1.1, fat=11, region="generic"),
+        FoodLibrary(name_ar="بيض مقلي", calories_per_100=200, protein=14, carbs=1, fat=15, region="generic"),
     ])
     db.commit()
 
@@ -187,6 +193,21 @@ def test_match_library_prefers_exact_then_prefix(db_session):
 def test_match_library_none_for_unknown(db_session):
     _seed_lib(db_session)
     assert _match_library(db_session, "كافيار بلوجا فاخر") is None
+
+
+def test_match_library_generic_alias_picks_base_food(db_session):
+    """كلمة عامة تروح للصنف الأساسي الصحيح مش لنوع مختلف بالغلط (سعرات مختلفة تماماً)."""
+    _seed_lib(db_session)
+    assert _match_library(db_session, "لبن").name_ar == "لبن كامل الدسم"   # مش «لبنة»
+    assert _match_library(db_session, "رز").name_ar == "رز أبيض مطبوخ"     # مش «رز بلبن»
+    assert _match_library(db_session, "بيض").name_ar == "بيض مسلوق"        # مش «بيض مقلي»
+
+
+def test_match_library_word_boundary_not_char_prefix(db_session):
+    """«لبنة» (لبن+ة من غير مسافة) ماتتطابقش كأنها «لبن» — حد الكلمة محترَم."""
+    _seed_lib(db_session)
+    # «لبنة» نفسها تطابق تام
+    assert _match_library(db_session, "لبنة").name_ar == "لبنة"
 
 
 def test_estimate_short_query_not_matched_to_long_falafel(client, db_session):

@@ -43,21 +43,40 @@ router = APIRouter(prefix="/foods", tags=["تسجيل الأكل"])
 # يمنع «نص رغيف عيش» من مطابقة «ساندويتش فلافل بالعيش» (اسم أطول بكتير وغير متعلّق).
 _MATCH_LEN_RATIO = 2.5
 
+# أسماء عامة شائعة → الصنف الأساسي الصحيح في المكتبة. يمنع مطابقة كلمة عامة لنوع
+# مختلف بالغلط (لبن→لبنة، رز→رز بلبن، بيض→بيض مقلي) لأنها بتختار «الأقصر/الأقرب نصاً»
+# مش الأقرب معنى. المفاتيح بأشكال الكتابة الشائعة.
+_LIBRARY_ALIASES: dict[str, str] = {
+    "لبن": "لبن كامل الدسم", "حليب": "لبن كامل الدسم",
+    "رز": "رز أبيض مطبوخ", "أرز": "رز أبيض مطبوخ", "ارز": "رز أبيض مطبوخ",
+    "بيض": "بيض مسلوق", "بيضة": "بيض مسلوق", "بيضه": "بيض مسلوق",
+    "عيش": "عيش بلدي (خبز بلدي)", "خبز": "عيش بلدي (خبز بلدي)",
+}
+
 
 def _match_library(db: Session, name: str) -> FoodLibrary | None:
-    """يلاقي أقرب صنف مكتبة لاسم مُدخل — مع تجنّب مطابقة استعلام قصير لاسم أطول غير متعلّق.
+    """يلاقي أقرب صنف مكتبة لاسم مُدخل — مع تجنّب مطابقة كلمة عامة لنوع مختلف بالغلط.
 
     الأولوية:
+      0) قاموس الأسماء العامة (لبن/رز/بيض/عيش...) → الصنف الأساسي الصحيح مباشرةً.
       1) تطابق تام للاسم (تجاهل حالة الأحرف/المسافات).
-      2) اسم يبدأ بالاستعلام.
-      3) أقصر اسم مكتبة يحتوي الاستعلام، بشرط ألا يتجاوز طوله ~2.5 ضعف طول الاستعلام
-         (إلا لو كان يبدأ بالاستعلام).
+      2) الاستعلام ككلمة كاملة في أول الاسم (مايماتش «لبنة» على «لبن»).
+      3) الاستعلام ككلمة كاملة جوّه الاسم، بشرط ألا يتجاوز طوله ~2.5 ضعف طول الاستعلام.
     لو مفيش تطابق جيد، يرجّع None (فيستخدم المقدّر).
     """
     q = (name or "").strip()
     if not q:
         return None
     ql = q.lower()
+
+    # 0) اسم عام معروف → الصنف الأساسي
+    alias = _LIBRARY_ALIASES.get(q) or _LIBRARY_ALIASES.get(ql)
+    if alias is not None:
+        m = db.scalar(
+            select(FoodLibrary).where(func.lower(FoodLibrary.name_ar) == alias.lower()).limit(1)
+        )
+        if m is not None:
+            return m
 
     # 1) تطابق تام (lower) — أدق ما يكون
     exact = db.scalar(
@@ -69,22 +88,24 @@ def _match_library(db: Session, name: str) -> FoodLibrary | None:
     if exact is not None:
         return exact
 
-    # 2) اسم يبدأ بالاستعلام (نختار الأقصر)
+    # 2) الاستعلام أول كلمة في الاسم (حدّ الكلمة = مسافة بعده) — نختار الأقصر.
+    #    ده بيمنع «لبن» إنه يماتش «لبنة» (لبن+ة من غير مسافة).
     starts = db.scalar(
         select(FoodLibrary)
-        .where(func.lower(FoodLibrary.name_ar).like(f"{ql}%"))
+        .where(func.lower(FoodLibrary.name_ar).like(f"{ql} %"))
         .order_by(func.length(FoodLibrary.name_ar))
         .limit(1)
     )
     if starts is not None:
         return starts
 
-    # 3) أقصر اسم يحتوي الاستعلام، مع حدّ على فرق الطول
+    # 3) الاستعلام ككلمة كاملة جوّه الاسم (في النص أو في الآخر)، مع حدّ على فرق الطول
+    word_inside = or_(
+        func.lower(FoodLibrary.name_ar).like(f"% {ql} %"),
+        func.lower(FoodLibrary.name_ar).like(f"% {ql}"),
+    )
     contains = db.scalar(
-        select(FoodLibrary)
-        .where(func.lower(FoodLibrary.name_ar).like(f"%{ql}%"))
-        .order_by(func.length(FoodLibrary.name_ar))
-        .limit(1)
+        select(FoodLibrary).where(word_inside).order_by(func.length(FoodLibrary.name_ar)).limit(1)
     )
     if contains is not None and len(contains.name_ar.strip()) <= len(q) * _MATCH_LEN_RATIO:
         return contains
