@@ -422,11 +422,17 @@ class _TodayLogCard extends StatelessWidget {
       ),
     );
     if (saved != true || !context.mounted) return;
+    final amount = double.tryParse(amountCtrl.text);
+    final cal = double.tryParse(calCtrl.text);
+    if (amount == null || amount <= 0 || cal == null || cal < 0) {
+      showSnack(context, 'اكتب كمية وسعرات صحيحة 🙂', error: true);
+      return;
+    }
     final body = <String, dynamic>{
       'name_ar': f['name_ar'],
       'meal': f['meal'],
-      'amount': double.tryParse(amountCtrl.text) ?? (f['amount'] as num?)?.toDouble() ?? 100,
-      'calories': double.tryParse(calCtrl.text) ?? (f['calories'] as num?)?.toDouble() ?? 0,
+      'amount': amount,
+      'calories': cal,
       'protein': (f['protein'] as num?)?.toDouble() ?? 0,
       'carbs': (f['carbs'] as num?)?.toDouble() ?? 0,
       'fat': (f['fat'] as num?)?.toDouble() ?? 0,

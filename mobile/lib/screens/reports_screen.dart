@@ -136,6 +136,7 @@ class _WeeklyViewState extends State<_WeeklyView> {
   }
 
   Future<void> _load() async {
+    setState(() => _loading = true);
     try {
       _r = await Api.weeklyReport();
     } catch (_) {} finally {
@@ -147,7 +148,18 @@ class _WeeklyViewState extends State<_WeeklyView> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     final r = _r;
-    if (r == null) return const Center(child: Text('تعذّر تحميل التقرير'));
+    if (r == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('تعذّر تحميل التقرير'),
+            const SizedBox(height: 10),
+            OutlinedButton(onPressed: _load, child: const Text('🔄 إعادة المحاولة')),
+          ],
+        ),
+      );
+    }
     final days = (r['days'] as List).cast<Map<String, dynamic>>();
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -243,6 +255,7 @@ class _MonthlyViewState extends State<_MonthlyView> {
   }
 
   Future<void> _load() async {
+    setState(() => _loading = true);
     final now = DateTime.now();
     try {
       _r = await Api.monthlyReport(now.year, now.month);
@@ -255,7 +268,18 @@ class _MonthlyViewState extends State<_MonthlyView> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     final r = _r;
-    if (r == null) return const Center(child: Text('تعذّر تحميل التقرير'));
+    if (r == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('تعذّر تحميل التقرير'),
+            const SizedBox(height: 10),
+            OutlinedButton(onPressed: _load, child: const Text('🔄 إعادة المحاولة')),
+          ],
+        ),
+      );
+    }
     final weeks = (r['weeks'] as List).cast<Map<String, dynamic>>();
     return ListView(
       padding: const EdgeInsets.all(16),

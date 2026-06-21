@@ -468,7 +468,20 @@ class _LibraryTabState extends State<_LibraryTab> {
         ),
         if (_loading) const LinearProgressIndicator(),
         Expanded(
-          child: ListView.builder(
+          child: (_results.isEmpty && !_loading)
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      _q.text.trim().isEmpty
+                          ? 'ابحث عن أكلة في المكتبة (مثلاً: رز، فراخ، عيش) 🔍'
+                          : 'مفيش نتائج للبحث ده — جرّب اسم تاني أو سجّله يدوي 🙂',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: mutedColor(context)),
+                    ),
+                  ),
+                )
+              : ListView.builder(
             itemCount: _results.length,
             itemBuilder: (_, i) {
               final f = _results[i];
