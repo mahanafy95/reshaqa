@@ -95,6 +95,19 @@ def build_summary(db: Session, user_id: int, profile: Profile, day: date_type) -
             else "مفيش حاجة اسمها يوم وحش — المهم الاستمرار، وإنت ماشي صح 💚"
         )
 
+    # سطر نصيحة عملي حسب أهم نقص النهاردة (بروتين أولاً، وإلا السعرات الفاضلة) — تحفيز عملي.
+    remaining_p = round(target.protein_g - eaten_p)
+    tip = ""
+    if eaten_cal > 0:  # نطلّع النصيحة بس بعد ما يبدأ يسجّل (مش على معدة فاضية)
+        if remaining_p >= 20:
+            tip = f"💡 ناقصك حوالي {remaining_p} جم بروتين — ضيف بيضة أو زبادي أو قطعة فراخ/سمك."
+        elif not is_gain and 150 <= remaining and percent < 100:
+            tip = f"💡 فاضلك {round(remaining)} سعرة — تكفي وجبة خفيفة أو سناك صحي."
+        elif is_gain and remaining >= 150:
+            tip = f"💡 لسه فاضلك {round(remaining)} سعرة للزيادة — ضيف سناك مغذّي زي المكسرات أو سموذي."
+    if tip:
+        encouragement = f"{encouragement}\n{tip}"
+
     return {
         "date": day,
         "mode": result.mode,
