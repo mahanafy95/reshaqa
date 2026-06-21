@@ -24,13 +24,15 @@ class _ChatScreenState extends State<ChatScreen> {
   int _lastId = 0;
   bool _loading = true;
   bool _sending = false;
+  bool _fetching = false;   // قفل يمنع تداخل طلبين على نفس الوقت
+  int _failures = 0;        // لعمل backoff عند تكرار الفشل (شبكة واقعة)
   Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     _fetch(initial: true);
-    _poll = Timer.periodic(const Duration(seconds: 4), (_) => _fetch());
+    _scheduleNext();
   }
 
   @override
@@ -41,9 +43,22 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  /// مؤقّت يعيد جدولة نفسه بعد كل جلب (مش Timer.periodic) — يستنّى الطلب يخلّص الأول،
+  /// ويباعد بين المحاولات لو الشبكة بتفشل عشان منستنزفش البطارية والداتا.
+  void _scheduleNext() {
+    final secs = _failures >= 3 ? 20 : (_failures >= 1 ? 8 : 4);
+    _poll = Timer(Duration(seconds: secs), () async {
+      await _fetch();
+      if (mounted) _scheduleNext();
+    });
+  }
+
   Future<void> _fetch({bool initial = false}) async {
+    if (_fetching) return;  // طلب لسه شغّال — منعملش تاني
+    _fetching = true;
     try {
       final list = await Api.messages(widget.friendId, afterId: _lastId);
+      _failures = 0;
       if (list.isEmpty) {
         if (initial && mounted) setState(() => _loading = false);
         return;
@@ -58,7 +73,10 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       _scrollToEnd();
     } catch (_) {
+      _failures++;
       if (initial && mounted) setState(() => _loading = false);
+    } finally {
+      _fetching = false;
     }
   }
 
