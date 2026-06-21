@@ -187,8 +187,10 @@ def _openrouter_complete(
                 continue
             message = choices[0].get("message") or {}
             text = (message.get("content") or "").strip()
-            if text:
+            if text and not _looks_garbled(text):
                 return text
+            if text:  # نص تالف (؟؟؟) — نجرّب الموديل اللي بعده
+                logger.warning("OpenRouter (%s) رجّع نص تالف — بنجرّب موديل تاني", model)
         except Exception:
             logger.exception("فشل نداء OpenRouter (%s)", model)
             continue
@@ -224,8 +226,10 @@ def _openai_compat_complete(
             if not choices:
                 continue
             text = ((choices[0].get("message") or {}).get("content") or "").strip()
-            if text:
+            if text and not _looks_garbled(text):
                 return text
+            if text:  # نص تالف (؟؟؟) — نجرّب الموديل اللي بعده
+                logger.warning("%s (%s) رجّع نص تالف — بنجرّب موديل تاني", label, model)
         except Exception:
             logger.exception("فشل نداء %s (%s)", label, model)
             continue
@@ -258,6 +262,41 @@ def _provider_messages(provider: str, messages: list[dict], *, max_tokens, tempe
     )
 
 
+def _looks_garbled(text: str | None) -> bool:
+    """True لو رد المزوّد تالف — '?' بدل الحروف العربية.
+
+    بعض المزوّدات المجانية بتقرا العربي في الإدخال صح، لكن مخرجاتها بترجع '?' لكل
+    حرف عربي (مشكلة ترميز عند المزوّد). العربي بيستخدم «؟» (U+061F) مش «?» الـ ASCII،
+    فتجمّع كتير من «?» علامة أكيدة على التلف — نتجاهل المزوّد ده وننتقل للي بعده
+    بدل ما نوري المستخدم كلام مش مفهوم (وعشان استخراج الوجبة ميفشلش على JSON تالف).
+    """
+    if not text:
+        return False
+    q = text.count("?")
+    return q >= 5 and q / len(text) > 0.08
+
+
+def _first_good(*providers) -> str | None:
+    """يجرّب المزوّدات بالترتيب، ويرجّع أول نص سليم (غير فارغ وغير تالف)، وإلا None.
+
+    `providers` = دوال بلا وسائط ترجّع نص المزوّد أو None. لو رجّع مزوّد نصاً تالفاً
+    («?» بدل العربي) نتخطّاه للتالي.
+    """
+    for call in providers:
+        try:
+            text = call()
+        except Exception:  # تدهور رشيق — أي مزوّد يفشل ننتقل للي بعده
+            logger.exception("فشل مزوّد ذكاء اصطناعي — بنجرّب اللي بعده")
+            continue
+        if not text:
+            continue
+        if _looks_garbled(text):
+            logger.warning("مزوّد رجّع نص تالف (؟؟؟) — بنتجاهله وننتقل للتالي")
+            continue
+        return text
+    return None
+
+
 def ai_complete(
     prompt: str,
     system: str | None = None,
@@ -265,23 +304,19 @@ def ai_complete(
     max_tokens: int = 512,
     temperature: float = 0.3,
 ) -> str | None:
-    """يجرّب المزوّدات بالترتيب ويرجّع أول نص غير فارغ، وإلا None.
+    """يجرّب المزوّدات بالترتيب ويرجّع أول نص سليم، وإلا None.
 
-    الترتيب: Gemini ثم Groq ثم Cerebras ثم OpenRouter — أي مزوّد يفشل/يستنفد حصّته ننتقل للتالي.
-    لا يرفع استثناء أبداً — كل مزوّد يتعطّل بهدوء.
+    الترتيب: Gemini ثم Groq ثم Cerebras ثم OpenRouter — أي مزوّد يفشل/يستنفد حصّته/يرجّع
+    نصاً تالفاً ننتقل للتالي. لا يرفع استثناء أبداً — كل مزوّد يتعطّل بهدوء.
     """
     if not settings.ai_enabled:
         return None
-    text = _gemini_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
-    if text:
-        return text
-    text = _provider_complete("groq", prompt, system, max_tokens=max_tokens, temperature=temperature)
-    if text:
-        return text
-    text = _provider_complete("cerebras", prompt, system, max_tokens=max_tokens, temperature=temperature)
-    if text:
-        return text
-    return _openrouter_complete(prompt, system, max_tokens=max_tokens, temperature=temperature)
+    return _first_good(
+        lambda: _gemini_complete(prompt, system, max_tokens=max_tokens, temperature=temperature),
+        lambda: _provider_complete("groq", prompt, system, max_tokens=max_tokens, temperature=temperature),
+        lambda: _provider_complete("cerebras", prompt, system, max_tokens=max_tokens, temperature=temperature),
+        lambda: _openrouter_complete(prompt, system, max_tokens=max_tokens, temperature=temperature),
+    )
 
 
 def meal_reply(user_text: str, items_summary: str, total_calories: int, logged: bool) -> str | None:
@@ -417,8 +452,10 @@ def _openrouter_chat(
                 continue
             message = choices[0].get("message") or {}
             text = (message.get("content") or "").strip()
-            if text:
+            if text and not _looks_garbled(text):
                 return text
+            if text:  # نص تالف (؟؟؟) — نجرّب الموديل اللي بعده
+                logger.warning("OpenRouter chat (%s) رجّع نص تالف — بنجرّب موديل تاني", model)
         except Exception:
             logger.exception("فشل نداء OpenRouter chat (%s)", model)
             continue
@@ -442,16 +479,12 @@ def chat_reply(messages: list[dict], system_extra: str | None = None) -> str | N
     if not norm:
         return None
     system = _build_chat_system(system_extra)
-    text = _gemini_chat(norm, system, max_tokens=500, temperature=0.6)
-    if text:
-        return text
-    text = _provider_chat("groq", norm, system, max_tokens=500, temperature=0.6)
-    if text:
-        return text
-    text = _provider_chat("cerebras", norm, system, max_tokens=500, temperature=0.6)
-    if text:
-        return text
-    return _openrouter_chat(norm, system, max_tokens=500, temperature=0.6)
+    return _first_good(
+        lambda: _gemini_chat(norm, system, max_tokens=500, temperature=0.6),
+        lambda: _provider_chat("groq", norm, system, max_tokens=500, temperature=0.6),
+        lambda: _provider_chat("cerebras", norm, system, max_tokens=500, temperature=0.6),
+        lambda: _openrouter_chat(norm, system, max_tokens=500, temperature=0.6),
+    )
 
 
 # ---------- أدوات JSON ----------

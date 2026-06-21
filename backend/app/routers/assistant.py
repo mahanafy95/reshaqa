@@ -281,6 +281,75 @@ def _build_log_confirmation(meal: Meal, items: list[LoggedItem], total: float) -
     )
 
 
+def _log_priced_items(
+    db: Session, user: User, items: list, *, log_date: date_type,
+) -> tuple[Meal, list[LoggedItem], float]:
+    """يسجّل أصناف مُسعّرة (ParsedFoodItem) في يوم المستخدم — بنفس حدود ومنع تكرار AI."""
+    dedup_after = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=_DEDUP_WINDOW_SECONDS)
+    logged_items: list[LoggedItem] = []
+    total = 0.0
+    meal_used = Meal.snack
+    for it in items:
+        name = (it.name_ar or "").strip()
+        grams = _safe_num(it.grams)
+        if not name or grams is None or grams <= 0 or grams > _MAX_GRAMS:
+            continue
+        meal_used = it.meal
+        dup = db.scalar(
+            select(FoodLogged.id).where(
+                FoodLogged.user_id == user.id, FoodLogged.date == log_date,
+                FoodLogged.meal == it.meal, FoodLogged.name_ar == name,
+                FoodLogged.created_at >= dedup_after,
+            )
+        )
+        if dup is not None:
+            continue
+        db.add(
+            FoodLogged(
+                user_id=user.id, date=log_date, meal=it.meal, name_ar=name,
+                amount=it.grams, calories=it.calories, protein=it.protein,
+                carbs=it.carbs, fat=it.fat, source=it.source,
+            )
+        )
+        logged_items.append(
+            LoggedItem(
+                name_ar=name, grams=it.grams, calories=it.calories,
+                protein=it.protein, carbs=it.carbs, fat=it.fat, meal=it.meal.value,
+            )
+        )
+        total += it.calories
+    return meal_used, logged_items, round(total)
+
+
+def _heuristic_log_fallback(
+    db: Session, user: User, messages: list[dict], *, log_date: date_type, default_meal: Meal | None,
+) -> tuple[Meal | None, list[LoggedItem], float]:
+    """احتياطي مجاني بدون AI: لو فشل استخراج الـ AI (متعطّل/نص تالف)، نحلّل آخر رسائل
+    المستخدم محليًا ونسجّل **بس** الأصناف اللي اتطابقت مع مكتبة الأكلات (مضمونة وآمنة —
+    مش تقديرات افتراضية ولا كلمات حشو)، فمتسجّلش كلام زي «سجّلي» بالغلط.
+    """
+    from .foods import _parse_heuristic_items  # استيراد محلي لتفادي حلقة الاستيراد
+
+    meal_str = default_meal.value if default_meal else "snack"
+    user_texts = [
+        m["content"] for m in messages
+        if m.get("role") == "user" and isinstance(m.get("content"), str) and m["content"].strip()
+    ]
+    # من الأحدث للأقدم: أول رسالة فيها أصناف متطابقة مع المكتبة نسجّلها.
+    for text in reversed(user_texts):
+        try:
+            items = [
+                it for it in _parse_heuristic_items(db, text, meal_str)
+                if it.source == FoodSource.library
+            ]
+        except Exception:
+            logger.exception("فشل التحليل المحلي الاحتياطي لتسجيل الوجبة")
+            continue
+        if items:
+            return _log_priced_items(db, user, items, log_date=log_date)
+    return None, [], 0.0
+
+
 @router.post("/chat", response_model=ChatResponse)
 @limiter.limit("20/minute")
 def chat(
@@ -307,19 +376,27 @@ def chat(
         reply = _limit_reply()
 
     # فعل التسجيل: لو المستخدم طلب يضيف/يسجّل أكل، نستخرجه من سياق المحادثة ونسجّله فعلاً.
+    # نجرّب الـ AI الأول (لو مفعّل)، ولو فشل/رجع فاضي/نص تالف نرجع لتحليل محلي مجاني
+    # (مكتبة الأكلات بس) عشان التسجيل يفضل شغّال حتى لو الـ AI متعطّل.
     # نحفظ الرسائل بعد ما نخلّص (مرة واحدة) عشان نتجنّب نمط add/rollback/re-add الهشّ.
-    if not limit_reached and last_user and settings.ai_enabled and meal_parser.wants_to_log(last_user["content"]):
+    if not limit_reached and last_user and meal_parser.wants_to_log(last_user["content"]):
+        log_date = payload.date or date_type.today()
         try:
-            extracted = ai_assistant.extract_meal_to_log(messages)
-            if extracted and extracted.get("items"):
-                log_date = payload.date or date_type.today()
-                meal, logged_items, logged_total = _log_extracted_meal(
-                    db, current_user, extracted, log_date=log_date, default_meal=payload.default_meal,
+            meal: Meal | None = None
+            if settings.ai_enabled:
+                extracted = ai_assistant.extract_meal_to_log(messages)
+                if extracted and extracted.get("items"):
+                    meal, logged_items, logged_total = _log_extracted_meal(
+                        db, current_user, extracted, log_date=log_date, default_meal=payload.default_meal,
+                    )
+            if not logged_items:  # الـ AI ماطلّعش حاجة → احتياطي محلي (مكتبة الأكلات بس)
+                meal, logged_items, logged_total = _heuristic_log_fallback(
+                    db, current_user, messages, log_date=log_date, default_meal=payload.default_meal,
                 )
-                if logged_items:
-                    logged = True
-                    logged_meal = meal.value
-                    reply = _build_log_confirmation(meal, logged_items, logged_total)
+            if logged_items and meal is not None:
+                logged = True
+                logged_meal = meal.value
+                reply = _build_log_confirmation(meal, logged_items, logged_total)
         except Exception:  # تدهور رشيق — أي خطأ في التسجيل يرجّعنا للردّ العادي (مع تسجيل الخطأ)
             logger.exception("فشل تسجيل وجبة من المحادثة (user=%s)", current_user.id)
             db.rollback()  # نمسح أي صفوف FoodLogged أُضيفت جزئياً

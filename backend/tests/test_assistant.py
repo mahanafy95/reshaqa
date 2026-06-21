@@ -245,6 +245,81 @@ def test_chat_logs_meal_when_user_asks_to_add(client, monkeypatch):
     assert any(it["name_ar"] == "كشري" for it in logged)
 
 
+def test_chat_heuristic_fallback_logs_when_ai_fails(client, monkeypatch):
+    """الـ AI متعطّل/رجّع تالف → احتياطي محلي يسجّل الأصناف المتطابقة مع المكتبة (مجاناً)."""
+    from datetime import date
+
+    import app.routers.foods as foods_router
+    from app.models.enums import FoodSource, Meal
+    from app.schemas.food import ParsedFoodItem
+
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")        # AI متعطّل تماماً
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+    monkeypatch.setattr(settings, "CEREBRAS_API_KEY", "")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+
+    # تحليل محلي يرجّع صنف متطابق مع المكتبة (آمن للتسجيل التلقائي)
+    def fake_parse(db, text, default_meal):
+        if "كشري" in text:
+            return [ParsedFoodItem(
+                name_ar="كشري", qty=1, unit="طبق", grams=300, meal=Meal(default_meal),
+                calories=480, source=FoodSource.library, matched_library_id=1,
+            )]
+        return []
+
+    monkeypatch.setattr(foods_router, "_parse_heuristic_items", fake_parse)
+    today = date.today().isoformat()
+    h = auth_headers(client, "chat_fallback")
+    r = client.post(
+        "/assistant/chat",
+        json={
+            "messages": [
+                {"role": "user", "content": "النهاردة أكلت طبق كشري"},
+                {"role": "user", "content": "سجّلي ده"},
+            ],
+            "date": today, "default_meal": "lunch",
+        },
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["logged"] is True
+    assert body["logged_items"][0]["name_ar"] == "كشري"
+    logged = client.get(f"/foods?on={today}", headers=h).json()
+    assert any(it["name_ar"] == "كشري" for it in logged)
+
+
+def test_chat_heuristic_fallback_ignores_non_library_items(client, monkeypatch):
+    """أمان: الاحتياطي ميسجّلش تقديرات/حشو (زي كلمة «سجّلي» نفسها) — مكتبة بس."""
+    import app.routers.foods as foods_router
+    from app.models.enums import FoodSource, Meal
+    from app.schemas.food import ParsedFoodItem
+
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+
+    # كل اللي يطلع تقدير (source=estimated) — المفروض يتفلتر فمفيش تسجيل
+    monkeypatch.setattr(
+        foods_router, "_parse_heuristic_items",
+        lambda db, text, default_meal: [ParsedFoodItem(
+            name_ar="سجلي ده", qty=1, unit=None, grams=100, meal=Meal(default_meal),
+            calories=120, source=FoodSource.estimated,
+        )],
+    )
+    monkeypatch.setattr(
+        assistant_router.ai_assistant, "chat_reply",
+        lambda messages, system_extra=None: "تمام، قولي أكلت ايه بالظبط 🙂",
+    )
+    h = auth_headers(client, "chat_fallback_safe")
+    r = client.post(
+        "/assistant/chat",
+        json={"messages": [{"role": "user", "content": "سجّلي ده"}]},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["logged"] is False  # ماتسجّلش حشو/تقدير
+
+
 def test_chat_no_log_when_no_intent(client, monkeypatch):
     """رسالة عادية (مش طلب تسجيل) → مفيش تسجيل، رد محادثة عادي."""
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")

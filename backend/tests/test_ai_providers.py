@@ -449,3 +449,82 @@ def test_extract_meal_to_log_none_on_bad_json(monkeypatch):
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
     monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: "مش JSON")
     assert ai.extract_meal_to_log([{"role": "user", "content": "ضيفهم"}]) is None
+
+
+# ---------- حارس النص التالف: مزوّد يرجّع «؟؟؟» بدل العربي → نتخطّاه ----------
+# (ده كان بيخلّي المساعد «غبي» ويفشل تسجيل الوجبة: المخرجات بتيجي ?? فالـ JSON بايظ.)
+_GARBLED = "??? ?? ???? ?????? ?? ???? ???? ?? ????? ?? ???? ??? ?????? ???"
+
+
+def test_looks_garbled_detects_question_mark_arabic():
+    assert ai._looks_garbled(_GARBLED) is True
+
+
+def test_looks_garbled_passes_clean_text():
+    assert ai._looks_garbled("البروتين مهم لبناء العضلات 💪") is False
+    assert ai._looks_garbled("عايز تعرف ايه؟ قولي الأكلة") is False  # ؟ عربية مش ?
+    assert ai._looks_garbled("Protein helps build muscle.") is False
+    assert ai._looks_garbled("") is False
+    assert ai._looks_garbled("كام سعرة؟") is False  # سؤال قصير شرعي
+
+
+def test_ai_complete_skips_garbled_gemini_and_uses_next(monkeypatch):
+    """Gemini يرجّع نص تالف (؟؟؟) → نتجاهله وننتقل لمزوّد سليم بدل ما نوري المستخدم خربطة."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "groq-key")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+
+    def fake_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return _gemini_ok(_GARBLED)        # تالف
+        if "groq.com" in url:
+            return _openrouter_ok("رد عربي سليم")  # سليم
+        raise AssertionError("مكانش المفروض نوصل لمزوّد تاني")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert ai.ai_complete("سؤال") == "رد عربي سليم"
+
+
+def test_ai_complete_returns_none_when_all_providers_garbled(monkeypatch):
+    """كل المزوّدات ترجّع تالف → None (الراوتر يرجع لردّ ثابت، مش خربطة)."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(settings, "OPENROUTER_MODELS", "a/m:free")
+
+    monkeypatch.setattr(httpx, "post", lambda url, **k:
+                        _gemini_ok(_GARBLED) if "generativelanguage" in url else _openrouter_ok(_GARBLED))
+    assert ai.ai_complete("سؤال") is None
+
+
+def test_openrouter_skips_garbled_model_tries_next(monkeypatch):
+    """موديل OpenRouter يرجّع تالف → نجرّب الموديل اللي بعده (مش نتخطّى OpenRouter كله)."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+    monkeypatch.setattr(settings, "CEREBRAS_API_KEY", "")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(settings, "OPENROUTER_MODELS", "bad/model:free,good/model:free")
+    seen: list[str] = []
+
+    def fake_post(url, **kwargs):
+        model = kwargs["json"]["model"]
+        seen.append(model)
+        return _openrouter_ok(_GARBLED if model == "bad/model:free" else "رد سليم")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert ai.ai_complete("سؤال") == "رد سليم"
+    assert seen == ["bad/model:free", "good/model:free"]
+
+
+def test_chat_reply_skips_garbled_provider(monkeypatch):
+    """نفس الحارس في محادثة المساعد متعددة الأدوار."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "groq-key")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
+
+    def fake_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return _gemini_ok(_GARBLED)
+        return _openrouter_ok("أهلاً! إزيك؟ 💚")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert ai.chat_reply([{"role": "user", "content": "اهلا"}]) == "أهلاً! إزيك؟ 💚"
