@@ -32,9 +32,16 @@ class Base(DeclarativeBase):
 
 
 def get_db() -> Generator[Session, None, None]:
-    """تبعية FastAPI لجلسة قاعدة بيانات لكل طلب."""
+    """تبعية FastAPI لجلسة قاعدة بيانات لكل طلب.
+
+    أي استثناء في الطلب → نتراجع (rollback) عن أي معاملة معلّقة قبل ما الجلسة ترجع
+    للتجمّع، عشان منرجّعش جلسة «متّسخة» للطلب اللي بعده ولا نسيب صفوف منضافة جزئياً.
+    """
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

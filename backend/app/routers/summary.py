@@ -90,10 +90,16 @@ def body_metrics(
 
 @router.get("/streak", response_model=StreakOut)
 def streak(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    on: date_type | None = Query(None, description="تاريخ اليوم المحلي للعميل"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> StreakOut:
-    """سلسلة أيام التسجيل المتتالية + الإنجازات — لتحفيز المستخدم على الاستمرار 🔥."""
-    return StreakOut(**gamification.compute(db, current_user.id))
+    """سلسلة أيام التسجيل المتتالية + الإنجازات — لتحفيز المستخدم على الاستمرار 🔥.
+
+    بنمرّر يوم العميل المحلي (`on`) زي `/summary` عشان مايتكسرش حساب السلسلة على حدود
+    منتصف الليل (الخادم UTC، والمستخدم في UTC+2/+3).
+    """
+    return StreakOut(**gamification.compute(db, current_user.id, on or date_type.today()))
 
 
 @router.get("/drinks/suggestions", response_model=list[DrinkSuggestion])

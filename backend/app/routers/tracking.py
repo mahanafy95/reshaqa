@@ -94,9 +94,16 @@ def weight_trend(
     points = [WeightPoint(day=d, weight_kg=w) for d, w in sorted(by_day.items())]
 
     trend = trailing_moving_average(points)
-    plateau = detect_plateau(points) if len(points) >= 2 else None
+    # تنبيه الثبات مناسب لوضع التخسيس بس — في وضع الزيادة الوزن الصاعد تقدّم مش ثبات.
+    in_loss_mode = True
+    profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
+    if profile is not None and points:
+        from ..models.enums import TargetMode
+        from ..services.calories import determine_mode
+        mode = determine_mode(points[-1].weight_kg, profile.height_cm, profile.goal_weight_kg)
+        in_loss_mode = mode == TargetMode.loss
+    plateau = detect_plateau(points, in_loss_mode=in_loss_mode) if len(points) >= 2 else None
 
-    # هل المستخدم في وضع تخسيس؟ نمرر in_loss_mode افتراضياً True عبر detect_plateau أعلاه
     return WeightTrendOut(
         points=[{"day": t.day, "raw_kg": t.raw_kg, "trend_kg": t.trend_kg} for t in trend],
         current_trend_kg=trend[-1].trend_kg if trend else None,

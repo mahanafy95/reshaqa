@@ -258,19 +258,6 @@ def _price_item(
     )
 
 
-@router.post("/_pdebug", include_in_schema=False)
-def _parse_debug(payload: ParseRequest, current_user: User = Depends(get_current_user)) -> dict:
-    """تشخيص مؤقت: يبيّن النص اللي وصل للخادم فعلاً + نتيجة التحليل المحلي (بدون AI)."""
-    txt = payload.text
-    return {
-        "received_repr": repr(txt),
-        "received_hex": txt.encode("utf-8").hex()[:140],
-        "looks_like_question": meal_parser.looks_like_question(txt),
-        "parse_text_names": [i.name_ar for i in meal_parser.parse_text(txt, payload.default_meal.value)],
-        "ai_enabled": settings.ai_enabled,
-    }
-
-
 @router.post("/parse", response_model=ParseResponse)
 @limiter.limit("30/minute")
 def parse_meal(

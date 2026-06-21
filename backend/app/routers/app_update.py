@@ -35,7 +35,6 @@ def app_version() -> dict:
         "mandatory": bool(data.get("mandatory", False)),
         "apk_available": bool(external_url) or _APK.exists(),
         "download_url": external_url or "/app/download",
-        "build_marker": "logging-reliability-2026-06-21",
     }
 
 
