@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/reshaqa.apk",
+      "destination": "https://reshaqa-app.web.app/reshaqa-latest",
+      "permanent": false
+    }
+  ]
+}

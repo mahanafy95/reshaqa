@@ -41,7 +41,7 @@ export default function Home() {
           تطبيق عربي بسيط: سجّل أكلك بسهولة، تابع وزنك، واستعن بمساعد ذكي يفهمك — مجاناً.
         </p>
         <div className="mt-8 flex flex-wrap gap-3 justify-center">
-          <a href="/reshaqa.apk"
+          <a href="https://reshaqa-app.web.app/reshaqa-latest" rel="noopener"
             className="bg-teal text-white font-bold rounded-xl px-6 py-3 hover:bg-teal-dark transition">
             ⬇️ نزّل تطبيق أندرويد
           </a>
