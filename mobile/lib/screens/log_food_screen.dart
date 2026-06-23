@@ -653,18 +653,76 @@ class _SaveBarcodeDialogState extends State<_SaveBarcodeDialog> {
   final _carbs = TextEditingController();
   final _protein = TextEditingController();
   final _fat = TextEditingController();
+  bool _busy = false;  // أثناء قراءة صورة الجدول
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _cal.dispose();
+    _carbs.dispose();
+    _protein.dispose();
+    _fat.dispose();
+    super.dispose();
+  }
+
+  /// يصوّر جدول التغذية ويقرا القيم تلقائيًا (سعرات/ماكروز لكل 100جم) ويملا الحقول.
+  Future<void> _scanLabel() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final img = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
+      if (img == null) {
+        if (mounted) setState(() => _busy = false);
+        return;
+      }
+      final r = await Api.labelImage(img.path);
+      if (!mounted) return;
+      final cal = (r['calories'] as num?)?.toDouble() ?? 0;
+      if (cal <= 0) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text('مقدرناش نقرا الجدول — صوّره أوضح وأقرب، أو اكتب القيم يدوي'),
+          backgroundColor: AppColors.orange,
+        ));
+        return;
+      }
+      setState(() {
+        _cal.text = cal.round().toString();
+        final p = (r['protein'] as num?)?.toDouble() ?? 0;
+        final c = (r['carbs'] as num?)?.toDouble() ?? 0;
+        final f = (r['fat'] as num?)?.toDouble() ?? 0;
+        if (p > 0) _protein.text = p.toStringAsFixed(1);
+        if (c > 0) _carbs.text = c.toStringAsFixed(1);
+        if (f > 0) _fat.text = f.toStringAsFixed(1);
+      });
+      messenger.showSnackBar(const SnackBar(content: Text('قرينا الجدول ✅ راجع القيم واحفظ')));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(
+          content: Text(ApiClient.errorMessage(e)), backgroundColor: AppColors.orange));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('منتج جديد'),
+      title: const Text('المنتج مش موجود — ضيفه 📦'),
       content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('الباركود: ${widget.code}',
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('الباركود ${widget.code} لسه مش عندنا. صوّر جدول التغذية وإحنا نحسبهولك تلقائيًا، '
+              'أو اكتب القيم يدوي — وهنفتكره ليك المرة الجاية 👌',
               style: TextStyle(color: mutedColor(context), fontSize: 12)),
-          const SizedBox(height: 4),
-          Text('اكتب القيم لكل 100 جم/مل (من جدول التغذية على المنتج)',
-              style: TextStyle(color: mutedColor(context), fontSize: 12)),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _scanLabel,
+            icon: _busy
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.camera_alt),
+            label: Text(_busy ? 'بنقرا الجدول…' : '📷 صوّر جدول التغذية'),
+          ),
+          const SizedBox(height: 6),
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
           _numField(_cal, 'سعرات / 100'),
           _numField(_carbs, 'نشويات / 100 (اختياري)'),
@@ -673,24 +731,26 @@ class _SaveBarcodeDialogState extends State<_SaveBarcodeDialog> {
         ]),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(onPressed: _busy ? null : () => Navigator.pop(context), child: const Text('إلغاء')),
         ElevatedButton(
-          onPressed: () {
-            final name = _name.text.trim();
-            final cal = double.tryParse(_cal.text);
-            if (name.isEmpty || cal == null) {
-              showSnack(context, 'اكتب الاسم والسعرات على الأقل', error: true);
-              return;
-            }
-            Navigator.pop(context, {
-              'barcode': widget.code,
-              'name_ar': name,
-              'calories_per_100': cal,
-              'carbs': double.tryParse(_carbs.text) ?? 0,
-              'protein': double.tryParse(_protein.text) ?? 0,
-              'fat': double.tryParse(_fat.text) ?? 0,
-            });
-          },
+          onPressed: _busy
+              ? null
+              : () {
+                  final name = _name.text.trim();
+                  final cal = double.tryParse(_cal.text);
+                  if (name.isEmpty || cal == null || cal <= 0) {
+                    showSnack(context, 'اكتب الاسم والسعرات على الأقل', error: true);
+                    return;
+                  }
+                  Navigator.pop(context, {
+                    'barcode': widget.code,
+                    'name_ar': name,
+                    'calories_per_100': cal,
+                    'carbs': double.tryParse(_carbs.text) ?? 0,
+                    'protein': double.tryParse(_protein.text) ?? 0,
+                    'fat': double.tryParse(_fat.text) ?? 0,
+                  });
+                },
           child: const Text('احفظ'),
         ),
       ],
