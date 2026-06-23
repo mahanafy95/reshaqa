@@ -410,18 +410,20 @@ def _gemini_chat(
         "contents": contents,
         "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
     }
-    if grounded:
+    # «بحث Google» مدفوع (الباقة المجانية ترجّع 429)؛ منفعّلهوش غير لو الفوترة متفعّلة.
+    use_search = grounded and settings.GEMINI_GROUNDING_ENABLED
+    if use_search:
         body["tools"] = [{"google_search": {}}]
     try:
         resp = httpx.post(
             url,
             params={"key": settings.GEMINI_API_KEY},
             json=body,
-            timeout=settings.FOOD_LOOKUP_GEMINI_TIMEOUT if grounded else 20.0,
+            timeout=settings.FOOD_LOOKUP_GEMINI_TIMEOUT if use_search else 20.0,
         )
         if resp.status_code != 200:
             logger.warning("Gemini chat%s رجّع %s: %s",
-                           " (grounded)" if grounded else "", resp.status_code, resp.text[:200])
+                           " (grounded)" if use_search else "", resp.status_code, resp.text[:200])
             return None
         data = resp.json()
         parts = data["candidates"][0]["content"]["parts"]

@@ -54,8 +54,8 @@ def test_extract_kcal_avoids_the_100g_number():
     assert fl._extract_kcal("مفيش أرقام هنا") is None
 
 
-def test_off_rejects_absurd_then_gemini(monkeypatch):
-    """OFF يرجّع سعرات خرافية (تترفض) → نرجع لـ Gemini المؤرَّض."""
+def test_gemini_answers_food_calories(monkeypatch):
+    """مفتاح Gemini موجود → يُسأل أولاً ويرجّع رقم السعرات (نداء عادي، بدون بحث Google)."""
     _enable(monkeypatch)
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
     monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp(200, {"products": [
@@ -63,7 +63,24 @@ def test_off_rejects_absurd_then_gemini(monkeypatch):
     gem = {"candidates": [{"content": {"parts": [{"text": "حوالي 130 سعرة حرارية لكل 100 جرام"}]}}]}
     monkeypatch.setattr(httpx, "post", lambda *a, **k: _Resp(200, gem))
     r = fl.search_food_calories("أكلة غريبة")
-    assert r is not None and r.source == "gemini_search" and r.kcal_per_100 == 130
+    assert r is not None and r.source == "gemini" and r.kcal_per_100 == 130
+
+
+def test_gemini_omits_paid_search_tool_by_default(monkeypatch):
+    """افتراضيًا (GEMINI_GROUNDING_ENABLED=False) منبعتش أداة بحث Google المدفوعة — نداء عادي مجاني."""
+    _enable(monkeypatch)
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(settings, "GEMINI_GROUNDING_ENABLED", False)
+    captured = {}
+
+    def cap_post(*a, **k):
+        captured["json"] = k.get("json")
+        return _Resp(200, {"candidates": [{"content": {"parts": [{"text": "120 سعرة لكل 100 جرام"}]}}]})
+
+    monkeypatch.setattr(httpx, "post", cap_post)
+    r = fl.search_food_calories("حاجة جديدة")
+    assert r is not None and r.kcal_per_100 == 120
+    assert "tools" not in (captured.get("json") or {})
 
 
 def test_gemini_skipped_without_key(monkeypatch):

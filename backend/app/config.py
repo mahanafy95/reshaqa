@@ -85,8 +85,12 @@ class Settings(BaseSettings):
     # مفتاح مجاني من https://aistudio.google.com/apikey . لو فاضي، يفضل المحلّل المحلي (heuristic).
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
+    # «التأريض ببحث Google» (tools.google_search) ميزة مدفوعة — الباقة المجانية بترجّع 429
+    # (تجاوز الحصّة). فاضضل OFF افتراضيًا: بنسأل Gemini عادي (generateContent بدون أداة بحث)،
+    # وده مجاني وحصّته سخيّة ومعرفته بسعرات الأكل ممتازة. لو فعّلت فوترة في Google AI خلّيه True.
+    GEMINI_GROUNDING_ENABLED: bool = False
 
-    # بحث غذائي خارجي لأكلة مش موجودة محليًا (OpenFoodFacts بالاسم + Gemini مع بحث Google).
+    # بحث غذائي خارجي لأكلة مش موجودة محليًا (Gemini عادي بالاسم + OpenFoodFacts).
     FOOD_LOOKUP_ENABLED: bool = True
     FOOD_LOOKUP_OFF_TIMEOUT: float = 6.0
     FOOD_LOOKUP_GEMINI_TIMEOUT: float = 18.0
