@@ -46,6 +46,15 @@ def test_cannot_message_non_friend(client):
     assert r.status_code == 403
 
 
+def test_whitespace_only_message_rejected(client):
+    # مسافات بس بتعدّي min_length لكنها فاضية بعد strip → لازم 422 (مش رسالة فاضية مخزّنة)
+    ha = auth_headers(client, "ghada")
+    hb = auth_headers(client, "hala")
+    bid = _uid(client, hb)
+    r = client.post("/social/messages", json={"to_user_id": bid, "body": "   "}, headers=ha)
+    assert r.status_code == 422, r.text
+
+
 def test_mutual_request_auto_accepts(client):
     ha = auth_headers(client, "eman")
     hb = auth_headers(client, "farida")

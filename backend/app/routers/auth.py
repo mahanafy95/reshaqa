@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -69,6 +70,20 @@ def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
 
 
+def _commit_new_user(db: Session, user: User) -> None:
+    """يحفظ مستخدماً جديداً ويحوّل سباق التزامن على القيود الفريدة (username/email/
+    google_sub) لـ409 نظيفة بدل 500 — لو طلبان متزامنان عدّيا فحص التكرار سوا."""
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="الاسم أو البريد ده مستخدم بالفعل. جرّب تاني.",
+        )
+    db.refresh(user)
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("8/hour")
 def register(
@@ -101,8 +116,7 @@ def register(
         password_hash=hash_password(payload.password),
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    _commit_new_user(db, user)
     return TokenResponse(access_token=create_access_token(user.id))
 
 
@@ -179,8 +193,7 @@ def google_login(
         )
         db.add(user)
 
-    db.commit()
-    db.refresh(user)
+    _commit_new_user(db, user)
     return TokenResponse(access_token=create_access_token(user.id))
 
 
