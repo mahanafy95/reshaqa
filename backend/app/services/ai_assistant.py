@@ -349,10 +349,12 @@ _CHAT_SYSTEM = (
     "قواعد ردّك:\n"
     "• كن عملي ومحدّد بأرقام (سعرات/جرامات تقريبية) — مش كلام عام مرسل. مثال: «طبق الكشري ده "
     "تقريباً ٦٥٠ سعرة، خليه نص الكمية وزوّد سلطة».\n"
-    "• مهم جداً: لو لقيت تحت سطر «سعرات دقيقة من قاعدتنا»، استعمل الأرقام دي بالظبط للأكلات "
-    "المذكورة فيه — دي قيمنا الرسمية المضبوطة، ممنوع تخمّن رقم مختلف عنها.\n"
+    "• ⚠️ الأرقام مقدّسة — دي أهم قاعدة: لو في سطر «سعرات دقيقة من قاعدتنا» استعمل أرقامه بالظبط. "
+    "لأي أكلة تانية تذكر سعراتها، لازم يكون الرقم من بحثك على الإنترنت (إنت معاك بحث Google) "
+    "ومن مصدر موثوق. لو مش متأكد من الرقم، ممنوع تخمّن — قول «سجّلها في التطبيق وأنا أحسبهالك بالظبط». "
+    "غلط في رقم سعرة بيضيّع ثقة المستخدم، فدقّتك أهم من إنك تجاوب على طول.\n"
     "• استعمل بيانات المستخدم اللي تحت لو موجودة (هدفه، اللي فاضله النهاردة، اللي أكله) وخلّي نصيحتك مفصّلة على حالته بالظبط.\n"
-    "• لو ناقصه بروتين أو لسه فاضل سعرات، اقترح أكل مصري محدّد بكميته وسعراته التقريبية.\n"
+    "• لو ناقصه بروتين أو لسه فاضل سعرات، اقترح أكل مصري محدّد بكميته (السعرات بس لو متأكد منها أو لقيتها بالبحث).\n"
     "• اختصر: ٢-٤ جُمل أو نقاط قصيرة بنبرة محفّزة — بلاش مقالات طويلة.\n"
     "• لو محتاج معلومة عشان تجاوب صح، اسأل سؤال واحد قصير بدل ما تخمّن.\n"
     "• أي حاجة طبية/دوائية: انصحه باختصار يستشير دكتور، وما تديش تشخيص ولا علاج."
@@ -385,9 +387,13 @@ def _normalize_chat_messages(messages: list[dict]) -> list[dict]:
 
 
 def _gemini_chat(
-    messages: list[dict], system: str, *, max_tokens: int, temperature: float
+    messages: list[dict], system: str, *, max_tokens: int, temperature: float, grounded: bool = False
 ) -> str | None:
-    """نداء Gemini generateContent متعدد الأدوار (contents[] + system_instruction)."""
+    """نداء Gemini generateContent متعدد الأدوار (contents[] + system_instruction).
+
+    لو grounded=True بنفعّل «بحث Google» (tools.google_search) فالمساعد يدوّر على النت
+    قبل ما يرد — يخلّي أرقام السعرات والمعلومات مؤرَّضة على الويب مش تخمين من دماغه.
+    """
     if not settings.GEMINI_API_KEY.strip():
         return None
     url = _GEMINI_URL.format(model=settings.GEMINI_MODEL)
@@ -399,19 +405,23 @@ def _gemini_chat(
         }
         for m in messages
     ]
+    body: dict = {
+        "system_instruction": {"parts": [{"text": system}]},
+        "contents": contents,
+        "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+    }
+    if grounded:
+        body["tools"] = [{"google_search": {}}]
     try:
         resp = httpx.post(
             url,
             params={"key": settings.GEMINI_API_KEY},
-            json={
-                "system_instruction": {"parts": [{"text": system}]},
-                "contents": contents,
-                "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
-            },
-            timeout=20.0,
+            json=body,
+            timeout=settings.FOOD_LOOKUP_GEMINI_TIMEOUT if grounded else 20.0,
         )
         if resp.status_code != 200:
-            logger.warning("Gemini chat رجّع %s: %s", resp.status_code, resp.text[:200])
+            logger.warning("Gemini chat%s رجّع %s: %s",
+                           " (grounded)" if grounded else "", resp.status_code, resp.text[:200])
             return None
         data = resp.json()
         parts = data["candidates"][0]["content"]["parts"]
@@ -488,6 +498,9 @@ def chat_reply(messages: list[dict], system_extra: str | None = None) -> str | N
         return None
     system = _build_chat_system(system_extra)
     return _first_good(
+        # أولاً: Gemini مع بحث Google (مؤرَّض على النت) — أذكى وأرقامه أدق، مجاني ~500/يوم.
+        lambda: _gemini_chat(norm, system, max_tokens=500, temperature=0.6, grounded=True),
+        # احتياطي: Gemini عادي ثم باقي المزوّدات (مع حارس النص التالف).
         lambda: _gemini_chat(norm, system, max_tokens=500, temperature=0.6),
         lambda: _provider_chat("groq", norm, system, max_tokens=500, temperature=0.6),
         lambda: _provider_chat("cerebras", norm, system, max_tokens=500, temperature=0.6),

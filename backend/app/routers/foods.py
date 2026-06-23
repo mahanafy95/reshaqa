@@ -36,7 +36,7 @@ from ..services import barcode as barcode_svc
 from ..services import food_lookup
 from ..services import meal_parser
 from ..services import ocr as ocr_svc
-from ..services.estimator import get_estimator
+from ..services.estimator import HeuristicEstimator
 
 router = APIRouter(prefix="/foods", tags=["تسجيل الأكل"])
 
@@ -203,26 +203,24 @@ def estimate_food(
             source=FoodSource.library,
         )
 
-    est = get_estimator().estimate(name, amount)
+    # أكلة مش في المكتبة → بحث غذائي مؤرَّض على الإنترنت (Gemini + بحث Google ثم OpenFoodFacts)
+    web = food_lookup.search_food_calories(name, db=db)
+    if web is not None:
+        f = amount / 100.0
+        return EstimateOut(
+            name_ar=web.matched_name or name,
+            amount_g=amount,
+            calories=round(web.kcal_per_100 * f),
+            protein=round((web.protein or 0) * f, 1),
+            carbs=round((web.carbs or 0) * f, 1),
+            fat=round((web.fat or 0) * f, 1),
+            per100_calories=web.kcal_per_100,
+            confidence="medium",
+            note_ar="من بحث غذائي على الإنترنت — راجع الرقم.",
+            source=FoodSource.estimated,
+        )
 
-    # أكلة مش معروفة محليًا → بحث غذائي على الإنترنت (OpenFoodFacts ثم Gemini-grounding)
-    if getattr(est, "confidence", "low") == "low":
-        web = food_lookup.search_food_calories(name, db=db)
-        if web is not None:
-            f = amount / 100.0
-            return EstimateOut(
-                name_ar=web.matched_name or name,
-                amount_g=amount,
-                calories=round(web.kcal_per_100 * f),
-                protein=round((web.protein or 0) * f, 1),
-                carbs=round((web.carbs or 0) * f, 1),
-                fat=round((web.fat or 0) * f, 1),
-                per100_calories=web.kcal_per_100,
-                confidence="medium",
-                note_ar="من بحث غذائي على الإنترنت — راجع الرقم.",
-                source=FoodSource.estimated,
-            )
-
+    est = HeuristicEstimator().estimate(name, amount)
     return EstimateOut(
         name_ar=est.name_ar,
         amount_g=est.amount_g,
@@ -304,24 +302,24 @@ def _price_item(
             note_ar="تقدير من المساعد الذكي — راجعه وعدّله لو محتاج.",
         )
 
-    est = get_estimator().estimate(name_ar, grams)
+    # 3) أكلة مش في المكتبة ومفيش تقدير AI لها → بحث غذائي مؤرَّض على الإنترنت
+    #    (Gemini + بحث Google ثم OpenFoodFacts) — أدق بكتير من تخمين الموديل،
+    #    والنتيجة بتتخزّن فتبقى فورية المرة الجاية.
+    web = food_lookup.search_food_calories(name_ar, db=db)
+    if web is not None:
+        f = grams / 100.0
+        return ParsedFoodItem(
+            name_ar=web.matched_name or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
+            calories=round(web.kcal_per_100 * f),
+            protein=round((web.protein or 0) * f, 1),
+            carbs=round((web.carbs or 0) * f, 1),
+            fat=round((web.fat or 0) * f, 1),
+            confidence="medium", source=FoodSource.estimated,
+            note_ar="من بحث غذائي على الإنترنت — راجع الرقم.",
+        )
 
-    # أكلة مش معروفة محليًا (تقدير افتراضي ثقته منخفضة) → نبحث عنها على الإنترنت
-    # (OpenFoodFacts ثم Gemini مع بحث Google) عشان نجيب سعراتها الحقيقية بدل التخمين.
-    if getattr(est, "confidence", "low") == "low":
-        web = food_lookup.search_food_calories(name_ar, db=db)
-        if web is not None:
-            f = grams / 100.0
-            return ParsedFoodItem(
-                name_ar=web.matched_name or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
-                calories=round(web.kcal_per_100 * f),
-                protein=round((web.protein or 0) * f, 1),
-                carbs=round((web.carbs or 0) * f, 1),
-                fat=round((web.fat or 0) * f, 1),
-                confidence="medium", source=FoodSource.estimated,
-                note_ar="من بحث غذائي على الإنترنت — راجع الرقم.",
-            )
-
+    # 4) آخر حاجة: المقدّر المحلي الـ heuristic (حتمي حسب نوع الأكلة — مش تخمين موديل عشوائي)
+    est = HeuristicEstimator().estimate(name_ar, grams)
     return ParsedFoodItem(
         name_ar=est.name_ar or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
         calories=round(est.calories), protein=round(est.protein, 1),
