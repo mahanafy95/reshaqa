@@ -152,6 +152,41 @@ def _build_profile_summary(db: Session, user: User) -> str | None:
     return "، ".join(parts)
 
 
+def _build_today_context(db: Session, user: User, day: date_type) -> str:
+    """سياق اليوم للمساعد: السعرات المتبقية + البروتين + آخر أكل مسجّل — عشان نصيحته تبقى
+    واقعية ومفصّلة على حالة المستخدم النهاردة، مش كلام عام (ده أكبر سبب كان بيخلّيه يبان «غبي»)."""
+    from ..services import summary_service
+
+    profile = db.scalar(select(Profile).where(Profile.user_id == user.id))
+    if profile is None:
+        return ""
+    try:
+        s = summary_service.build_summary(db, user.id, profile, day)
+    except Exception:
+        logger.exception("فشل بناء سياق اليوم للمساعد")
+        return ""
+    parts: list[str] = []
+    tgt = s.get("target_calories") or 0
+    if tgt:
+        parts.append(
+            f"النهاردة: الهدف {tgt} سعرة، اتاكل {round(s.get('eaten_calories') or 0)}، "
+            f"فاضل {s.get('remaining_calories')}"
+        )
+    for m in s.get("macros", []):
+        if m.get("name_ar") == "بروتين":
+            parts.append(f"البروتين {round(m.get('eaten') or 0)}/{round(m.get('target') or 0)} جم")
+            break
+    foods = db.scalars(
+        select(FoodLogged.name_ar)
+        .where(FoodLogged.user_id == user.id, FoodLogged.date == day)
+        .order_by(FoodLogged.id.desc())
+        .limit(4)
+    ).all()
+    if foods:
+        parts.append("آخر أكل النهاردة: " + "، ".join(foods))
+    return " | ".join(parts)
+
+
 def _store_message(db: Session, user_id: int, role: str, content: str) -> None:
     """يضيف رسالة لمحادثة المستخدم (بدون commit — الراوتر بيعمل commit مرة واحدة)."""
     db.add(AssistantMessage(user_id=user_id, role=role, content=content[:8000]))
@@ -443,7 +478,10 @@ def chat(
             logged, logged_items, logged_total, logged_meal, reply = False, [], 0.0, None, None
 
     if reply is None and not limit_reached:
-        reply = ai_assistant.chat_reply(messages, profile_summary) or _AI_OFF_REPLY
+        # ندمج ملف المستخدم + سياق يومه (المتبقّي/البروتين/آخر أكل) عشان رد المساعد يبقى ذكي ومفصّل.
+        today_ctx = _build_today_context(db, current_user, payload.date or date_type.today())
+        context = "\n".join(p for p in (profile_summary, today_ctx) if p) or None
+        reply = ai_assistant.chat_reply(messages, context) or _AI_OFF_REPLY
 
     # حفظ المحادثة (رسالة المستخدم + ردّ المساعد) مرة واحدة بعد اكتمال المعالجة.
     if last_user:
