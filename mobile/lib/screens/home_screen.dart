@@ -390,6 +390,14 @@ class _TodayLogCard extends StatelessWidget {
   Future<void> _edit(BuildContext context, Map<String, dynamic> f) async {
     final amountCtrl = TextEditingController(text: '${(f['amount'] as num?)?.round() ?? 100}');
     final calCtrl = TextEditingController(text: '${(f['calories'] as num?)?.round() ?? 0}');
+    final proteinCtrl = TextEditingController(text: '${(f['protein'] as num?)?.toStringAsFixed(1) ?? '0'}');
+    final carbsCtrl = TextEditingController(text: '${(f['carbs'] as num?)?.toStringAsFixed(1) ?? '0'}');
+    final fatCtrl = TextEditingController(text: '${(f['fat'] as num?)?.toStringAsFixed(1) ?? '0'}');
+    TextField numField(TextEditingController c, String label) => TextField(
+          controller: c,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(labelText: label),
+        );
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -401,17 +409,15 @@ class _TodayLogCard extends StatelessWidget {
           children: [
             Text('تعديل ${f['name_ar']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            TextField(
-              controller: amountCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'الكمية (جم)'),
-            ),
+            numField(amountCtrl, 'الكمية (جم)'),
             const SizedBox(height: 10),
-            TextField(
-              controller: calCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'السعرات'),
-            ),
+            numField(calCtrl, 'السعرات'),
+            const SizedBox(height: 10),
+            numField(proteinCtrl, 'بروتين (جم)'),
+            const SizedBox(height: 10),
+            numField(carbsCtrl, 'نشويات (جم)'),
+            const SizedBox(height: 10),
+            numField(fatCtrl, 'دهون (جم)'),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -433,9 +439,9 @@ class _TodayLogCard extends StatelessWidget {
       'meal': f['meal'],
       'amount': amount,
       'calories': cal,
-      'protein': (f['protein'] as num?)?.toDouble() ?? 0,
-      'carbs': (f['carbs'] as num?)?.toDouble() ?? 0,
-      'fat': (f['fat'] as num?)?.toDouble() ?? 0,
+      'protein': double.tryParse(proteinCtrl.text) ?? (f['protein'] as num?)?.toDouble() ?? 0,
+      'carbs': double.tryParse(carbsCtrl.text) ?? (f['carbs'] as num?)?.toDouble() ?? 0,
+      'fat': double.tryParse(fatCtrl.text) ?? (f['fat'] as num?)?.toDouble() ?? 0,
     };
     try {
       await Api.updateFood(f['id'] as int, body);
