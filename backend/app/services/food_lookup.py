@@ -1,8 +1,8 @@
 """بحث غذائي خارجي لأكلة/منتج مش موجود في مكتبتنا المحلية.
 
 بيجرّب مصدرين مجانيين بالترتيب:
-1) Gemini (generateContent عادي بمفتاح مجاني) — معرفته بسعرات الأكل ممتازة وحصّته سخيّة.
-   («بحث Google» grounding مدفوع → بيترجّع 429 على الباقة المجانية، فمتعطّل افتراضيًا.)
+1) سلسلة مزوّدات الذكاء المجانية (ai_complete: Gemini → Groq → Cerebras → OpenRouter) —
+   بنسأل عن سعرات الأكلة، وأول مزوّد شغّال بيرد. معرفة الموديلات بالقيم الغذائية كافية.
 2) OpenFoodFacts (بحث بالاسم) — مجاني وبدون مفتاح؛ أفضل للمنتجات المعبّأة بأسماء لاتينية.
 يرجّع None لو الاتنين فشلوا. لا يرفع استثناء أبداً.
 
@@ -22,7 +22,6 @@ from ..config import settings
 logger = logging.getLogger("reshaqa.food_lookup")
 
 OFF_SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl"
-_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 _MAX_KCAL = 900.0
 _NUM_RE = re.compile(r"\d+(?:[.,]\d+)?")
 
@@ -116,53 +115,29 @@ def _extract_kcal(text: str) -> float | None:
     return None
 
 
-def _ask_gemini(name: str) -> FoodNutrition | None:
-    """يسأل Gemini عن سعرات الأكلة لكل 100 جرام.
+def _ask_ai(name: str) -> FoodNutrition | None:
+    """يسأل سلسلة مزوّدات الذكاء المجانية عن سعرات الأكلة لكل 100 جرام.
 
-    افتراضيًا نداء عادي (generateContent بدون أداة بحث) — مجاني وحصّته سخيّة ومعرفة
-    Gemini بسعرات الأكل ممتازة. «التأريض ببحث Google» (tools.google_search) ميزة مدفوعة
-    (الباقة المجانية بترجّع 429)، فمنفعّلهوش غير لو GEMINI_GROUNDING_ENABLED=True.
+    بنستعمل ai_complete المشترك (Gemini → Groq → Cerebras → OpenRouter): أول مزوّد شغّال
+    بيرد، فلو مفتاح Gemini استنفد حصّته (429) بيعدّي تلقائيًا لـ Groq/OpenRouter المجانيين.
+    معرفة الموديلات بالقيم الغذائية كافية لتقدير معقول لأي أكلة مش في مكتبتنا — أحسن بكتير
+    من التقدير العام المحلي (اللي بيرجّع رقم افتراضي للمجهول).
     """
-    key = settings.GEMINI_API_KEY.strip()
-    if not key:
-        return None
-    url = _GEMINI_URL.format(model=settings.FOOD_LOOKUP_GEMINI_MODEL)
-    use_search = settings.GEMINI_GROUNDING_ENABLED
-    if use_search:
-        prompt = (
-            f"دوّر على الإنترنت عن «{name}» وجيب سعراته الحرارية لكل 100 جرام من مصدر غذائي موثوق. "
-            "اكتب جملة قصيرة فيها رقم السعرات لكل 100 جرام بوضوح (مثال: «الكشري ~150 سعرة لكل 100 جرام»)."
-        )
-    else:
-        prompt = (
-            f"كام سعرة حرارية في 100 جرام من «{name}»؟ ردّ بجملة قصيرة فيها رقم السعرات لكل "
-            "100 جرام بوضوح (مثال: «الكشري ~150 سعرة لكل 100 جرام»). لو مش متأكد قدّر أقرب رقم معقول."
-        )
-    body: dict = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.0},
-    }
-    if use_search:
-        body["tools"] = [{"google_search": {}}]
-    try:
-        resp = httpx.post(
-            url,
-            params={"key": key},
-            json=body,
-            timeout=settings.FOOD_LOOKUP_GEMINI_TIMEOUT,
-        )
-        if resp.status_code != 200:
-            logger.warning("Gemini food-lookup رجّع %s: %s", resp.status_code, resp.text[:160])
-            return None
-        parts = resp.json()["candidates"][0]["content"]["parts"]
-        text = "".join(p.get("text", "") for p in parts)
-    except Exception:
-        logger.exception("فشل نداء Gemini للبحث الغذائي")
+    from .ai_assistant import ai_complete  # داخل الدالة لتفادي أي استيراد دائري
+
+    prompt = (
+        f"كام سعرة حرارية في 100 جرام من «{name}»؟ ردّ بجملة واحدة قصيرة فيها رقم السعرات "
+        "لكل 100 جرام بوضوح (مثال: «الكشري ~150 سعرة لكل 100 جرام»). "
+        "قدّر أقرب رقم معقول من معرفتك بالقيم الغذائية، وماتكتبش أي حاجة تانية."
+    )
+    system = "إنت مرجع تغذية دقيق، بتجاوب برقم السعرات الحرارية لكل 100 جرام بإيجاز."
+    text = ai_complete(prompt, system, max_tokens=80, temperature=0.0)
+    if not text:
         return None
     kcal = _extract_kcal(text)
     if kcal is None:
         return None
-    return FoodNutrition(kcal_per_100=kcal, source="gemini", matched_name=name[:80])
+    return FoodNutrition(kcal_per_100=kcal, source="ai", matched_name=name[:80])
 
 
 def _remember(db: Session, query_name: str, result: FoodNutrition) -> None:
@@ -195,8 +170,8 @@ def search_food_calories(name: str, *, db: Session | None = None) -> FoodNutriti
     q = (name or "").strip()
     if len(q) < 2:
         return None
-    # Gemini أولاً (أدق وأشمل لأي أكلة)، وإلا OpenFoodFacts (مجاني، للمنتجات المعبّأة).
-    result = _ask_gemini(q) or _search_openfoodfacts(q)
+    # الذكاء الاصطناعي أولاً (أشمل لأي أكلة عربية)، وإلا OpenFoodFacts (للمنتجات المعبّأة).
+    result = _ask_ai(q) or _search_openfoodfacts(q)
     if result is not None and db is not None:
         _remember(db, q, result)
     return result

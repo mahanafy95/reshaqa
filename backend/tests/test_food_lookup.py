@@ -1,6 +1,7 @@
-"""اختبارات البحث الغذائي الخارجي (OpenFoodFacts + Gemini grounding) — بمحاكاة httpx، بلا شبكة."""
+"""اختبارات البحث الغذائي الخارجي (سلسلة الذكاء الاصطناعي المجانية + OpenFoodFacts) — بمحاكاة، بلا شبكة."""
 import httpx
 
+import app.services.ai_assistant as ai
 import app.services.food_lookup as fl
 from app.config import settings
 
@@ -19,14 +20,19 @@ def _enable(monkeypatch):
     monkeypatch.setattr(settings, "FOOD_LOOKUP_ENABLED", True)
 
 
+def _no_ai(monkeypatch):
+    """يخلّي سلسلة الذكاء ترجّع None (نختبر OFF لوحده)."""
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: None)
+
+
 def test_disabled_returns_none(monkeypatch):
     monkeypatch.setattr(settings, "FOOD_LOOKUP_ENABLED", False)
     assert fl.search_food_calories("أي حاجة") is None
 
 
-def test_openfoodfacts_hit_when_no_gemini(monkeypatch):
+def test_openfoodfacts_hit_when_ai_none(monkeypatch):
     _enable(monkeypatch)
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")  # Gemini متخطّى → OFF
+    _no_ai(monkeypatch)  # الذكاء فشل → نرجع لـ OFF
     payload = {"products": [
         {"product_name": "Hazelnut Choc", "nutriments": {
             "energy-kcal_100g": 255, "proteins_100g": 8, "carbohydrates_100g": 52, "fat_100g": 35}},
@@ -39,7 +45,7 @@ def test_openfoodfacts_hit_when_no_gemini(monkeypatch):
 
 def test_off_energy_kj_fallback(monkeypatch):
     _enable(monkeypatch)
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    _no_ai(monkeypatch)
     payload = {"products": [{"product_name": "X", "nutriments": {"energy_100g": 1000}}]}  # kJ -> ~239 kcal
     monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp(200, payload))
     r = fl.search_food_calories("منتج")
@@ -54,45 +60,37 @@ def test_extract_kcal_avoids_the_100g_number():
     assert fl._extract_kcal("مفيش أرقام هنا") is None
 
 
-def test_gemini_answers_food_calories(monkeypatch):
-    """مفتاح Gemini موجود → يُسأل أولاً ويرجّع رقم السعرات (نداء عادي، بدون بحث Google)."""
+def test_ai_answers_food_calories(monkeypatch):
+    """سلسلة الذكاء بترد بجملة فيها السعرات → نطلّع الرقم ومصدره 'ai' (الـ AI أولاً قبل OFF)."""
     _enable(monkeypatch)
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: "حوالي 130 سعرة حرارية لكل 100 جرام")
+    # حتى لو OFF رجّع رقم خرافي، الـ AI بيُسأل أولاً
     monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp(200, {"products": [
         {"product_name": "bad", "nutriments": {"energy-kcal_100g": 99999}}]}))
-    gem = {"candidates": [{"content": {"parts": [{"text": "حوالي 130 سعرة حرارية لكل 100 جرام"}]}}]}
-    monkeypatch.setattr(httpx, "post", lambda *a, **k: _Resp(200, gem))
     r = fl.search_food_calories("أكلة غريبة")
-    assert r is not None and r.source == "gemini" and r.kcal_per_100 == 130
+    assert r is not None and r.source == "ai" and r.kcal_per_100 == 130
 
 
-def test_gemini_omits_paid_search_tool_by_default(monkeypatch):
-    """افتراضيًا (GEMINI_GROUNDING_ENABLED=False) منبعتش أداة بحث Google المدفوعة — نداء عادي مجاني."""
+def test_ai_garbage_then_off(monkeypatch):
+    """لو الذكاء رد بنص من غير رقم سعرات → نرجع لـ OFF."""
     _enable(monkeypatch)
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "g-key")
-    monkeypatch.setattr(settings, "GEMINI_GROUNDING_ENABLED", False)
-    captured = {}
-
-    def cap_post(*a, **k):
-        captured["json"] = k.get("json")
-        return _Resp(200, {"candidates": [{"content": {"parts": [{"text": "120 سعرة لكل 100 جرام"}]}}]})
-
-    monkeypatch.setattr(httpx, "post", cap_post)
-    r = fl.search_food_calories("حاجة جديدة")
-    assert r is not None and r.kcal_per_100 == 120
-    assert "tools" not in (captured.get("json") or {})
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: "مش عارف الأكلة دي")
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp(200, {"products": [
+        {"product_name": "Real", "nutriments": {"energy-kcal_100g": 200}}]}))
+    r = fl.search_food_calories("حاجة")
+    assert r is not None and r.source == "openfoodfacts" and r.kcal_per_100 == 200
 
 
-def test_gemini_skipped_without_key(monkeypatch):
+def test_ai_and_off_both_miss_returns_none(monkeypatch):
     _enable(monkeypatch)
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    _no_ai(monkeypatch)
     monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp(200, {"products": []}))  # OFF miss
     assert fl.search_food_calories("حاجة") is None
 
 
 def test_network_error_is_quiet(monkeypatch):
     _enable(monkeypatch)
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    _no_ai(monkeypatch)
 
     def boom(*a, **k):
         raise httpx.ConnectError("no net")
@@ -110,5 +108,6 @@ def test_short_name_skipped(monkeypatch):
         return _Resp(200, {"products": []})
 
     monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(ai, "ai_complete", lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not call")))
     assert fl.search_food_calories("ا") is None  # أقصر من حرفين → مفيش نداء
     assert called["n"] == 0
