@@ -8,6 +8,7 @@
 """
 import logging
 import math
+import re
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
 from typing import Literal
@@ -200,6 +201,46 @@ def _build_today_context(db: Session, user: User, day: date_type) -> str:
                 wline += f" ({'نزل' if diff < 0 else 'زاد'} {abs(diff):g} كجم آخر أسبوعين)"
         parts.append(wline)
     return " | ".join(parts)
+
+
+def _build_food_facts(db: Session, text: str) -> str:
+    """السعرات الدقيقة من مكتبتنا للأكلات اللي في رسالة المستخدم.
+
+    ده بيحلّ أكبر سبب كان بيخلّي المساعد «غبي»: كان بيخمّن سعرات أي أكلة من عنده (وغالباً
+    بالزيادة) حتى لو عندنا قيمتها الصح في المكتبة (زي الحليب ٦١، وشوكولاتة فيردي بالبندق).
+    بنحقن القيم دي في سياقه ونأمره يستعملها بالظبط بدل ما يخمّن.
+    """
+    if not text:
+        return ""
+    from .foods import _match_library
+
+    # ننضّف كلمات السؤال/الحشو عشان نطلّع اسم الأكلة من جوّه سؤال زي «كام سعرة في حليب؟»
+    cleaned = re.sub(r"[؟?]", " ", text)
+    _STOP = {
+        "كام", "قد", "اد", "ايه", "إيه", "فيها", "فيه", "في", "هي", "هو", "ده", "دي", "دا",
+        "بكام", "كمية", "سعرة", "سعرات", "سعره", "السعرات", "الحرارية", "كالوري", "كالوريز",
+        "عايز", "اعرف", "عرفني", "قولي", "كم", "وكام", "وفيها",
+    }
+    cleaned = " ".join(w for w in cleaned.split() if w not in _STOP)
+
+    facts: list[str] = []
+    seen: set[str] = set()
+    try:
+        parsed = meal_parser.parse_text(cleaned or text, "snack")
+    except Exception:
+        return ""
+    for r in parsed[:6]:
+        name = (r.name_ar or "").strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        try:
+            m = _match_library(db, name)
+        except Exception:
+            m = None
+        if m is not None and m.calories_per_100:
+            facts.append(f"{m.name_ar} = {round(m.calories_per_100)} سعرة لكل 100 جم/مل")
+    return "؛ ".join(facts[:6])
 
 
 def _store_message(db: Session, user_id: int, role: str, content: str) -> None:
@@ -493,9 +534,16 @@ def chat(
             logged, logged_items, logged_total, logged_meal, reply = False, [], 0.0, None, None
 
     if reply is None and not limit_reached:
-        # ندمج ملف المستخدم + سياق يومه (المتبقّي/البروتين/آخر أكل) عشان رد المساعد يبقى ذكي ومفصّل.
+        # ندمج ملف المستخدم + سياق يومه + السعرات الدقيقة من مكتبتنا للأكلات اللي في رسالته،
+        # عشان رد المساعد يبقى ذكي ومضبوط الأرقام (مش تخمين).
         today_ctx = _build_today_context(db, current_user, payload.date or date_type.today())
-        context = "\n".join(p for p in (profile_summary, today_ctx) if p) or None
+        food_facts = _build_food_facts(db, last_user["content"]) if last_user else ""
+        ctx_parts = [profile_summary, today_ctx]
+        if food_facts:
+            ctx_parts.append(
+                "سعرات دقيقة من قاعدتنا — استعملها بالظبط للأكلات دي ومتخمّنش رقم تاني: " + food_facts
+            )
+        context = "\n".join(p for p in ctx_parts if p) or None
         reply = ai_assistant.chat_reply(messages, context) or _AI_OFF_REPLY
 
     # حفظ المحادثة (رسالة المستخدم + ردّ المساعد) مرة واحدة بعد اكتمال المعالجة.

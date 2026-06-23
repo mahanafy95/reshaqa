@@ -58,6 +58,17 @@ _LIBRARY_ALIASES: dict[str, str] = {
 }
 
 
+def _canon_food(name: str) -> str:
+    """يوحّد أشكال الكتابة الشائعة لاسم الأكلة قبل المطابقة (المكتبة مكتوبة «شوكولاتة»،
+    والناس بتكتب «شيكولاتة/شكولاتة»). يمنع فشل مطابقة منتجات موجودة بسبب الإملاء."""
+    q = (name or "").strip()
+    if not q:
+        return ""
+    for variant in ("شيكولات", "شكولات", "تشوكولات", "شوكلات"):
+        q = q.replace(variant, "شوكولات")
+    return q
+
+
 def _match_library(db: Session, name: str) -> FoodLibrary | None:
     """يلاقي أقرب صنف مكتبة لاسم مُدخل — مع تجنّب مطابقة كلمة عامة لنوع مختلف بالغلط.
 
@@ -68,7 +79,7 @@ def _match_library(db: Session, name: str) -> FoodLibrary | None:
       3) الاستعلام ككلمة كاملة جوّه الاسم، بشرط ألا يتجاوز طوله ~2.5 ضعف طول الاستعلام.
     لو مفيش تطابق جيد، يرجّع None (فيستخدم المقدّر).
     """
-    q = (name or "").strip()
+    q = _canon_food(name)
     if not q:
         return None
     ql = q.lower()
