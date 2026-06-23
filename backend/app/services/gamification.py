@@ -44,6 +44,7 @@ def _longest_streak(dates: list[date_type]) -> int:
     """أطول سلسلة أيام متتالية في التاريخ كله."""
     if not dates:
         return 0
+    dates = sorted(set(dates))  # دفاعيًا: منعتمدش على ترتيب المُدخَل
     longest = run = 1
     for prev, cur in zip(dates, dates[1:]):
         if cur - prev == timedelta(days=1):

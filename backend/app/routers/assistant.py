@@ -184,6 +184,21 @@ def _build_today_context(db: Session, user: User, day: date_type) -> str:
     ).all()
     if foods:
         parts.append("آخر أكل النهاردة: " + "، ".join(foods))
+
+    # تقدّم الوزن (لو فيه تسجيلات) — يخلّي المساعد يحفّز على الاتجاه ويربط النصيحة بنتيجته.
+    from ..models.tracking import WeightLog
+    wlogs = db.scalars(
+        select(WeightLog).where(WeightLog.user_id == user.id).order_by(WeightLog.date.desc()).limit(40)
+    ).all()
+    if wlogs:
+        cur = wlogs[0].weight_kg
+        wline = f"الوزن الحالي {round(cur, 1):g} كجم"
+        older = next((w for w in wlogs if (wlogs[0].date - w.date).days >= 12), None)
+        if older is not None:
+            diff = round(cur - older.weight_kg, 1)
+            if abs(diff) >= 0.1:
+                wline += f" ({'نزل' if diff < 0 else 'زاد'} {abs(diff):g} كجم آخر أسبوعين)"
+        parts.append(wline)
     return " | ".join(parts)
 
 

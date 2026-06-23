@@ -169,7 +169,7 @@ def get_library_item(
 @router.get("/estimate", response_model=EstimateOut)
 def estimate_food(
     name: str = Query(..., min_length=1),
-    amount: float = Query(100, gt=0),
+    amount: float = Query(100, gt=0, le=20000),  # حد أقصى 20 كجم — يمنع طفح الضرب
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
