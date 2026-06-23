@@ -225,6 +225,7 @@ def _build_food_facts(db: Session, text: str) -> str:
 
     facts: list[str] = []
     seen: set[str] = set()
+    unmatched: list[str] = []
     try:
         parsed = meal_parser.parse_text(cleaned or text, "snack")
     except Exception:
@@ -240,6 +241,20 @@ def _build_food_facts(db: Session, text: str) -> str:
             m = None
         if m is not None and m.calories_per_100:
             facts.append(f"{m.name_ar} = {round(m.calories_per_100)} سعرة لكل 100 جم/مل")
+        elif len(name) >= 3:
+            unmatched.append(name)
+
+    # لو السؤال عن سعرات أكلة مش عندنا في المكتبة → نبحث عنها على الإنترنت (Gemini + بحث Google)
+    # لأول صنف بس (نحدّ الزمن/الحصة)، والنتيجة بتتخزّن فتبقى فورية المرة الجاية.
+    is_cal_q = any(w in text for w in ("سعر", "كالوري", "kcal", "calorie"))
+    if not facts and is_cal_q and unmatched:
+        try:
+            from ..services import food_lookup
+            web = food_lookup.search_food_calories(unmatched[0], db=db)
+        except Exception:
+            web = None
+        if web is not None:
+            facts.append(f"{web.matched_name or unmatched[0]} = {round(web.kcal_per_100)} سعرة لكل 100 جم/مل")
     return "؛ ".join(facts[:6])
 
 

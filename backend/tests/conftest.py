@@ -6,8 +6,20 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models  # noqa: F401  (تسجيل كل الجداول)
+from app.config import settings
 from app.database import Base, get_db
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def _no_external_food_lookup():
+    """نوقّف البحث الغذائي الخارجي (OpenFoodFacts/Gemini) في الاختبارات — بلا شبكة."""
+    original = settings.FOOD_LOOKUP_ENABLED
+    settings.FOOD_LOOKUP_ENABLED = False
+    try:
+        yield
+    finally:
+        settings.FOOD_LOOKUP_ENABLED = original
 
 
 @pytest.fixture

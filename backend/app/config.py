@@ -86,6 +86,13 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
 
+    # بحث غذائي خارجي لأكلة مش موجودة محليًا (OpenFoodFacts بالاسم + Gemini مع بحث Google).
+    FOOD_LOOKUP_ENABLED: bool = True
+    FOOD_LOOKUP_OFF_TIMEOUT: float = 6.0
+    FOOD_LOOKUP_GEMINI_TIMEOUT: float = 18.0
+    FOOD_LOOKUP_GEMINI_MODEL: str = "gemini-2.0-flash"  # grounding مدعوم + يرجّع confidenceScores
+    OFF_USER_AGENT: str = "Reshaqa/1.0 (mahmoud.ha.hanafy@gmail.com)"
+
     # حد رسائل المساعد الذكي اليومي للمستخدم المجاني (Premium = غير محدود). 0 = بلا حد.
     # يحمي الحصص المجانية ويخلّي الاستخدام غير المحدود ميزة اشتراك.
     FREE_ASSISTANT_DAILY_LIMIT: int = 20

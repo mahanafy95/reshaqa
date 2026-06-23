@@ -33,6 +33,7 @@ from ..schemas.food import (
 )
 from ..services import ai_assistant
 from ..services import barcode as barcode_svc
+from ..services import food_lookup
 from ..services import meal_parser
 from ..services import ocr as ocr_svc
 from ..services.estimator import get_estimator
@@ -203,6 +204,25 @@ def estimate_food(
         )
 
     est = get_estimator().estimate(name, amount)
+
+    # أكلة مش معروفة محليًا → بحث غذائي على الإنترنت (OpenFoodFacts ثم Gemini-grounding)
+    if getattr(est, "confidence", "low") == "low":
+        web = food_lookup.search_food_calories(name, db=db)
+        if web is not None:
+            f = amount / 100.0
+            return EstimateOut(
+                name_ar=web.matched_name or name,
+                amount_g=amount,
+                calories=round(web.kcal_per_100 * f),
+                protein=round((web.protein or 0) * f, 1),
+                carbs=round((web.carbs or 0) * f, 1),
+                fat=round((web.fat or 0) * f, 1),
+                per100_calories=web.kcal_per_100,
+                confidence="medium",
+                note_ar="من بحث غذائي على الإنترنت — راجع الرقم.",
+                source=FoodSource.estimated,
+            )
+
     return EstimateOut(
         name_ar=est.name_ar,
         amount_g=est.amount_g,
@@ -285,6 +305,23 @@ def _price_item(
         )
 
     est = get_estimator().estimate(name_ar, grams)
+
+    # أكلة مش معروفة محليًا (تقدير افتراضي ثقته منخفضة) → نبحث عنها على الإنترنت
+    # (OpenFoodFacts ثم Gemini مع بحث Google) عشان نجيب سعراتها الحقيقية بدل التخمين.
+    if getattr(est, "confidence", "low") == "low":
+        web = food_lookup.search_food_calories(name_ar, db=db)
+        if web is not None:
+            f = grams / 100.0
+            return ParsedFoodItem(
+                name_ar=web.matched_name or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
+                calories=round(web.kcal_per_100 * f),
+                protein=round((web.protein or 0) * f, 1),
+                carbs=round((web.carbs or 0) * f, 1),
+                fat=round((web.fat or 0) * f, 1),
+                confidence="medium", source=FoodSource.estimated,
+                note_ar="من بحث غذائي على الإنترنت — راجع الرقم.",
+            )
+
     return ParsedFoodItem(
         name_ar=est.name_ar or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
         calories=round(est.calories), protein=round(est.protein, 1),
