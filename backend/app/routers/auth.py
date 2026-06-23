@@ -185,12 +185,14 @@ def google_login(
 
 
 @router.post("/email", response_model=UserOut)
+@limiter.limit("6/hour")
 def set_email(
+    request: Request,
     payload: SetEmailRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UserOut:
-    """يضيف/يعدّل بريد المستخدم الحالي (مطلوب لإعادة تعيين كلمة السر)."""
+    """يضيف/يعدّل بريد المستخدم الحالي (مطلوب لإعادة تعيين كلمة السر) — محدود ٦/ساعة ضد العبث."""
     if _email_taken(db, payload.email, exclude_user_id=current_user.id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
