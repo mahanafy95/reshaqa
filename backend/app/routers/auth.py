@@ -212,7 +212,15 @@ def set_email(
             detail="البريد ده مستخدم بحساب تاني.",
         )
     current_user.email = payload.email
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # سباق تزامن نادر على قيد البريد الفريد (طلبان عدّيا الفحص سوا) → 409 نظيفة بدل 500
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="البريد ده مستخدم بحساب تاني.",
+        )
     db.refresh(current_user)
     return _user_out(current_user)
 

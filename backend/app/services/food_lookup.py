@@ -32,7 +32,7 @@ class FoodNutrition:
     protein: float | None = None
     carbs: float | None = None
     fat: float | None = None
-    source: str = ""              # openfoodfacts | gemini_search
+    source: str = ""              # ai | openfoodfacts
     matched_name: str | None = None
 
 
@@ -164,7 +164,7 @@ def _remember(db: Session, query_name: str, result: FoodNutrition) -> None:
 
 
 def search_food_calories(name: str, *, db: Session | None = None) -> FoodNutrition | None:
-    """يبحث عن سعرات أكلة مش موجودة محليًا (OpenFoodFacts ثم Gemini-grounding). None لو فشل."""
+    """يبحث عن سعرات أكلة مش موجودة محليًا (سلسلة الذكاء المجانية ثم OpenFoodFacts). None لو فشل."""
     if not settings.FOOD_LOOKUP_ENABLED:
         return None
     q = (name or "").strip()

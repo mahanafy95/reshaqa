@@ -138,12 +138,16 @@ class _MealChatScreenState extends State<MealChatScreen> {
     } catch (_) {}
   }
 
-  // أمر تسجيل قصير («سجل الكل»/«سجلهم»/«احفظ») والأصناف جاهزة → نسجّلها بدل ما نحلّلها كأكل جديد
+  // أمر تسجيل قصير («سجل الكل»/«سجلهم»/«احفظ») والأصناف جاهزة → نسجّلها بدل ما نحلّلها كأكل جديد.
+  // نطابق ككلمات كاملة (مش substring) عشان اسم أكل زي «مسجّله» ما يفعّلش التسجيل بالغلط.
   bool _looksLikeLogCommand(String t) {
     final s = t.trim();
-    if (s.length > 24) return false;
-    const cmds = ['سجل', 'سجّل', 'احفظ', 'ثبت', 'ثبّت', 'سجلهم', 'سجّلهم', 'ضيفهم', 'ضيف الكل', 'ضيف كله', 'اضف', 'أضف'];
-    return cmds.any((c) => s.contains(c));
+    if (s.isEmpty || s.length > 24) return false;
+    const phrases = ['سجل الكل', 'سجّل الكل', 'ضيف الكل', 'ضيف كله', 'احفظ الكل'];
+    if (phrases.any((p) => s.startsWith(p))) return true;
+    const words = ['سجل', 'سجّل', 'احفظ', 'ثبت', 'ثبّت', 'سجلهم', 'سجّلهم', 'ضيفهم', 'اضف', 'أضف'];
+    final toks = s.split(RegExp(r'\s+'));
+    return words.any(toks.contains);
   }
 
   void _scrollDown() {
