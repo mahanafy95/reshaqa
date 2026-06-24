@@ -4,6 +4,12 @@
       "source": "/reshaqa.apk",
       "destination": "https://reshaqa-app.web.app/reshaqa-latest",
       "permanent": false
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "web-nine-ochre-83.vercel.app" }],
+      "destination": "https://rashaqa.vercel.app/:path*",
+      "permanent": false
     }
   ]
 }
