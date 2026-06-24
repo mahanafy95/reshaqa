@@ -4,10 +4,27 @@ from datetime import date
 import app.routers.foods as foods_router
 from app.config import settings
 from app.models.food import FoodLibrary
-from app.routers.foods import _match_library
+from app.routers.foods import _is_zero_cal_sweetener, _match_library
 from tests.conftest import auth_headers
 
 TODAY = "2026-06-17"
+
+
+def test_zero_cal_sweetener_detection():
+    z = _is_zero_cal_sweetener
+    # محلّيات بدون سعرات → True (كانت بتتحسب زي السكر ٤٠٠ — ده الباگ اللي اتبلّغ)
+    assert z("سكر استيفيا")
+    assert z("استيفيا")
+    assert z("سكر استفيا صفر سعرات")  # نفس حالة لقطة الشاشة
+    assert z("سكرالوز")
+    assert z("محلي صناعي")
+    assert z("عصير صفر سعرات")  # عبارة صريحة → نحترمها
+    # حاجات حقيقية ليها سعرات → False (مش بنصفّرها بالغلط)
+    assert not z("سكر")
+    assert not z("سكر بني")
+    assert not z("كيك استيفيا")
+    assert not z("شوكولاتة")
+    assert not z("")
 
 
 def _seed_lib(db):

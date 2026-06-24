@@ -70,6 +70,43 @@ def _canon_food(name: str) -> str:
     return q
 
 
+# محلّيات بدون سعرات (استيفيا/سكرالوز...) — سعراتها صفر فعليًا، مش زي السكر (≈٤٠٠).
+_SWEETENERS = {
+    "استيفيا", "استفيا", "ستيفيا", "ستفيا", "أستيفيا",
+    "سكرالوز", "سكرلوز", "سوكرالوز",
+    "أسبارتام", "اسبارتام", "اسبرتام",
+    "سكارين", "سكرين", "ساكارين",
+    "إريثريتول", "اريثريتول",
+    "سويتنر", "stevia", "sucralose", "aspartame",
+}
+# كلمات حشو نشيلها قبل ما نقرّر إن الاسم محلّي بحت (مش أكلة فيها محلّي).
+_SWEETENER_FILLERS = {
+    "سكر", "محلي", "محلّي", "محلى", "طبيعي", "صناعي", "دايت", "بدون", "صفر",
+    "سعرات", "سعره", "سعر", "حرارية", "زيرو", "نقي",
+    "ملعقة", "ملعقه", "ملاعق", "كوب", "كوباية", "نقطة", "نقط", "قرص", "اقراص", "كيس", "ظرف",
+}
+# عبارات صريحة معناها صفر سعرة — نحترم كلام المستخدم.
+_ZERO_CAL_PHRASES = (
+    "صفر سعرات", "صفر سعره", "بدون سعرات", "زيرو سعرات", "زيرو كالوري",
+    "0 سعرة", "0 سعرات", "zero cal", "محلي صناعي", "محلّي صناعي", "سكر دايت", "سكر دايت",
+)
+
+
+def _is_zero_cal_sweetener(name: str) -> bool:
+    """True لو الاسم محلّي بدون سعرات (استيفيا/سكرالوز...) أو مكتوب فيه «صفر سعرات» صراحةً.
+
+    بنرجّع صفر سعرة بدل ما يتحسب زي السكر (٤٠٠) — ده كان أكبر مصدر غباء في التقدير.
+    محافظ: «سكر» لوحده يفضل سكر عادي، و«كيك استيفيا» يفضل أكلة عادية (مش محلّي بحت).
+    """
+    q = _canon_food(name).lower().replace("،", " ")
+    if not q:
+        return False
+    if any(p in q for p in _ZERO_CAL_PHRASES):
+        return True
+    words = [w for w in q.split() if w not in _SWEETENER_FILLERS]
+    return bool(words) and all(w in _SWEETENERS for w in words)
+
+
 def _match_library(db: Session, name: str) -> FoodLibrary | None:
     """يلاقي أقرب صنف مكتبة لاسم مُدخل — مع تجنّب مطابقة كلمة عامة لنوع مختلف بالغلط.
 
@@ -203,6 +240,14 @@ def estimate_food(
             source=FoodSource.library,
         )
 
+    # محلّي بدون سعرات (استيفيا/سكرالوز/«صفر سعرات») → صفر سعرة (مش زي السكر)
+    if _is_zero_cal_sweetener(name):
+        return EstimateOut(
+            name_ar=name, amount_g=amount, calories=0, protein=0, carbs=0, fat=0,
+            per100_calories=0, confidence="high",
+            note_ar="محلّي بدون سعرات — سعراته صفر تقريبًا.", source=FoodSource.estimated,
+        )
+
     # أكلة مش في المكتبة → بحث غذائي مؤرَّض على الإنترنت (Gemini + بحث Google ثم OpenFoodFacts)
     web = food_lookup.search_food_calories(name, db=db)
     if web is not None:
@@ -281,6 +326,15 @@ def _price_item(
          بدل المقدّر «الغبي».
       3) وإلا المقدّر المحلي (المدعوم بالـ AI أو الـ heuristic).
     """
+    # 0) محلّي بدون سعرات (استيفيا/سكرالوز/«صفر سعرات») → صفر سعرة، يتجاوز أي تقدير AI خاطئ.
+    if _is_zero_cal_sweetener(name_ar):
+        return ParsedFoodItem(
+            name_ar=name_ar.strip() or name_ar, qty=qty, unit=unit_ar, grams=grams, meal=meal,
+            calories=0, protein=0, carbs=0, fat=0,
+            confidence="high", source=FoodSource.estimated,
+            note_ar="محلّي بدون سعرات — سعراته صفر تقريبًا.",
+        )
+
     match = _match_library(db, name_ar)
     if match is not None:
         f = grams / 100.0
