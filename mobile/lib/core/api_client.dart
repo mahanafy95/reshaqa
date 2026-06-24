@@ -21,8 +21,10 @@ class ApiClient {
   ApiClient._() {
     _dio = Dio(BaseOptions(
       baseUrl: kApiBaseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 20),
+      // السيرفر المجاني (Render) بينام بعد خمول، وأول طلب بعدها بياخد ~40-50 ثانية
+      // عشان يصحى — فبنوسّع المهلة عشان مايطلعش "error" وهو لسه بيصحى، بس يستنى.
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 60),
       headers: {'Content-Type': 'application/json'},
     ));
     _dio.interceptors.add(InterceptorsWrapper(
@@ -83,6 +85,10 @@ class ApiClient {
           final first = detail.first;
           if (first is Map && first['msg'] != null) return first['msg'].toString();
         }
+      }
+      if (e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        return 'الخادم بيصحى من السكون (الباقة المجانية) — استنى لحظات وجرّب تاني.';
       }
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout) {
