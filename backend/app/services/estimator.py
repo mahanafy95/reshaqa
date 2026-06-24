@@ -9,6 +9,42 @@ from dataclasses import dataclass
 
 from ..config import settings
 
+# محلّيات بدون سعرات (استيفيا/سكرالوز...) — سعراتها صفر فعليًا، مش زي السكر (≈٤٠٠).
+_SWEETENERS = {
+    "استيفيا", "استفيا", "ستيفيا", "ستفيا", "أستيفيا",
+    "سكرالوز", "سكرلوز", "سوكرالوز",
+    "أسبارتام", "اسبارتام", "اسبرتام",
+    "سكارين", "سكرين", "ساكارين",
+    "إريثريتول", "اريثريتول",
+    "سويتنر", "stevia", "sucralose", "aspartame",
+}
+_SWEETENER_FILLERS = {
+    "سكر", "محلي", "محلّي", "محلى", "طبيعي", "صناعي", "دايت", "بدون", "صفر",
+    "سعرات", "سعره", "سعر", "حرارية", "زيرو", "نقي",
+    "ملعقة", "ملعقه", "ملاعق", "كوب", "كوباية", "نقطة", "نقط", "قرص", "اقراص", "كيس", "ظرف",
+}
+_ZERO_CAL_PHRASES = (
+    "صفر سعرات", "صفر سعره", "بدون سعرات", "زيرو سعرات", "زيرو كالوري",
+    "0 سعرة", "0 سعرات", "zero cal", "محلي صناعي", "محلّي صناعي", "سكر دايت",
+)
+
+
+def is_zero_cal_sweetener(name: str) -> bool:
+    """True لو الاسم محلّي بدون سعرات (استيفيا/سكرالوز...) أو فيه «صفر سعرات» صراحةً.
+
+    محافظ: «سكر» لوحده يفضل سكر عادي، و«كيك استيفيا» يفضل أكلة عادية (مش محلّي بحت).
+    """
+    q = (name or "").strip().lower().replace("،", " ")
+    for variant in ("شيكولات", "شكولات"):  # ماينفعش يتلخبط مع الشوكولاتة
+        if variant in q:
+            return False
+    if not q:
+        return False
+    if any(p in q for p in _ZERO_CAL_PHRASES):
+        return True
+    words = [w for w in q.split() if w not in _SWEETENER_FILLERS]
+    return bool(words) and all(w in _SWEETENERS for w in words)
+
 
 @dataclass
 class EstimateResult:
@@ -86,6 +122,13 @@ class HeuristicEstimator:
 
     def estimate(self, name_ar: str, amount_g: float) -> EstimateResult:
         text = (name_ar or "").strip()
+        # محلّي بدون سعرات (استيفيا/سكرالوز/«صفر سعرات») → صفر سعرة، مش زي السكر.
+        if is_zero_cal_sweetener(text):
+            return EstimateResult(
+                name_ar=text, amount_g=amount_g, calories=0, protein=0, carbs=0, fat=0,
+                per100_calories=0, confidence="high",
+                note_ar="محلّي بدون سعرات — سعراته صفر تقريبًا.", provider="heuristic",
+            )
         per100 = _DEFAULT
         confidence = "low"
         note = "تقدير تقريبي — تقدر تعدّل الرقم يدوياً لو عندك القيمة الدقيقة."

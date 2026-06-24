@@ -36,7 +36,7 @@ from ..services import barcode as barcode_svc
 from ..services import food_lookup
 from ..services import meal_parser
 from ..services import ocr as ocr_svc
-from ..services.estimator import HeuristicEstimator
+from ..services.estimator import HeuristicEstimator, is_zero_cal_sweetener
 
 router = APIRouter(prefix="/foods", tags=["تسجيل الأكل"])
 
@@ -70,41 +70,9 @@ def _canon_food(name: str) -> str:
     return q
 
 
-# محلّيات بدون سعرات (استيفيا/سكرالوز...) — سعراتها صفر فعليًا، مش زي السكر (≈٤٠٠).
-_SWEETENERS = {
-    "استيفيا", "استفيا", "ستيفيا", "ستفيا", "أستيفيا",
-    "سكرالوز", "سكرلوز", "سوكرالوز",
-    "أسبارتام", "اسبارتام", "اسبرتام",
-    "سكارين", "سكرين", "ساكارين",
-    "إريثريتول", "اريثريتول",
-    "سويتنر", "stevia", "sucralose", "aspartame",
-}
-# كلمات حشو نشيلها قبل ما نقرّر إن الاسم محلّي بحت (مش أكلة فيها محلّي).
-_SWEETENER_FILLERS = {
-    "سكر", "محلي", "محلّي", "محلى", "طبيعي", "صناعي", "دايت", "بدون", "صفر",
-    "سعرات", "سعره", "سعر", "حرارية", "زيرو", "نقي",
-    "ملعقة", "ملعقه", "ملاعق", "كوب", "كوباية", "نقطة", "نقط", "قرص", "اقراص", "كيس", "ظرف",
-}
-# عبارات صريحة معناها صفر سعرة — نحترم كلام المستخدم.
-_ZERO_CAL_PHRASES = (
-    "صفر سعرات", "صفر سعره", "بدون سعرات", "زيرو سعرات", "زيرو كالوري",
-    "0 سعرة", "0 سعرات", "zero cal", "محلي صناعي", "محلّي صناعي", "سكر دايت", "سكر دايت",
-)
-
-
-def _is_zero_cal_sweetener(name: str) -> bool:
-    """True لو الاسم محلّي بدون سعرات (استيفيا/سكرالوز...) أو مكتوب فيه «صفر سعرات» صراحةً.
-
-    بنرجّع صفر سعرة بدل ما يتحسب زي السكر (٤٠٠) — ده كان أكبر مصدر غباء في التقدير.
-    محافظ: «سكر» لوحده يفضل سكر عادي، و«كيك استيفيا» يفضل أكلة عادية (مش محلّي بحت).
-    """
-    q = _canon_food(name).lower().replace("،", " ")
-    if not q:
-        return False
-    if any(p in q for p in _ZERO_CAL_PHRASES):
-        return True
-    words = [w for w in q.split() if w not in _SWEETENER_FILLERS]
-    return bool(words) and all(w in _SWEETENERS for w in words)
+# كشف المحلّيات بدون سعرات (استيفيا/سكرالوز/«صفر سعرات») — مصدر واحد في estimator.py
+# عشان كل المسارات (تسعير/تقدير/heuristic) تتصرّف بنفس الطريقة.
+_is_zero_cal_sweetener = is_zero_cal_sweetener
 
 
 def _match_library(db: Session, name: str) -> FoodLibrary | None:
