@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
@@ -74,11 +77,73 @@ class _MealChatScreenState extends State<MealChatScreen> {
   List<Map<String, dynamic>> _pending = [];
   bool _busy = false;
 
+  static const _stateKey = 'meal_chat_state_v1';
+
+  @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
   @override
   void dispose() {
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  // ----- حفظ/استرجاع المحادثة محليًا عشان متضيعش لما تقفل وتفتح -----
+  Future<void> _restore() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final raw = sp.getString(_stateKey);
+      if (raw == null) return;
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final msgs = (data['msgs'] as List?) ?? [];
+      final pend = (data['pending'] as List?) ?? [];
+      if (msgs.isEmpty) return;
+      if (!mounted) return;
+      setState(() {
+        _msgs
+          ..clear()
+          ..addAll(msgs.map((m) => _Msg(m['role'] as String, m['text'] as String)));
+        _pending = pend.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      });
+      _scrollDown();
+    } catch (_) {/* لو فشل الاسترجاع نبدأ محادثة جديدة */}
+  }
+
+  Future<void> _persist() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      // نحتفظ بآخر ~40 رسالة بس عشان مايكبرش التخزين
+      final msgs = _msgs.length > 40 ? _msgs.sublist(_msgs.length - 40) : _msgs;
+      await sp.setString(_stateKey, jsonEncode({
+        'msgs': msgs.map((m) => {'role': m.role, 'text': m.text}).toList(),
+        'pending': _pending,
+      }));
+    } catch (_) {/* التخزين best-effort */}
+  }
+
+  Future<void> _clearChat() async {
+    setState(() {
+      _msgs
+        ..clear()
+        ..add(_Msg('bot', 'اتمسحت المحادثة. اكتبلي أكلت إيه وأنا أحسبه وأسجّلهولك.'));
+      _pending = [];
+    });
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.remove(_stateKey);
+    } catch (_) {}
+  }
+
+  // أمر تسجيل قصير («سجل الكل»/«سجلهم»/«احفظ») والأصناف جاهزة → نسجّلها بدل ما نحلّلها كأكل جديد
+  bool _looksLikeLogCommand(String t) {
+    final s = t.trim();
+    if (s.length > 24) return false;
+    const cmds = ['سجل', 'سجّل', 'احفظ', 'ثبت', 'ثبّت', 'سجلهم', 'سجّلهم', 'ضيفهم', 'ضيف الكل', 'ضيف كله', 'اضف', 'أضف'];
+    return cmds.any((c) => s.contains(c));
   }
 
   void _scrollDown() {
@@ -92,6 +157,16 @@ class _MealChatScreenState extends State<MealChatScreen> {
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _busy) return;
+    // لو المستخدم كتب أمر تسجيل («سجل الكل»...) والأصناف جاهزة → نسجّلها فعلاً
+    if (_pending.isNotEmpty && _looksLikeLogCommand(text)) {
+      setState(() {
+        _msgs.add(_Msg('user', text));
+        _input.clear();
+      });
+      _scrollDown();
+      await _logAll();
+      return;
+    }
     setState(() {
       _msgs.add(_Msg('user', text));
       _input.clear();
@@ -112,6 +187,7 @@ class _MealChatScreenState extends State<MealChatScreen> {
     } finally {
       setState(() => _busy = false);
       _scrollDown();
+      _persist();
     }
   }
 
@@ -145,13 +221,38 @@ class _MealChatScreenState extends State<MealChatScreen> {
     } finally {
       setState(() => _busy = false);
       _scrollDown();
+      _persist();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🤖 المساعد الذكي')),
+      appBar: AppBar(
+        title: const Text('🤖 المساعد الذكي'),
+        actions: [
+          IconButton(
+            tooltip: 'مسح المحادثة',
+            icon: const Text('🗑️', style: TextStyle(fontSize: 18)),
+            onPressed: _busy
+                ? null
+                : () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('مسح المحادثة؟'),
+                        content: const Text('هتبدأ محادثة جديدة. الأكل اللي سجّلته قبل كده في يومك مش هيتمسح.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+                          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('مسح')),
+                        ],
+                      ),
+                    );
+                    if (ok == true) _clearChat();
+                  },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -260,13 +361,13 @@ class _MealChatScreenState extends State<MealChatScreen> {
             underline: const SizedBox(),
             isDense: true,
             items: _meals.entries.map((m) => DropdownMenuItem(value: m.key, child: Text(m.value, style: const TextStyle(fontSize: 12)))).toList(),
-            onChanged: (v) => setState(() => it['meal'] = v),
+            onChanged: (v) { setState(() => it['meal'] = v); _persist(); },
           ),
           Text('${(it['calories'] as num?)?.round() ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(' سعرة', style: TextStyle(fontSize: 11, color: mutedColor(context))),
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(32, 32), padding: EdgeInsets.zero),
-            onPressed: () => setState(() => _pending.removeAt(i)),
+            onPressed: () { setState(() => _pending.removeAt(i)); _persist(); },
             child: const Text('✕', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
           ),
         ],
