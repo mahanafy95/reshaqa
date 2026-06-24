@@ -121,6 +121,16 @@ def test_resolve_grams_egg_default_50g():
     assert resolve_grams(1, None, None, None, "حاجة غريبة") == 100
 
 
+def test_resolve_grams_countable_food_defaults():
+    # «1 توست بر» = شريحة ~27جم مش 100 (تطابق أول كلمة)
+    assert resolve_grams(1, None, None, None, "توست بر") == 27
+    assert resolve_grams(2, None, None, None, "توست") == 54
+    # ملعقة صغيرة نوتيلا = 5جم (وحدة صريحة)
+    assert resolve_grams(1, "ملعقة صغيرة", None, None, "نوتيلا") == 5
+    # ثمرة فاكهة متوسطة
+    assert resolve_grams(1, None, None, None, "تفاحة") == 150
+
+
 # ---------- إزالة صفات الحجم من اسم الصنف ----------
 def test_strips_size_adjective_from_name():
     items = parse_text("كشري وسط")

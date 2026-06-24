@@ -159,14 +159,27 @@ def wants_to_log(text: str) -> bool:
 # مفتاح = الاسم بعد التطبيع. البيضة ~50جم (مش 100).
 _DEFAULT_GRAMS_BY_NAME: dict[str, float] = {
     "بيض": 50.0, "بيضة": 50.0, "بيضه": 50.0,
+    # أصناف معدودة شائعة بوحدة طبيعية مش 100جم
+    "توست": 27.0, "توستة": 27.0, "توسته": 27.0,  # شريحة توست (بر/أبيض)
+    "بسكويت": 12.0, "بسكوت": 12.0, "بسكويتة": 12.0,
+    "قرص": 15.0, "قطعة": 30.0,
+    "تفاحة": 150.0, "موزة": 120.0, "برتقانة": 130.0, "ثمرة": 130.0,
 }
 
 
 def default_grams_for_name(name_ar: str | None) -> float | None:
-    """جرام افتراضي للصنف بالاسم لو معروف (زي البيض ~50جم/وحدة)، وإلا None."""
+    """جرام افتراضي للصنف بالاسم لو معروف (زي البيض ~50جم، التوست ~27جم/شريحة)، وإلا None.
+
+    بيجرّب التطابق التام الأول، وبعدين أول كلمة (عشان «توست بر» تتطابق مع «توست»).
+    """
     if not name_ar:
         return None
-    return _DEFAULT_GRAMS_BY_NAME.get(name_ar.strip())
+    n = name_ar.strip()
+    exact = _DEFAULT_GRAMS_BY_NAME.get(n)
+    if exact is not None:
+        return exact
+    parts = n.split()
+    return _DEFAULT_GRAMS_BY_NAME.get(parts[0]) if parts else None
 
 
 # ---------- صفات الحجم تُزال من آخر اسم الصنف ----------
