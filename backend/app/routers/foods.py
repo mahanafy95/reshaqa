@@ -368,6 +368,14 @@ def parse_meal(
     default_meal = payload.default_meal
     out: list[ParsedFoodItem] = []
 
+    # سؤال واضح عن السعرات («احسب لي سعرات شوت قهوة»، «كام سعرة في…») → نجاوبه،
+    # مش نسجّله كأكل (كان بيتسجّل غلط كصنف اسمه «احسب لي سعرات…»).
+    if meal_parser.is_calorie_question(payload.text):
+        reply = (ai_assistant.general_reply(payload.text) if settings.ai_enabled else None) or _QUESTION_FALLBACK_REPLY
+        return ParseResponse(
+            items=[], total_calories=0, logged=False, logged_ids=[], reply_ar=reply,
+        )
+
     if settings.ai_enabled:
         ai = ai_assistant.parse_meal_ai(payload.text)
         # نثق في «ده سؤال» بس لو المحلّل المحلي وافق — يمنع موديل ضعيف إنه يصنّف أكل واضح

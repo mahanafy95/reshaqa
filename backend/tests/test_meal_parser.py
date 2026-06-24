@@ -121,6 +121,18 @@ def test_resolve_grams_egg_default_50g():
     assert resolve_grams(1, None, None, None, "حاجة غريبة") == 100
 
 
+def test_calorie_question_not_logged_as_food():
+    from app.services.meal_parser import is_calorie_question
+    # أسئلة عن السعرات → سؤال (مش أكل)
+    assert is_calorie_question("احسب لي سعرات شوت قهوة")
+    assert is_calorie_question("كام سعرة في التفاحة")
+    assert is_calorie_question("عايز اعرف سعرات الكشري")
+    # أوامر تسجيل وأكل عادي → مش سؤال سعرات
+    assert not is_calorie_question("احسبهم")
+    assert not is_calorie_question("اكلت بيضتين وكوباية لبن")
+    assert not is_calorie_question("سكر استفيا صفر سعرات")
+
+
 def test_resolve_grams_countable_food_defaults():
     # «1 توست بر» = شريحة ~27جم مش 100 (تطابق أول كلمة)
     assert resolve_grams(1, None, None, None, "توست بر") == 27
