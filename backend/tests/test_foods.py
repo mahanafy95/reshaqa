@@ -19,11 +19,19 @@ def test_zero_cal_sweetener_detection():
     assert z("سكرالوز")
     assert z("محلي صناعي")
     assert z("عصير صفر سعرات")  # عبارة صريحة → نحترمها
+    # مشروبات غازية دايت/زيرو → صفر
+    assert z("بيبسي دايت")
+    assert z("كوكا كولا زيرو")
+    assert z("سبرايت دايت")
     # حاجات حقيقية ليها سعرات → False (مش بنصفّرها بالغلط)
     assert not z("سكر")
     assert not z("سكر بني")
     assert not z("كيك استيفيا")
     assert not z("شوكولاتة")
+    assert not z("شوكولاتة دايت")   # «كولا» جوّه «شوكولاتة» مايلخبطش — الشوكولاتة ليها سعرات
+    assert not z("آيس كريم دايت")   # مش مشروب غازي
+    assert not z("زبادي لايت")
+    assert not z("بيبسي")           # عادي مش دايت
     assert not z("")
 
 
