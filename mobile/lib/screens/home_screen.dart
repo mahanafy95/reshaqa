@@ -390,9 +390,9 @@ class _TodayLogCard extends StatelessWidget {
   Future<void> _edit(BuildContext context, Map<String, dynamic> f) async {
     final amountCtrl = TextEditingController(text: '${(f['amount'] as num?)?.round() ?? 100}');
     final calCtrl = TextEditingController(text: '${(f['calories'] as num?)?.round() ?? 0}');
-    final proteinCtrl = TextEditingController(text: '${(f['protein'] as num?)?.toStringAsFixed(1) ?? '0'}');
-    final carbsCtrl = TextEditingController(text: '${(f['carbs'] as num?)?.toStringAsFixed(1) ?? '0'}');
-    final fatCtrl = TextEditingController(text: '${(f['fat'] as num?)?.toStringAsFixed(1) ?? '0'}');
+    final proteinCtrl = TextEditingController(text: (f['protein'] as num?)?.toStringAsFixed(1) ?? '0');
+    final carbsCtrl = TextEditingController(text: (f['carbs'] as num?)?.toStringAsFixed(1) ?? '0');
+    final fatCtrl = TextEditingController(text: (f['fat'] as num?)?.toStringAsFixed(1) ?? '0');
     TextField numField(TextEditingController c, String label) => TextField(
           controller: c,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),

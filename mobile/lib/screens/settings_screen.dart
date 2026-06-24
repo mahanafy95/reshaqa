@@ -400,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await Api.deleteAccount();
     } catch (e) {
-      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+      if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
       return;
     }
     await app.logout();

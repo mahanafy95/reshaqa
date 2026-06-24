@@ -122,7 +122,7 @@ class _WaterScreenState extends State<WaterScreen> {
                         onPressed: () async {
                           await NotificationsService.requestPermissions();
                           await NotificationsService.scheduleWaterReminders();
-                          if (mounted) {
+                          if (context.mounted) {
                             showSnack(context, 'تمام ✅ هتوصلك تنبيهات شرب المياه على مدار اليوم (بصوت حتى لو صامت)');
                           }
                         },

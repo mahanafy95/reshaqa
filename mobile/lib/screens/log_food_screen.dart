@@ -1197,9 +1197,9 @@ class _RecipesTabState extends State<_RecipesTab> {
     if (servings == null || !mounted) return;
     try {
       await Api.logRecipe(recipe['id'], {'date': widget.date, 'meal': widget.meal, 'servings': servings});
-      if (context.mounted) showSnack(context, 'اتسجّل نصيبك 👍');
+      if (mounted) showSnack(context, 'اتسجّل نصيبك 👍');
     } catch (e) {
-      if (context.mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
+      if (mounted) showSnack(context, ApiClient.errorMessage(e), error: true);
     }
   }
 

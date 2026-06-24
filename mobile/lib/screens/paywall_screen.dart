@@ -120,7 +120,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           final app = context.read<AppState>();
                           await BillingService.restore();
                           app.refreshPremium();
-                          if (mounted) showSnack(context, 'بنستعيد مشترياتك…');
+                          if (context.mounted) showSnack(context, 'بنستعيد مشترياتك…');
                         },
                   child: const Text('استعادة المشتريات'),
                 ),
